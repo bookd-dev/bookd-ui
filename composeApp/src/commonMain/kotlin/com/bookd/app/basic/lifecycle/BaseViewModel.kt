@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.plus
-import kotlin.collections.get
 
 abstract class BaseViewModel(
     handler: CoroutineExceptionHandler? = null
