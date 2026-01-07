@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.kotlinxSerialization)
 }
 
 kotlin {
@@ -44,6 +45,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -52,8 +54,30 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(compose.material3AdaptiveNavigationSuite)
+            implementation(compose.materialIconsExtended)
+
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            // material3
+            implementation(libs.material3.adaptive)
+            implementation(libs.material3.adaptive.layout)
+
+            // Ktor Client
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.contentNegotiation)
+            implementation(libs.ktor.serialization.kotlinxJson)
+            implementation(libs.ktor.client.logging)
+            // kotlin coroutine
+            implementation(libs.kotlinx.coroutines.core)
+            // nav3
+            implementation(libs.nav3.ui)
+            implementation(libs.nav3.material3.adaptive)
+            implementation(libs.nav3.lifecycle.viewmodel)
+            // Koin
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -61,6 +85,18 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.ktor.client.okhttp)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        jsMain.dependencies {
+            implementation(libs.ktor.client.js)
+            implementation(libs.nav3.browser)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.ktor.client.js)
+            implementation(libs.nav3.browser)
         }
     }
 }
