@@ -31,7 +31,6 @@ import com.bookd.app.ui.icons.Settings
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 
 private sealed interface TopLevelRoute : NavKey {
     val iconOutline: ImageVector
