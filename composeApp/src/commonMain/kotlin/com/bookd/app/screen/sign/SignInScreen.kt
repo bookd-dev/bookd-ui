@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.bookd.app.screen.LocalNavBackStack
-import com.bookd.app.screen.main.RouteSettings
+import com.bookd.app.screen.RouteMain
 
 
 @Composable
@@ -18,7 +18,7 @@ fun SignInScreen() {
 
     Column(
         modifier = Modifier.fillMaxSize().clickable {
-            navBackStack.add(RouteSettings)
+            navBackStack.add(RouteMain.RouteSettings)
         },
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,

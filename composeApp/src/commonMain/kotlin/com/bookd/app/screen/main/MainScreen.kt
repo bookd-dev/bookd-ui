@@ -28,46 +28,49 @@ import app.composeapp.generated.resources.settings
 import com.bookd.app.basic.navigation.popTransitionSpec
 import com.bookd.app.basic.navigation.predictivePopTransitionSpec
 import com.bookd.app.basic.navigation.transitionSpec
+import com.bookd.app.screen.LocalNavBackStack
+import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSHELF
+import com.bookd.app.screen.RouteMain.Companion.ROUTE_SETTINGS
 import com.bookd.app.screen.bookshelf.BookshelfScreen
 import com.bookd.app.screen.settings.SettingsScreen
+import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import kotlin.collections.remove
 
-private sealed interface TopLevelRoute {
+private sealed interface TopLevelRoute : NavKey {
     val icon: DrawableResource
-
     val description: StringResource
+    val route: String
 }
 
-//@Serializable
-private data object Bookshelf : TopLevelRoute, NavKey {
+@Serializable
+data object Bookshelf : TopLevelRoute {
     override val icon = Res.drawable.compose_multiplatform
     override val description: StringResource = Res.string.bookshelf
+    override val route: String = ROUTE_BOOKSHELF
 }
 
-//@Serializable
-private data object Settings : TopLevelRoute, NavKey {
+@Serializable
+data object Settings : TopLevelRoute {
     override val icon = Res.drawable.compose_multiplatform
     override val description: StringResource = Res.string.settings
+    override val route: String = ROUTE_SETTINGS
 }
-
-//private val config = SavedStateConfiguration {
-//    serializersModule = SerializersModule {
-//        polymorphic(NavKey::class) {
-//            subclass(Bookshelf::class, Bookshelf.serializer())
-//            subclass(Settings::class, Settings.serializer())
-//        }
-//    }
-//}
 
 private val TOP_LEVEL_ROUTES: List<TopLevelRoute> = listOf(Bookshelf, Settings)
 
+private fun fromRoute(route: String): TopLevelRoute = TOP_LEVEL_ROUTES.firstOrNull { it.route == route }
+    ?: throw IllegalArgumentException("Route $route not found")
+
 @Composable
-fun MainScreen(route: String) {
-    val topLevelBackStack = remember { TopLevelBackStack<TopLevelRoute>(Bookshelf) }
+fun MainScreen(
+    route: String,
+    onBottomBarClick: (key: String) -> Unit,
+) {
+    val topLevelBackStack = remember { TopLevelBackStack(fromRoute(route)) }
 
     Scaffold(
         bottomBar = {
@@ -78,6 +81,7 @@ fun MainScreen(route: String) {
                         selected = isSelected,
                         onClick = {
                             topLevelBackStack.addTopLevel(topLevelRoute)
+                            onBottomBarClick(topLevelRoute.route)
                         },
                         icon = {
                             Icon(
