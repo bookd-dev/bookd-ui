@@ -1,20 +1,16 @@
 package com.bookd.app.screen.main
 
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DoneOutline
+import androidx.compose.material3.*
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -23,39 +19,44 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.bookshelf
-import app.composeapp.generated.resources.compose_multiplatform
 import app.composeapp.generated.resources.settings
 import com.bookd.app.basic.navigation.popTransitionSpec
 import com.bookd.app.basic.navigation.predictivePopTransitionSpec
 import com.bookd.app.basic.navigation.transitionSpec
-import com.bookd.app.screen.LocalNavBackStack
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSHELF
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_SETTINGS
 import com.bookd.app.screen.bookshelf.BookshelfScreen
 import com.bookd.app.screen.settings.SettingsScreen
+import com.bookd.app.ui.icons.Bookshelf
+import com.bookd.app.ui.icons.Settings
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
-import kotlin.collections.remove
 
 private sealed interface TopLevelRoute : NavKey {
-    val icon: DrawableResource
+    val iconOutline: ImageVector
+    val iconFilled: ImageVector
+
     val description: StringResource
     val route: String
 }
 
 @Serializable
 data object Bookshelf : TopLevelRoute {
-    override val icon = Res.drawable.compose_multiplatform
+    override val iconOutline: ImageVector = Icons.Outlined.Bookshelf
+    override val iconFilled: ImageVector = Icons.Filled.Bookshelf
+
     override val description: StringResource = Res.string.bookshelf
     override val route: String = ROUTE_BOOKSHELF
 }
 
 @Serializable
 data object Settings : TopLevelRoute {
-    override val icon = Res.drawable.compose_multiplatform
+    override val iconOutline: ImageVector = Icons.Outlined.Settings
+    override val iconFilled: ImageVector = Icons.Filled.Settings
+
     override val description: StringResource = Res.string.settings
     override val route: String = ROUTE_SETTINGS
 }
@@ -71,37 +72,43 @@ fun MainScreen(
     onBottomBarClick: (key: String) -> Unit,
 ) {
     val topLevelBackStack = remember { TopLevelBackStack(fromRoute(route)) }
+    val itemColors = NavigationSuiteDefaults.itemColors(
+        navigationBarItemColors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent),
+        navigationRailItemColors = NavigationRailItemDefaults.colors(indicatorColor = Color.Transparent),
+        navigationDrawerItemColors = NavigationDrawerItemDefaults.colors(selectedContainerColor = Color.Transparent)
+    )
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                TOP_LEVEL_ROUTES.forEach { topLevelRoute ->
-                    val isSelected = topLevelRoute == topLevelBackStack.topLevelKey
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            topLevelBackStack.addTopLevel(topLevelRoute)
-                            onBottomBarClick(topLevelRoute.route)
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = vectorResource(topLevelRoute.icon),
-                                contentDescription = stringResource(topLevelRoute.description),
-                                modifier = Modifier.size(24.dp)
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            TOP_LEVEL_ROUTES.forEach { topLevelRoute ->
+                val isSelected = topLevelRoute == topLevelBackStack.topLevelKey
+                item(
+                    selected = isSelected,
+                    onClick = {
+                        topLevelBackStack.addTopLevel(topLevelRoute)
+                        onBottomBarClick(topLevelRoute.route)
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = if (isSelected) topLevelRoute.iconFilled else topLevelRoute.iconOutline,
+                            contentDescription = stringResource(topLevelRoute.description),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(topLevelRoute.description),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
-                        },
-                        label = {
-                            Text(
-                                text = stringResource(topLevelRoute.description),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
-                            )
-                        }
-                    )
-                }
+                        )
+                    },
+                    colors = itemColors,
+                )
             }
-        }
-    ) { _ ->
+        },
+    ) {
         NavDisplay(
             backStack = topLevelBackStack.backStack,
             onBack = { topLevelBackStack.removeLast() },

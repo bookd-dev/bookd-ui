@@ -46,6 +46,21 @@ val LightOnSurfaceVariant = Gray700
 val LightOutline = Gray400
 val LightOutlineVariant = Gray200
 
+val LightSurfaceTint = Black
+val LightInverseSurface = Gray900
+val LightInverseOnSurface = White
+val LightInversePrimary = White
+val LightScrim = Black
+
+// Surface Container 系列 - 用于不同层级的容器
+val LightSurfaceDim = Gray200
+val LightSurfaceBright = White
+val LightSurfaceContainerLowest = White
+val LightSurfaceContainerLow = Gray50
+val LightSurfaceContainer = Gray100
+val LightSurfaceContainerHigh = Gray200
+val LightSurfaceContainerHighest = Gray300
+
 val LightError = Color(0xFFB00020)
 val LightOnError = White
 val LightErrorContainer = Color(0xFFFCD8DF)
@@ -76,6 +91,21 @@ val DarkOnSurfaceVariant = Gray300
 
 val DarkOutline = Gray600
 val DarkOutlineVariant = Gray700
+
+val DarkSurfaceTint = White
+val DarkInverseSurface = Gray100
+val DarkInverseOnSurface = Black
+val DarkInversePrimary = Black
+val DarkScrim = Black
+
+// Surface Container 系列 - 用于不同层级的容器
+val DarkSurfaceDim = Color(0xFF0E0E0E)
+val DarkSurfaceBright = Gray700
+val DarkSurfaceContainerLowest = Black
+val DarkSurfaceContainerLow = Color(0xFF1A1A1A)
+val DarkSurfaceContainer = Gray900
+val DarkSurfaceContainerHigh = Gray800
+val DarkSurfaceContainerHighest = Gray700
 
 val DarkError = Color(0xFFCF6679)
 val DarkOnError = Black

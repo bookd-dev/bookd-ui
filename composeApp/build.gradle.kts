@@ -54,8 +54,15 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(compose.material3AdaptiveNavigationSuite)
+            implementation(compose.materialIconsExtended)
+
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            // material3
+            implementation(libs.material3.adaptive)
+            implementation(libs.material3.adaptive.layout)
+
             // Ktor Client
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.contentNegotiation)
@@ -65,7 +72,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             // nav3
             implementation(libs.nav3.ui)
-            implementation(libs.material3.adaptive)
             implementation(libs.nav3.material3.adaptive)
             implementation(libs.nav3.lifecycle.viewmodel)
             // Koin
