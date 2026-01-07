@@ -30,7 +30,6 @@ import com.bookd.app.screen.settings.SettingsScreen
 import com.bookd.app.ui.icons.Bookshelf
 import com.bookd.app.ui.icons.Settings
 import kotlinx.serialization.Serializable
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
