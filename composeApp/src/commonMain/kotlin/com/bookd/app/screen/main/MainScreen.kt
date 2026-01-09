@@ -41,7 +41,7 @@ private sealed interface TopLevelRoute : NavKey {
 }
 
 @Serializable
-data object Bookshelf : TopLevelRoute {
+private data object Bookshelf : TopLevelRoute {
     override val iconOutline: ImageVector = Icons.Outlined.Bookshelf
     override val iconFilled: ImageVector = Icons.Filled.Bookshelf
 
@@ -50,7 +50,7 @@ data object Bookshelf : TopLevelRoute {
 }
 
 @Serializable
-data object Settings : TopLevelRoute {
+private data object Settings : TopLevelRoute {
     override val iconOutline: ImageVector = Icons.Outlined.Settings
     override val iconFilled: ImageVector = Icons.Filled.Settings
 

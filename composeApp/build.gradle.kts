@@ -59,6 +59,7 @@ kotlin {
 
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+
             // material3
             implementation(libs.material3.adaptive)
             implementation(libs.material3.adaptive.layout)
@@ -77,7 +78,14 @@ kotlin {
             // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.nav3)
             implementation(libs.koin.compose.viewmodel)
+            // coil
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network)
+            //storage
+            implementation(libs.settings.multiplatform)
+            implementation(libs.settings.multiplatform.serialization)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -137,7 +145,7 @@ compose.desktop {
         mainClass = "com.bookd.app.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "com.bookd.app"
             packageVersion = "1.0.0"
         }

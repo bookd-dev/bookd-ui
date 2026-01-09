@@ -1,12 +1,11 @@
 package com.bookd.app.di
 
-import org.koin.core.context.startKoin
-import org.koin.core.KoinApplication
+import org.koin.dsl.KoinConfiguration
+import org.koin.dsl.koinConfiguration
 
 /**
  * 初始化 Koin 依赖注入
  */
-fun initKoin(appDeclaration: KoinApplication.() -> Unit = {}) = startKoin {
-    appDeclaration()
+fun initKoin(): KoinConfiguration = koinConfiguration {
     modules(appModules)
 }
