@@ -11,6 +11,7 @@ import coil3.ColorImage
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImagePreviewHandler
 import coil3.compose.LocalAsyncImagePreviewHandler
+import com.bookd.app.di.appModules
 import com.bookd.app.di.initKoin
 import com.bookd.app.screen.LocalNavBackStack
 import com.bookd.app.screen.RouteMain.Companion.RouteBookshelf
@@ -30,7 +31,7 @@ fun AppPreviewContent(
 
     val backStack = rememberNavBackStack(config, RouteBookshelf)
 
-    KoinApplicationPreview(application = initKoin()) {
+    KoinApplicationPreview(application = { modules(appModules) }) {
         CompositionLocalProvider(
             LocalNavBackStack provides backStack,
             LocalAsyncImagePreviewHandler provides previewHandler,

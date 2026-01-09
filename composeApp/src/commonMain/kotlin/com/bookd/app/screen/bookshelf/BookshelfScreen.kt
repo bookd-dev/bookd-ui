@@ -7,6 +7,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bookd.app.ui.AppPreview
+import com.bookd.app.ui.AppPreviewContent
 
 @Composable
 fun BookshelfScreen() {
@@ -18,5 +20,14 @@ fun BookshelfScreen() {
         Text(
             text = "Bookshelf",
         )
+    }
+}
+
+
+@AppPreview
+@Composable
+private fun BookshelfScreenPreview() {
+    AppPreviewContent {
+        BookshelfScreen()
     }
 }

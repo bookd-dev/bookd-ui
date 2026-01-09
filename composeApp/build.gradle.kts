@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -46,6 +47,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.appcompat)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -80,6 +82,8 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.nav3)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.koin.annotations)
+//            ksp(libs.koin.annotations.ksp)
             // coil
             implementation(libs.coil.compose)
             implementation(libs.coil.network)
@@ -107,7 +111,32 @@ kotlin {
             implementation(libs.nav3.browser)
         }
     }
+
+    // KSP Common sourceSet
+    sourceSets.named("commonMain").configure {
+        kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+    }
 }
+
+// KSP Tasks
+dependencies {
+    add("kspCommonMainMetadata", libs.koin.annotations.ksp)
+    add("kspAndroid", libs.koin.annotations.ksp)
+    add("kspIosArm64", libs.koin.annotations.ksp)
+    add("kspIosSimulatorArm64", libs.koin.annotations.ksp)
+    add("kspJvm", libs.koin.annotations.ksp)
+    add("kspJs", libs.koin.annotations.ksp)
+}
+
+// KSP Metadata Trigger
+tasks.matching { it.name.startsWith("ksp") && it.name != "kspCommonMainKotlinMetadata" }.configureEach {
+    dependsOn("kspCommonMainKotlinMetadata")
+}
+
+ksp {
+    arg("KOIN_CONFIG_CHECK","true")
+}
+
 
 android {
     namespace = "com.bookd.app"
