@@ -1,6 +1,15 @@
 package com.bookd.app.screen.main
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
@@ -76,6 +85,7 @@ fun MainScreen(
     )
 
     NavigationSuiteScaffold(
+        modifier = Modifier.consumeWindowInsets(WindowInsets.navigationBars),
         navigationSuiteItems = {
             TOP_LEVEL_ROUTES.forEach { topLevelRoute ->
                 val isSelected = topLevelRoute == topLevelBackStack.topLevelKey
@@ -106,22 +116,29 @@ fun MainScreen(
             }
         },
     ) {
-        NavDisplay(
-            backStack = topLevelBackStack.backStack,
-            onBack = { topLevelBackStack.removeLast() },
-            transitionSpec = transitionSpec(),
-            popTransitionSpec = popTransitionSpec(),
-            predictivePopTransitionSpec = predictivePopTransitionSpec(),
-            entryProvider = entryProvider {
-                entry<Bookshelf> {
-                    BookshelfScreen()
-                }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .consumeWindowInsets(WindowInsets.statusBars),
+        ) {
+            NavDisplay(
+                backStack = topLevelBackStack.backStack,
+                onBack = { topLevelBackStack.removeLast() },
+                transitionSpec = transitionSpec(),
+                popTransitionSpec = popTransitionSpec(),
+                predictivePopTransitionSpec = predictivePopTransitionSpec(),
+                entryProvider = entryProvider {
+                    entry<Bookshelf> {
+                        BookshelfScreen()
+                    }
 
-                entry<Settings> {
-                    SettingsScreen()
-                }
-            },
-        )
+                    entry<Settings> {
+                        SettingsScreen()
+                    }
+                },
+            )
+        }
     }
 }
 

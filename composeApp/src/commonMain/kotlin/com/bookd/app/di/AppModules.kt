@@ -2,6 +2,7 @@ package com.bookd.app.di
 
 import com.bookd.app.data.repository.SettingsRepository
 import com.bookd.app.data.repository.UserRepository
+import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.settings
 import io.ktor.client.*
 import io.ktor.client.plugins.*
@@ -9,6 +10,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
@@ -59,11 +61,10 @@ val repositoryModule = module {
  * ViewModel 模块
  */
 val viewModelModule = module {
-    
+    viewModel { BookshelfViewModel() }
 }
 
 val appNavigation = module {
-    //TODO: 配置 navigation
 }
 
 /**

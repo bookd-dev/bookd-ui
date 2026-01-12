@@ -82,8 +82,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.nav3)
             implementation(libs.koin.compose.viewmodel)
-            implementation(libs.koin.annotations)
-//            ksp(libs.koin.annotations.ksp)
+//            implementation(libs.koin.annotations)
             // coil
             implementation(libs.coil.compose)
             implementation(libs.coil.network)
@@ -120,12 +119,12 @@ kotlin {
 
 // KSP Tasks
 dependencies {
-    add("kspCommonMainMetadata", libs.koin.annotations.ksp)
-    add("kspAndroid", libs.koin.annotations.ksp)
-    add("kspIosArm64", libs.koin.annotations.ksp)
-    add("kspIosSimulatorArm64", libs.koin.annotations.ksp)
-    add("kspJvm", libs.koin.annotations.ksp)
-    add("kspJs", libs.koin.annotations.ksp)
+//    add("kspCommonMainMetadata", libs.koin.annotations.ksp)
+//    add("kspAndroid", libs.koin.annotations.ksp)
+//    add("kspIosArm64", libs.koin.annotations.ksp)
+//    add("kspIosSimulatorArm64", libs.koin.annotations.ksp)
+//    add("kspJvm", libs.koin.annotations.ksp)
+//    add("kspJs", libs.koin.annotations.ksp)
 }
 
 // KSP Metadata Trigger
