@@ -3,12 +3,12 @@
 package com.bookd.app.data.repository
 
 import com.bookd.app.data.api.AuthApi
-import com.bookd.app.data.auth.DefaultHeaderProvider
+import com.bookd.app.data.auth.TokenProvider
 import com.bookd.app.data.model.*
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.Settings
-import com.russhwolf.settings.serialization.decodeValueOrNull
-import com.russhwolf.settings.serialization.encodeValue
+import com.russhwolf.settings.nullableString
+import com.russhwolf.settings.serialization.nullableSerializedValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,14 +34,16 @@ sealed class AuthState {
  * 负责管理用户的认证状态、登录、登出、token 存储等
  */
 class UserRepository(
-    private val settings: Settings,
+    settings: Settings,
     private val authApi: AuthApi,
-    private val headerProvider: DefaultHeaderProvider,
-) {
+) : TokenProvider {
+    
+    // Settings 代理，自动持久化
+    override var token: String? by settings.nullableString(KEY_AUTH_TOKEN)
+    private var cachedUser: User? by settings.nullableSerializedValue(User.serializer(), KEY_USER)
+    
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
-    
-    val token: String? get() = headerProvider.token
     
     val currentUser: User?
         get() = (_authState.value as? AuthState.Authenticated)?.user
@@ -56,23 +58,21 @@ class UserRepository(
         _authState.value = AuthState.Loading
         
         try {
-            val authData = loadAuthData()
-            if (authData != null) {
-                val (savedToken, cachedUser) = authData
+            val savedToken = token
+            val savedUser = cachedUser
+            
+            if (savedToken != null && savedUser != null) {
                 // 先用缓存的用户信息快速恢复状态
-                headerProvider.updateToken(savedToken)
-                _authState.value = AuthState.Authenticated(cachedUser)
+                _authState.value = AuthState.Authenticated(savedUser)
                 
                 // 后台验证 token 并刷新用户信息
                 val freshUser = validateToken()
                 if (freshUser != null) {
-                    saveAuthData(savedToken, freshUser)
+                    cachedUser = freshUser
                     _authState.value = AuthState.Authenticated(freshUser)
                 } else {
                     // Token 失效，清除缓存
-                    clearAuthData()
-                    headerProvider.clearToken()
-                    _authState.value = AuthState.NotAuthenticated
+                    clearAuth()
                 }
                 return
             }
@@ -87,11 +87,11 @@ class UserRepository(
      */
     suspend fun login(username: String, password: String): Result<User> {
         return try {
-            val loginResponse = authApi.login(LoginRequest(username, password))
-            headerProvider.updateToken(loginResponse.token)
-            saveAuthData(loginResponse.token, loginResponse.user)
-            _authState.value = AuthState.Authenticated(loginResponse.user)
-            Result.success(loginResponse.user)
+            val response = authApi.login(LoginRequest(username, password))
+            token = response.token
+            cachedUser = response.user
+            _authState.value = AuthState.Authenticated(response.user)
+            Result.success(response.user)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -102,15 +102,13 @@ class UserRepository(
      */
     suspend fun logout() {
         try {
-            if (headerProvider.token != null) {
+            if (token != null) {
                 authApi.logout()
             }
         } catch (_: Exception) {
             // 忽略登出请求的错误
         } finally {
-            headerProvider.clearToken()
-            clearAuthData()
-            _authState.value = AuthState.NotAuthenticated
+            clearAuth()
         }
     }
     
@@ -151,12 +149,13 @@ class UserRepository(
      * 刷新当前用户信息
      */
     suspend fun refreshCurrentUser(): Result<User> {
-        if (headerProvider.token == null) {
-            return Result.failure(Exception("未登录"))
+        if (token == null) {
+            return Result.failure(Exception("Not authenticated"))
         }
         
         return try {
             val user = authApi.getCurrentUser()
+            cachedUser = user
             _authState.value = AuthState.Authenticated(user)
             Result.success(user)
         } catch (e: Exception) {
@@ -165,9 +164,6 @@ class UserRepository(
         }
     }
     
-    /**
-     * 验证 token 是否有效
-     */
     private suspend fun validateToken(): User? {
         return try {
             authApi.getCurrentUser()
@@ -176,20 +172,10 @@ class UserRepository(
         }
     }
     
-    private fun saveAuthData(token: String, user: User) {
-        settings.putString(KEY_AUTH_TOKEN, token)
-        settings.encodeValue(User.serializer(), KEY_USER, user)
-    }
-    
-    private fun loadAuthData(): Pair<String, User>? {
-        val token = settings.getStringOrNull(KEY_AUTH_TOKEN)?.takeIf { it.isNotBlank() } ?: return null
-        val user = settings.decodeValueOrNull(User.serializer(), KEY_USER) ?: return null
-        return token to user
-    }
-    
-    private fun clearAuthData() {
-        settings.remove(KEY_AUTH_TOKEN)
-        settings.remove(KEY_USER)
+    private fun clearAuth() {
+        token = null
+        cachedUser = null
+        _authState.value = AuthState.NotAuthenticated
     }
     
     companion object {

@@ -25,11 +25,7 @@ import org.koin.dsl.module
  * 网络模块 - Ktor HttpClient 配置
  */
 val networkModule = module {
-    single { NetworkConfigRepository(get()) }
-    single { NetworkSwitcher(get(), get()) }
-    
-    // Header 提供者 (单例)
-    single { DefaultHeaderProvider() }
+    single { NetworkConfigRepository(settings) }
 
     single {
         Json {
@@ -37,6 +33,11 @@ val networkModule = module {
             isLenient = true
             prettyPrint = false
         }
+    }
+    
+    // Header 提供者 - 从 UserRepository 获取 token
+    single {
+        DefaultHeaderProvider { getOrNull<UserRepository>() }
     }
 
     // 动态 baseUrl 的 HttpClient
@@ -71,7 +72,7 @@ val networkModule = module {
     single {
         val switcher = get<NetworkSwitcher>()
         Ktorfit.Builder()
-            .baseUrl(switcher.currentUrl ?: "http://localhost:7919/")
+            .baseUrl(switcher.currentUrl ?: "")
             .httpClient(get<HttpClient>())
             .build()
     }
@@ -89,7 +90,6 @@ val repositoryModule = module {
         UserRepository(
             settings = settings,
             authApi = get(),
-            headerProvider = get(),
         )
     }
 }

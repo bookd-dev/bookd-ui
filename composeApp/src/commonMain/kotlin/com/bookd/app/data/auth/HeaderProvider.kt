@@ -9,26 +9,24 @@ interface HeaderProvider {
 }
 
 /**
- * 默认 Header 提供者实现
- * 管理 Token 和其他通用 Headers
+ * Token 提供者接口
+ * 由 UserRepository 实现
  */
-class DefaultHeaderProvider : HeaderProvider {
-    private var _token: String? = null
-    
-    val token: String?
-        get() = _token
-    
-    fun updateToken(token: String?) {
-        _token = token
-    }
-    
-    fun clearToken() {
-        _token = null
-    }
+interface TokenProvider {
+    var token: String?
+}
+
+/**
+ * 默认 Header 提供者实现
+ * 从 TokenProvider 读取 token，不负责存储
+ */
+class DefaultHeaderProvider(
+    private val tokenProvider: () -> TokenProvider?
+) : HeaderProvider {
     
     override fun getHeaders(): Map<String, String> {
         val headers = mutableMapOf<String, String>()
-        _token?.let { headers["Authorization"] = "Bearer $it" }
+        tokenProvider()?.token?.let { headers["Authorization"] = "Bearer $it" }
         return headers
     }
 }
