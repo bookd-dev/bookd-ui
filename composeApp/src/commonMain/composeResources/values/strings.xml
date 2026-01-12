@@ -3,4 +3,6 @@
 
     <string name="bookshelf">Bookshelf</string>
     <string name="settings">Settings</string>
+    <string name="booklist">Booklist</string>
+    <string name="network">Network</string>
 </resources>

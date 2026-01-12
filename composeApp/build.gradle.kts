@@ -1,3 +1,4 @@
+import de.jensklingenberg.ktorfit.gradle.ErrorCheckingMode
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -9,6 +10,9 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.sqldelight)
+    alias(libs.plugins.ktorfit)
 }
 
 kotlin {
@@ -46,6 +50,9 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.appcompat)
+            //storage
+            implementation(libs.sqldelight.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -59,15 +66,21 @@ kotlin {
 
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+
             // material3
             implementation(libs.material3.adaptive)
             implementation(libs.material3.adaptive.layout)
 
-            // Ktor Client
-            implementation(libs.ktor.client.core)
+            // network
+//            implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinxJson)
             implementation(libs.ktor.client.logging)
+            implementation(libs.ktorfit) //包含了ktor 3.3.3版本核心代码了
+            implementation(libs.ktorfit.converters.response)
+            implementation(libs.ktorfit.converters.call)
+            implementation(libs.ktorfit.converters.flow)
+
             // kotlin coroutine
             implementation(libs.kotlinx.coroutines.core)
             // nav3
@@ -77,7 +90,15 @@ kotlin {
             // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.nav3)
             implementation(libs.koin.compose.viewmodel)
+//            implementation(libs.koin.annotations)
+            // coil
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network)
+            //storage
+            implementation(libs.settings.multiplatform)
+            implementation(libs.settings.multiplatform.serialization)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -86,17 +107,68 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.ktor.client.okhttp)
+            //storage
+            implementation(libs.sqldelight.jvm)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            //storage
+            implementation(libs.sqldelight.native)
         }
         jsMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.nav3.browser)
+            //storage
+            implementation(libs.sqldelight.js)
+            npm("sql.js", "1.6.2")
+            devNpm("copy-webpack-plugin", "9.1.0")
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.nav3.browser)
+            //storage
+            implementation(libs.sqldelight.js)
+            npm("sql.js", "1.6.2")
+            devNpm("copy-webpack-plugin", "9.1.0")
+        }
+    }
+
+    // KSP Common sourceSet
+    sourceSets.named("commonMain").configure {
+        kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+    }
+}
+
+// KSP Tasks
+dependencies {
+//    add("kspCommonMainMetadata", libs.koin.annotations.ksp)
+//    add("kspAndroid", libs.koin.annotations.ksp)
+//    add("kspIosArm64", libs.koin.annotations.ksp)
+//    add("kspIosSimulatorArm64", libs.koin.annotations.ksp)
+//    add("kspJvm", libs.koin.annotations.ksp)
+//    add("kspJs", libs.koin.annotations.ksp)
+
+}
+
+// KSP Metadata Trigger
+tasks.matching { it.name.startsWith("ksp") && it.name != "kspCommonMainKotlinMetadata" }.configureEach {
+    dependsOn("kspCommonMainKotlinMetadata")
+}
+
+ksp {
+    arg("KOIN_CONFIG_CHECK","true")
+}
+
+ktorfit {
+    errorCheckingMode = ErrorCheckingMode.ERROR
+    compilerPluginVersion.set("2.3.3")
+}
+
+sqldelight {
+    databases {
+        create("Database") {
+            packageName.set("com.bookd.app")
+            generateAsync.set(true)
         }
     }
 }
@@ -137,7 +209,7 @@ compose.desktop {
         mainClass = "com.bookd.app.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "com.bookd.app"
             packageVersion = "1.0.0"
         }

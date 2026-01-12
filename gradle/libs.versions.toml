@@ -9,17 +9,24 @@ androidx-core = "1.17.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.9.6"
 androidx-testExt = "1.3.0"
+androidx-datastore = "1.2.0"
 composeHotReload = "1.0.0"
 composeMultiplatform = "1.9.3"
 junit = "4.13.2"
 kotlin = "2.3.0"
 kotlinx-coroutines = "1.10.2"
 ktor = "3.3.3"
+ksp = "2.3.2"
 nav3-multiplatform-ui = "1.0.0-alpha06"
 compose-multiplatform-adaptive = "1.3.0-alpha03"
 compose-multiplatform-lifecycle = "2.10.0-alpha07"
 compose-multiplatform-navigation3-browser = "0.2.0"
-koin = "4.1.1"
+koin = "4.2.0-beta2"
+koin-annoations = "2.3.1"
+coil = "3.3.0"
+settings-multiplatform = "1.3.0"
+sqldelight = "2.2.1"
+ktorfit = "2.7.2"
 
 
 [libraries]
@@ -35,6 +42,12 @@ androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecyc
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+
+# datastore
+androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidx-datastore" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
+
+# network
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
@@ -42,6 +55,11 @@ ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-client-contentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinxJson = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+
+ktorfit = { module = "de.jensklingenberg.ktorfit:ktorfit-lib", version.ref = "ktorfit" }
+ktorfit-converters-response = { module = "de.jensklingenberg.ktorfit:ktorfit-converters-response", version.ref = "ktorfit" }
+ktorfit-converters-call = { module = "de.jensklingenberg.ktorfit:ktorfit-converters-call", version.ref = "ktorfit" }
+ktorfit-converters-flow = { module = "de.jensklingenberg.ktorfit:ktorfit-converters-flow", version.ref = "ktorfit" }
 
 # material3
 material3-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version.ref = "compose-multiplatform-adaptive" }
@@ -56,7 +74,23 @@ nav3-browser = { module = "com.github.terrakok:navigation3-browser", version.ref
 # Koin
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-nav3 = { module = "io.insert-koin:koin-compose-navigation3", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-annoations" }
+koin-annotations-ksp = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annoations" }
+
+# coil
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+
+# storage
+settings-multiplatform = { module = "com.russhwolf:multiplatform-settings", version.ref = "settings-multiplatform" }
+settings-multiplatform-serialization =  { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "settings-multiplatform" }
+sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+sqldelight-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
+sqldelight-jvm = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+sqldelight-js = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
+
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -66,3 +100,6 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+ktorfit = { id = "de.jensklingenberg.ktorfit", version.ref = "ktorfit" }
