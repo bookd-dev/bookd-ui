@@ -25,9 +25,7 @@ koin = "4.2.0-beta2"
 koin-annoations = "2.3.1"
 coil = "3.3.0"
 settings-multiplatform = "1.3.0"
-store = "5.1.0"
-room = "2.8.4"
-sqlite = "2.6.2"
+sqldelight = "2.2.1"
 ktorfit = "2.7.2"
 
 
@@ -88,11 +86,10 @@ coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "
 # storage
 settings-multiplatform = { module = "com.russhwolf:multiplatform-settings", version.ref = "settings-multiplatform" }
 settings-multiplatform-serialization =  { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "settings-multiplatform" }
-store = { module = "org.mobilenativefoundation.store:store5", version.ref = "store" }
-androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
-androidx-room-sqlite-wrapper = { module = "androidx.room:room-sqlite-wrapper", version.ref = "room" }
+sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+sqldelight-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
+sqldelight-jvm = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+sqldelight-js = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
 
 
 [plugins]
@@ -104,5 +101,5 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-androidx-room = { id = "androidx.room", version.ref = "room" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 ktorfit = { id = "de.jensklingenberg.ktorfit", version.ref = "ktorfit" }

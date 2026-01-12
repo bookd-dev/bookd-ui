@@ -1,14 +1,21 @@
 package com.bookd.app.di
 
+import com.bookd.app.data.api.AuthApi
+import com.bookd.app.data.api.HealthApi
+import com.bookd.app.data.api.createAuthApi
+import com.bookd.app.data.api.createHealthApi
+import com.bookd.app.data.auth.DefaultHeaderProvider
 import com.bookd.app.data.repository.NetworkConfigRepository
 import com.bookd.app.data.repository.NetworkSwitcher
 import com.bookd.app.data.repository.UserRepository
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.settings
+import de.jensklingenberg.ktorfit.Ktorfit
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
+import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
@@ -20,6 +27,9 @@ import org.koin.dsl.module
 val networkModule = module {
     single { NetworkConfigRepository(get()) }
     single { NetworkSwitcher(get(), get()) }
+    
+    // Header 提供者 (单例)
+    single { DefaultHeaderProvider() }
 
     single {
         Json {
@@ -31,7 +41,7 @@ val networkModule = module {
 
     // 动态 baseUrl 的 HttpClient
     single {
-        val switcher = get<NetworkSwitcher>()
+        val headerProvider = get<DefaultHeaderProvider>()
 
         HttpClient {
             install(ContentNegotiation) {
@@ -46,10 +56,29 @@ val networkModule = module {
                 connectTimeoutMillis = 10_000
             }
             defaultRequest {
-                switcher.currentUrl?.let { url(it) }
+                // 自动添加所有 Headers
+                headerProvider.getHeaders().forEach { (key, value) ->
+                    header(key, value)
+                }
             }
         }
     }
+    
+    // NetworkSwitcher
+    single { NetworkSwitcher(get(), get()) }
+    
+    // Ktorfit 实例 (动态 baseUrl)
+    single {
+        val switcher = get<NetworkSwitcher>()
+        Ktorfit.Builder()
+            .baseUrl(switcher.currentUrl ?: "http://localhost:7919/")
+            .httpClient(get<HttpClient>())
+            .build()
+    }
+    
+    // API 接口
+    single<AuthApi> { get<Ktorfit>().createAuthApi() }
+    single<HealthApi> { get<Ktorfit>().createHealthApi() }
 }
 
 /**
@@ -58,12 +87,11 @@ val networkModule = module {
 val repositoryModule = module {
     single {
         UserRepository(
-            settings = get(),
-            httpClient = get(),
-            baseUrl = "http://localhost:7919"
+            settings = settings,
+            authApi = get(),
+            headerProvider = get(),
         )
     }
-
 }
 
 /**

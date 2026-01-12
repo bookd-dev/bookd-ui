@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.androidx.room)
+    alias(libs.plugins.sqldelight)
     alias(libs.plugins.ktorfit)
 }
 
@@ -51,7 +51,8 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.appcompat)
-            implementation(libs.androidx.room.sqlite.wrapper)
+            //storage
+            implementation(libs.sqldelight.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -98,9 +99,6 @@ kotlin {
             //storage
             implementation(libs.settings.multiplatform)
             implementation(libs.settings.multiplatform.serialization)
-            implementation(libs.store)
-            implementation(libs.androidx.room.runtime)
-            implementation(libs.androidx.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -109,17 +107,29 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.ktor.client.okhttp)
+            //storage
+            implementation(libs.sqldelight.jvm)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            //storage
+            implementation(libs.sqldelight.native)
         }
         jsMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.nav3.browser)
+            //storage
+            implementation(libs.sqldelight.js)
+            npm("sql.js", "1.6.2")
+            devNpm("copy-webpack-plugin", "9.1.0")
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.nav3.browser)
+            //storage
+            implementation(libs.sqldelight.js)
+            npm("sql.js", "1.6.2")
+            devNpm("copy-webpack-plugin", "9.1.0")
         }
     }
 
@@ -138,11 +148,6 @@ dependencies {
 //    add("kspJvm", libs.koin.annotations.ksp)
 //    add("kspJs", libs.koin.annotations.ksp)
 
-    add("kspAndroid", libs.androidx.room.compiler)
-    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
-    add("kspIosArm64", libs.androidx.room.compiler)
-    add("kspJvm", libs.androidx.room.compiler)
-    add("kspJs", libs.androidx.room.compiler)
 }
 
 // KSP Metadata Trigger
@@ -154,12 +159,18 @@ ksp {
     arg("KOIN_CONFIG_CHECK","true")
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
-
 ktorfit {
     errorCheckingMode = ErrorCheckingMode.ERROR
+    compilerPluginVersion.set("2.3.3")
+}
+
+sqldelight {
+    databases {
+        create("Database") {
+            packageName.set("com.bookd.app")
+            generateAsync.set(true)
+        }
+    }
 }
 
 android {

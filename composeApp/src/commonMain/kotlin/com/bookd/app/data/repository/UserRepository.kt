@@ -2,15 +2,13 @@
 
 package com.bookd.app.data.repository
 
+import com.bookd.app.data.api.AuthApi
+import com.bookd.app.data.auth.DefaultHeaderProvider
 import com.bookd.app.data.model.*
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.serialization.decodeValueOrNull
 import com.russhwolf.settings.serialization.encodeValue
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,14 +35,13 @@ sealed class AuthState {
  */
 class UserRepository(
     private val settings: Settings,
-    private val httpClient: HttpClient,
-    private val baseUrl: String,
+    private val authApi: AuthApi,
+    private val headerProvider: DefaultHeaderProvider,
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
     
-    private var _token: String? = null
-    val token: String? get() = _token
+    val token: String? get() = headerProvider.token
     
     val currentUser: User?
         get() = (_authState.value as? AuthState.Authenticated)?.user
@@ -63,18 +60,18 @@ class UserRepository(
             if (authData != null) {
                 val (savedToken, cachedUser) = authData
                 // 先用缓存的用户信息快速恢复状态
-                _token = savedToken
+                headerProvider.updateToken(savedToken)
                 _authState.value = AuthState.Authenticated(cachedUser)
                 
                 // 后台验证 token 并刷新用户信息
-                val freshUser = validateToken(savedToken)
+                val freshUser = validateToken()
                 if (freshUser != null) {
                     saveAuthData(savedToken, freshUser)
                     _authState.value = AuthState.Authenticated(freshUser)
                 } else {
                     // Token 失效，清除缓存
                     clearAuthData()
-                    _token = null
+                    headerProvider.clearToken()
                     _authState.value = AuthState.NotAuthenticated
                 }
                 return
@@ -90,20 +87,11 @@ class UserRepository(
      */
     suspend fun login(username: String, password: String): Result<User> {
         return try {
-            val response = httpClient.post("$baseUrl/api/auth/login") {
-                contentType(ContentType.Application.Json)
-                setBody(LoginRequest(username, password))
-            }
-            
-            if (response.status == HttpStatusCode.OK) {
-                val loginResponse: LoginResponse = response.body()
-                _token = loginResponse.token
-                saveAuthData(loginResponse.token, loginResponse.user)
-                _authState.value = AuthState.Authenticated(loginResponse.user)
-                Result.success(loginResponse.user)
-            } else {
-                Result.failure(Exception("用户名或密码错误"))
-            }
+            val loginResponse = authApi.login(LoginRequest(username, password))
+            headerProvider.updateToken(loginResponse.token)
+            saveAuthData(loginResponse.token, loginResponse.user)
+            _authState.value = AuthState.Authenticated(loginResponse.user)
+            Result.success(loginResponse.user)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -114,15 +102,13 @@ class UserRepository(
      */
     suspend fun logout() {
         try {
-            _token?.let { token ->
-                httpClient.post("$baseUrl/api/auth/logout") {
-                    header("Authorization", "Bearer $token")
-                }
+            if (headerProvider.token != null) {
+                authApi.logout()
             }
         } catch (_: Exception) {
             // 忽略登出请求的错误
         } finally {
-            _token = null
+            headerProvider.clearToken()
             clearAuthData()
             _authState.value = AuthState.NotAuthenticated
         }
@@ -137,17 +123,8 @@ class UserRepository(
         email: String? = null
     ): Result<User> {
         return try {
-            val response = httpClient.post("$baseUrl/api/auth/register/guest") {
-                contentType(ContentType.Application.Json)
-                setBody(RegisterRequest(username, password, email))
-            }
-            
-            if (response.status == HttpStatusCode.Created) {
-                val user: User = response.body()
-                Result.success(user)
-            } else {
-                Result.failure(Exception("注册失败"))
-            }
+            val user = authApi.registerGuest(RegisterRequest(username, password, email))
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -163,17 +140,8 @@ class UserRepository(
         email: String? = null
     ): Result<User> {
         return try {
-            val response = httpClient.post("$baseUrl/api/auth/register/user") {
-                contentType(ContentType.Application.Json)
-                setBody(RegisterRequest(username, password, email, inviteToken))
-            }
-            
-            if (response.status == HttpStatusCode.Created) {
-                val user: User = response.body()
-                Result.success(user)
-            } else {
-                Result.failure(Exception("邀请码无效或用户名已存在"))
-            }
+            val user = authApi.registerWithInvite(RegisterRequest(username, password, email, inviteToken))
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -183,22 +151,16 @@ class UserRepository(
      * 刷新当前用户信息
      */
     suspend fun refreshCurrentUser(): Result<User> {
-        val currentToken = _token ?: return Result.failure(Exception("未登录"))
+        if (headerProvider.token == null) {
+            return Result.failure(Exception("未登录"))
+        }
         
         return try {
-            val response = httpClient.get("$baseUrl/api/auth/me") {
-                header("Authorization", "Bearer $currentToken")
-            }
-            
-            if (response.status == HttpStatusCode.OK) {
-                val user: User = response.body()
-                _authState.value = AuthState.Authenticated(user)
-                Result.success(user)
-            } else {
-                logout()
-                Result.failure(Exception("Token 无效"))
-            }
+            val user = authApi.getCurrentUser()
+            _authState.value = AuthState.Authenticated(user)
+            Result.success(user)
         } catch (e: Exception) {
+            logout()
             Result.failure(e)
         }
     }
@@ -206,17 +168,9 @@ class UserRepository(
     /**
      * 验证 token 是否有效
      */
-    private suspend fun validateToken(token: String): User? {
+    private suspend fun validateToken(): User? {
         return try {
-            val response = httpClient.get("$baseUrl/api/auth/me") {
-                header("Authorization", "Bearer $token")
-            }
-            
-            if (response.status == HttpStatusCode.OK) {
-                response.body()
-            } else {
-                null
-            }
+            authApi.getCurrentUser()
         } catch (_: Exception) {
             null
         }
