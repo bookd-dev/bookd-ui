@@ -23,11 +23,15 @@ data class RouteMain(val route: String?) : NavKey {
 @Serializable
 data object RouteSignIn : NavKey
 
+@Serializable
+data object RouteNetworkConfig : NavKey
+
 val config = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
             subclass(RouteMain::class, RouteMain.serializer())
             subclass(RouteSignIn::class, RouteSignIn.serializer())
+            subclass(RouteNetworkConfig::class, RouteNetworkConfig.serializer())
         }
     }
 }
