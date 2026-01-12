@@ -1,6 +1,7 @@
 package com.bookd.app.di
 
-import com.bookd.app.data.repository.SettingsRepository
+import com.bookd.app.data.repository.NetworkConfigRepository
+import com.bookd.app.data.repository.NetworkSwitcher
 import com.bookd.app.data.repository.UserRepository
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.settings
@@ -17,6 +18,9 @@ import org.koin.dsl.module
  * 网络模块 - Ktor HttpClient 配置
  */
 val networkModule = module {
+    single { NetworkConfigRepository(get()) }
+    single { NetworkSwitcher(get(), get()) }
+
     single {
         Json {
             ignoreUnknownKeys = true
@@ -25,7 +29,10 @@ val networkModule = module {
         }
     }
 
+    // 动态 baseUrl 的 HttpClient
     single {
+        val switcher = get<NetworkSwitcher>()
+
         HttpClient {
             install(ContentNegotiation) {
                 json(get())
@@ -37,6 +44,9 @@ val networkModule = module {
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000
                 connectTimeoutMillis = 10_000
+            }
+            defaultRequest {
+                switcher.currentUrl?.let { url(it) }
             }
         }
     }
@@ -54,7 +64,6 @@ val repositoryModule = module {
         )
     }
 
-    single { SettingsRepository(settings) }
 }
 
 /**
