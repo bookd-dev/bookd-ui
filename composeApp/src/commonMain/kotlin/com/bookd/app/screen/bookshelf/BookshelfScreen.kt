@@ -4,8 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,16 +53,34 @@ fun BookshelfScreen() {
 @Composable
 private fun BookshelfContent() {
     val pagerState = rememberPagerState(initialPage = 0) { 30 }
-    val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-
-    // 计算折叠进度 (0f = 展开, 1f = 折叠)
-    val collapseProgress by remember {
+    
+    // 每个 page 独立的滚动状态
+    val scrollStates = remember { List(30) { LazyListState() } }
+    
+    // 独立的折叠状态，不随 page 切换重置
+    var isCollapsed by remember { mutableStateOf(false) }
+    
+    // 监听当前 page 的滚动，更新折叠状态
+    val currentScrollState = scrollStates[pagerState.currentPage]
+    val collapseProgress by remember(currentScrollState) {
         derivedStateOf {
-            val firstVisible = scrollState.firstVisibleItemIndex
-            val offset = scrollState.firstVisibleItemScrollOffset
+            val firstVisible = currentScrollState.firstVisibleItemIndex
+            val offset = currentScrollState.firstVisibleItemScrollOffset
             if (firstVisible > 0) 1f
-            else (offset / 40f).coerceIn(0f, 1f) // 40 = 折叠区域高度
+            else (offset / 40f).coerceIn(0f, 1f)
+        }
+    }
+    
+    // 只在滚动时更新折叠状态，page 切换不影响
+    // 添加防抖：只有明确的折叠/展开动作才更新状态
+    LaunchedEffect(currentScrollState.isScrollInProgress, collapseProgress) {
+        if (currentScrollState.isScrollInProgress) {
+            // 只在接近两端时才更新，避免中间状态闪烁
+            when {
+                collapseProgress > 0.8f -> isCollapsed = true
+                collapseProgress < 0.2f -> isCollapsed = false
+            }
         }
     }
 
@@ -69,18 +88,18 @@ private fun BookshelfContent() {
         // 固定 Header - 始终显示
         BookshelfHeader(
             pagerState = pagerState,
-            collapseProgress = collapseProgress,
+            isCollapsed = isCollapsed,
             onBookSourceChange = {
                 coroutineScope.launch {
-                    pagerState.scrollToPage(it)
+                    pagerState.animateScrollToPage(it)
                 }
             },
         )
 
         HorizontalPager(
             state = pagerState,
-        ) {
-            LazyColumn(state = scrollState) {
+        ) { page ->
+            LazyColumn(state = scrollStates[page]) {
                 items(50) { i ->
                     Column(
                         modifier = Modifier
@@ -102,12 +121,11 @@ private fun BookshelfContent() {
 @Composable
 private fun BookshelfHeader(
     pagerState: PagerState,
-    collapseProgress: Float, // 0f = 展开, 1f = 折叠
+    isCollapsed: Boolean,
     onBookSourceChange: (Int) -> Unit = {},
     onBooklistClick: () -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val isCollapsed = collapseProgress > 0.5f
 
     Column {
         // 第一行：书架按钮 (始终显示), 书籍源(折叠显示), 设置网络(始终显示)
