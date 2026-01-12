@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.room)
 }
 
 kotlin {
@@ -48,6 +49,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.appcompat)
+            implementation(libs.androidx.room.sqlite.wrapper)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -89,6 +91,9 @@ kotlin {
             //storage
             implementation(libs.settings.multiplatform)
             implementation(libs.settings.multiplatform.serialization)
+            implementation(libs.store)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -125,6 +130,12 @@ dependencies {
 //    add("kspIosSimulatorArm64", libs.koin.annotations.ksp)
 //    add("kspJvm", libs.koin.annotations.ksp)
 //    add("kspJs", libs.koin.annotations.ksp)
+
+    add("kspAndroid", libs.androidx.room.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
+    add("kspIosArm64", libs.androidx.room.compiler)
+    add("kspJvm", libs.androidx.room.compiler)
+    add("kspJs", libs.androidx.room.compiler)
 }
 
 // KSP Metadata Trigger
@@ -136,6 +147,9 @@ ksp {
     arg("KOIN_CONFIG_CHECK","true")
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
 
 android {
     namespace = "com.bookd.app"
