@@ -1,3 +1,4 @@
+import de.jensklingenberg.ktorfit.gradle.ErrorCheckingMode
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -11,6 +12,7 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
+    alias(libs.plugins.ktorfit)
 }
 
 kotlin {
@@ -68,11 +70,16 @@ kotlin {
             implementation(libs.material3.adaptive)
             implementation(libs.material3.adaptive.layout)
 
-            // Ktor Client
-            implementation(libs.ktor.client.core)
+            // network
+//            implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinxJson)
             implementation(libs.ktor.client.logging)
+            implementation(libs.ktorfit) //包含了ktor 3.3.3版本核心代码了
+            implementation(libs.ktorfit.converters.response)
+            implementation(libs.ktorfit.converters.call)
+            implementation(libs.ktorfit.converters.flow)
+
             // kotlin coroutine
             implementation(libs.kotlinx.coroutines.core)
             // nav3
@@ -149,6 +156,10 @@ ksp {
 
 room {
     schemaDirectory("$projectDir/schemas")
+}
+
+ktorfit {
+    errorCheckingMode = ErrorCheckingMode.ERROR
 }
 
 android {
