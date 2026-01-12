@@ -1,4 +1,4 @@
-package com.bookd.app.data.auth
+package com.bookd.app.data.api
 
 /**
  * Header 提供者接口

@@ -11,7 +11,7 @@ import org.koin.compose.KoinApplication
 fun App() {
     KoinApplication(configuration = initKoin()) {
         AppTheme {
-            AppNavScreen()
+            AppScreen()
         }
     }
 }

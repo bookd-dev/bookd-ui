@@ -5,4 +5,11 @@
     <string name="settings">设置</string>
     <string name="booklist">书单</string>
     <string name="network">网络配置</string>
+
+
+
+    <string name="error_no_network_config">未配置网络地址，请先设置服务器地址</string>
+    <string name="error_token_expired">凭证过期，请重新登录</string>
+    <string name="error_network">网络发送错误，请重试</string>
+    <string name="error_unknown">发生未知错误</string>
 </resources>

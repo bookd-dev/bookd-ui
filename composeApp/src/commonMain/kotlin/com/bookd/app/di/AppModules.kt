@@ -1,16 +1,14 @@
 package com.bookd.app.di
 
-import com.bookd.app.data.api.AuthApi
-import com.bookd.app.data.api.HealthApi
-import com.bookd.app.data.api.createAuthApi
-import com.bookd.app.data.api.createHealthApi
-import com.bookd.app.data.auth.DefaultHeaderProvider
+import com.bookd.app.data.api.ApiProvider
+import com.bookd.app.data.api.DefaultHeaderProvider
 import com.bookd.app.data.repository.NetworkConfigRepository
 import com.bookd.app.data.repository.NetworkSwitcher
 import com.bookd.app.data.repository.UserRepository
+import com.bookd.app.data.vm.AppViewModel
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.settings
-import de.jensklingenberg.ktorfit.Ktorfit
+import com.russhwolf.settings.Settings
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -25,8 +23,6 @@ import org.koin.dsl.module
  * 网络模块 - Ktor HttpClient 配置
  */
 val networkModule = module {
-    single { NetworkConfigRepository(settings) }
-
     single {
         Json {
             ignoreUnknownKeys = true
@@ -64,34 +60,21 @@ val networkModule = module {
             }
         }
     }
-    
+
     // NetworkSwitcher
     single { NetworkSwitcher(get(), get()) }
     
-    // Ktorfit 实例 (动态 baseUrl)
-    single {
-        val switcher = get<NetworkSwitcher>()
-        Ktorfit.Builder()
-            .baseUrl(switcher.currentUrl ?: "")
-            .httpClient(get<HttpClient>())
-            .build()
-    }
-    
-    // API 接口
-    single<AuthApi> { get<Ktorfit>().createAuthApi() }
-    single<HealthApi> { get<Ktorfit>().createHealthApi() }
+    // API 提供者 - 动态创建 Ktorfit 和 API 实例
+    single { ApiProvider(get(), get()) }
 }
 
 /**
  * 数据仓库模块
  */
 val repositoryModule = module {
-    single {
-        UserRepository(
-            settings = settings,
-            authApi = get(),
-        )
-    }
+    single<Settings> { settings }
+    single { NetworkConfigRepository(get()) }
+    single { UserRepository(get(), get()) }
 }
 
 /**
@@ -99,6 +82,7 @@ val repositoryModule = module {
  */
 val viewModelModule = module {
     viewModel { BookshelfViewModel() }
+    viewModel { AppViewModel(get(), get(), get()) }
 }
 
 val appNavigation = module {

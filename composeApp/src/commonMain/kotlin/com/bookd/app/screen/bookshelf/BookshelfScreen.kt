@@ -168,7 +168,8 @@ private fun BookshelfHeader(
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Filled.Search,
-                                contentDescription = null
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
                             )
                         },
                         onClick = {

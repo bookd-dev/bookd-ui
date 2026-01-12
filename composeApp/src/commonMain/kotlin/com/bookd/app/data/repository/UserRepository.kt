@@ -2,8 +2,10 @@
 
 package com.bookd.app.data.repository
 
-import com.bookd.app.data.api.AuthApi
-import com.bookd.app.data.auth.TokenProvider
+import com.bookd.app.data.api.ApiProvider
+import com.bookd.app.data.api.NoNetworkConfigException
+import com.bookd.app.data.api.NotAuthenticatedException
+import com.bookd.app.data.api.TokenProvider
 import com.bookd.app.data.model.*
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.Settings
@@ -35,7 +37,7 @@ sealed class AuthState {
  */
 class UserRepository(
     settings: Settings,
-    private val authApi: AuthApi,
+    private val apiProvider: ApiProvider,
 ) : TokenProvider {
     
     // Settings 代理，自动持久化
@@ -65,18 +67,27 @@ class UserRepository(
                 // 先用缓存的用户信息快速恢复状态
                 _authState.value = AuthState.Authenticated(savedUser)
                 
-                // 后台验证 token 并刷新用户信息
-                val freshUser = validateToken()
-                if (freshUser != null) {
-                    cachedUser = freshUser
-                    _authState.value = AuthState.Authenticated(freshUser)
-                } else {
-                    // Token 失效，清除缓存
-                    clearAuth()
+                // 如果网络已配置，后台验证 token
+                if (apiProvider.isConfigured) {
+                    val freshUser = validateToken()
+                    if (freshUser != null) {
+                        cachedUser = freshUser
+                        _authState.value = AuthState.Authenticated(freshUser)
+                    } else {
+                        // Token 失效，清除缓存
+                        clearAuth()
+                    }
                 }
                 return
             }
             _authState.value = AuthState.NotAuthenticated
+        } catch (_: NoNetworkConfigException) {
+            // 网络未配置，使用缓存状态
+            if (cachedUser != null && token != null) {
+                _authState.value = AuthState.Authenticated(cachedUser!!)
+            } else {
+                _authState.value = AuthState.NotAuthenticated
+            }
         } catch (_: Exception) {
             _authState.value = AuthState.NotAuthenticated
         }
@@ -86,6 +97,9 @@ class UserRepository(
      * 登录
      */
     suspend fun login(username: String, password: String): Result<User> {
+        val authApi = apiProvider.getAuthApiOrNull()
+            ?: return Result.failure(NoNetworkConfigException())
+        
         return try {
             val response = authApi.login(LoginRequest(username, password))
             token = response.token
@@ -103,7 +117,7 @@ class UserRepository(
     suspend fun logout() {
         try {
             if (token != null) {
-                authApi.logout()
+                apiProvider.getAuthApiOrNull()?.logout()
             }
         } catch (_: Exception) {
             // 忽略登出请求的错误
@@ -120,6 +134,9 @@ class UserRepository(
         password: String,
         email: String? = null
     ): Result<User> {
+        val authApi = apiProvider.getAuthApiOrNull()
+            ?: return Result.failure(NoNetworkConfigException())
+        
         return try {
             val user = authApi.registerGuest(RegisterRequest(username, password, email))
             Result.success(user)
@@ -137,6 +154,9 @@ class UserRepository(
         inviteToken: String,
         email: String? = null
     ): Result<User> {
+        val authApi = apiProvider.getAuthApiOrNull()
+            ?: return Result.failure(NoNetworkConfigException())
+        
         return try {
             val user = authApi.registerWithInvite(RegisterRequest(username, password, email, inviteToken))
             Result.success(user)
@@ -150,8 +170,11 @@ class UserRepository(
      */
     suspend fun refreshCurrentUser(): Result<User> {
         if (token == null) {
-            return Result.failure(Exception("Not authenticated"))
+            return Result.failure(NotAuthenticatedException())
         }
+        
+        val authApi = apiProvider.getAuthApiOrNull()
+            ?: return Result.failure(NoNetworkConfigException())
         
         return try {
             val user = authApi.getCurrentUser()
@@ -166,7 +189,7 @@ class UserRepository(
     
     private suspend fun validateToken(): User? {
         return try {
-            authApi.getCurrentUser()
+            apiProvider.getAuthApiOrNull()?.getCurrentUser()
         } catch (_: Exception) {
             null
         }
