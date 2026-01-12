@@ -10,27 +10,17 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.booklist
+import app.composeapp.generated.resources.network
 import app.composeapp.generated.resources.settings
 import com.bookd.app.basic.extension.noRippleClickable
 import com.bookd.app.data.vm.BookshelfViewModel
@@ -124,6 +114,7 @@ private fun BookshelfHeader(
     isCollapsed: Boolean,
     onBookSourceChange: (Int) -> Unit = {},
     onBooklistClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -173,14 +164,13 @@ private fun BookshelfHeader(
                     onDismissRequest = { expanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("配置地址") },
-                        onClick = {
-                            expanded = false
-                        }
-                    )
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { Text("暂时方式") },
+                        text = { Text(stringResource(Res.string.network)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = null
+                            )
+                        },
                         onClick = {
                             expanded = false
                         }
