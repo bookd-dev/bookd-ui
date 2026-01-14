@@ -34,11 +34,6 @@ kotlin {
 
     jvm()
 
-    js {
-        browser()
-        binaries.executable()
-    }
-
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
@@ -115,21 +110,16 @@ kotlin {
             //storage
             implementation(libs.sqldelight.native)
         }
-        jsMain.dependencies {
-            implementation(libs.ktor.client.js)
-            implementation(libs.nav3.browser)
-            //storage
-            implementation(libs.sqldelight.js)
-            npm("sql.js", "1.6.2")
-            devNpm("copy-webpack-plugin", "9.1.0")
-        }
-        wasmJsMain.dependencies {
-            implementation(libs.ktor.client.js)
-            implementation(libs.nav3.browser)
-            //storage
-            implementation(libs.sqldelight.js)
-            npm("sql.js", "1.6.2")
-            devNpm("copy-webpack-plugin", "9.1.0")
+        wasmJsMain {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.ktor.client.js)
+                implementation(libs.nav3.browser)
+                //storage
+                implementation(libs.sqldelight.js)
+                npm("sql.js", "1.6.2")
+                devNpm("copy-webpack-plugin", "9.1.0")
+            }
         }
     }
 

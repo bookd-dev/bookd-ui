@@ -7,6 +7,8 @@ import com.bookd.app.screen.App
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     ComposeViewport {
-        App()
+        LocalFontFamilyContent {
+            App()
+        }
     }
 }

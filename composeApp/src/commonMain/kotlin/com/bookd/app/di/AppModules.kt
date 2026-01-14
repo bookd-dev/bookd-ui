@@ -15,7 +15,6 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -23,14 +22,6 @@ import org.koin.dsl.module
  * 网络模块 - Ktor HttpClient 配置
  */
 val networkModule = module {
-    single {
-        Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            prettyPrint = false
-        }
-    }
-    
     // Header 提供者 - 从 UserRepository 获取 token
     single {
         DefaultHeaderProvider { getOrNull<UserRepository>() }
@@ -41,9 +32,7 @@ val networkModule = module {
         val headerProvider = get<DefaultHeaderProvider>()
 
         HttpClient {
-            install(ContentNegotiation) {
-                json(get())
-            }
+            install(ContentNegotiation) { json() }
             install(Logging) {
                 logger = Logger.DEFAULT
                 level = LogLevel.INFO

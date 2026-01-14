@@ -49,19 +49,11 @@ in your IDE's toolbar or run it directly from the terminal:
     - on macOS/Linux
       ```shell
       ./gradlew :composeApp:wasmJsBrowserDevelopmentRun
+      ./gradlew :composeApp:wasmJsBrowserProductionRun
       ```
     - on Windows
       ```shell
       .\gradlew.bat :composeApp:wasmJsBrowserDevelopmentRun
-      ```
-- for the JS target (slower, supports older browsers):
-    - on macOS/Linux
-      ```shell
-      ./gradlew :composeApp:jsBrowserDevelopmentRun
-      ```
-    - on Windows
-      ```shell
-      .\gradlew.bat :composeApp:jsBrowserDevelopmentRun
       ```
 
 ### Build and Run iOS Application
