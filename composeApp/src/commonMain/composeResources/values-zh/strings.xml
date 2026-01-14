@@ -4,9 +4,18 @@
     <string name="bookshelf">书架</string>
     <string name="settings">设置</string>
     <string name="booklist">书单</string>
-    <string name="network">网络配置</string>
+    <string name="cancel">取消</string>
+    <string name="ok">好</string>
+    <string name="confirm">确认</string>
 
+    <string name="goto">前往</string>
+    <string name="search_book">搜索书籍</string>
+    <string name="network_config">网络配置</string>
+    <string name="remote_url_config">远程地址配置</string>
+    <string name="local_url_config">本地地址配置</string>
 
+    <string name="remote_url_config_input">输入您的远程网络地址</string>
+    <string name="local_url_config_input">输入您的内网地址</string>
 
     <string name="error_no_network_config">未配置网络地址，请先设置服务器地址</string>
     <string name="error_token_expired">凭证过期，请重新登录</string>

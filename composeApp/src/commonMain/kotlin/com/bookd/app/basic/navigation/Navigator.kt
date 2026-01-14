@@ -1,5 +1,6 @@
 package com.bookd.app.basic.navigation
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
@@ -28,7 +29,7 @@ sealed class NavigationResult {
  * 在导航前检查网络配置和登录状态
  */
 @Stable
-class NavigationInterceptor(
+class Navigator(
     private val backStack: NavBackStack<NavKey>,
     private val connectionState: StateFlow<ConnectionState>,
     private val authState: StateFlow<AuthState>,
@@ -117,9 +118,9 @@ fun rememberNavigationInterceptor(
     connectionState: StateFlow<ConnectionState>,
     authState: StateFlow<AuthState>,
     onNeedNetworkConfig: () -> Unit,
-): NavigationInterceptor {
+): Navigator {
     return remember(backStack, connectionState, authState, onNeedNetworkConfig) {
-        NavigationInterceptor(
+        Navigator(
             backStack = backStack,
             connectionState = connectionState,
             authState = authState,

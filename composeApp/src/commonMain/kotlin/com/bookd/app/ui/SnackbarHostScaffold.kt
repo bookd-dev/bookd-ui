@@ -11,14 +11,15 @@ import app.composeapp.generated.resources.*
 import com.bookd.app.data.api.NetworkException
 import com.bookd.app.data.api.NoNetworkConfigException
 import com.bookd.app.data.api.TokenExpiredException
+import com.bookd.app.screen.LocalSnackbarHostState
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun ErrorHandlerScaffold(
+fun SnackbarHostScaffold(
     error: Result<Any>?,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = LocalSnackbarHostState.current
     val noNetworkConfigMessage = stringResource(Res.string.error_no_network_config)
     val tokenExpiredMessage = stringResource(Res.string.error_token_expired)
     val networkErrorMessage = stringResource(Res.string.error_network)

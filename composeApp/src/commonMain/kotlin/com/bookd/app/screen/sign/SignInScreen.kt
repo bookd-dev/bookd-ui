@@ -8,17 +8,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.bookd.app.screen.LocalNavBackStack
-import com.bookd.app.screen.RouteMain
 
 
 @Composable
 fun SignInScreen() {
-    val navBackStack = LocalNavBackStack.current
 
     Column(
         modifier = Modifier.fillMaxSize().clickable {
-            navBackStack.add(RouteMain.RouteSettings)
         },
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,

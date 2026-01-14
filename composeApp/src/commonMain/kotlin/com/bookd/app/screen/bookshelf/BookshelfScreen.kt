@@ -12,6 +12,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,10 +26,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.booklist
-import app.composeapp.generated.resources.network
 import app.composeapp.generated.resources.settings
 import com.bookd.app.basic.extension.noRippleClickable
+import com.bookd.app.data.structure.BookshelfMenu
 import com.bookd.app.data.vm.BookshelfViewModel
+import com.bookd.app.screen.RouteNetworkConfig
+import com.bookd.app.screen.RouteSearchBook
+import com.bookd.app.screen.rememberScreenContext
 import com.bookd.app.ui.AppPreview
 import com.bookd.app.ui.AppPreviewContent
 import com.bookd.app.ui.icons.BooklistMore
@@ -38,14 +42,25 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun BookshelfScreen() {
-    val viewModel = koinViewModel<BookshelfViewModel>()
+    val screenContext = rememberScreenContext<BookshelfViewModel>()
+
 
     BookshelfContent(
-        initialPage = viewModel.currentPage,
-        scrollStates = viewModel.scrollStates,
-        tabRowOffset = viewModel.tabRowOffset,
-        onPageChanged = { viewModel.currentPage = it },
-        onTabRowOffsetChanged = { viewModel.tabRowOffset = it },
+        initialPage = screenContext.viewModel.currentPage,
+        scrollStates = screenContext.viewModel.scrollStates,
+        tabRowOffset = screenContext.viewModel.tabRowOffset,
+        onPageChanged = { screenContext.viewModel.currentPage = it },
+        onTabRowOffsetChanged = { screenContext.viewModel.tabRowOffset = it },
+        onBooklistClick = {
+            //TODO 书架列表点击
+        },
+        onMenuClick = {
+            //TODO 设置页点击
+            when(it) {
+                BookshelfMenu.SearchBook -> screenContext.navigator.navigateTo(RouteSearchBook)
+                BookshelfMenu.NetworkConfig -> screenContext.navigator.navigateUnconditionally(RouteNetworkConfig)
+            }
+        }
     )
 }
 
@@ -56,6 +71,8 @@ private fun BookshelfContent(
     tabRowOffset: Float = 0f,
     onPageChanged: (Int) -> Unit = {},
     onTabRowOffsetChanged: (Float) -> Unit = {},
+    onBooklistClick: () -> Unit = {},
+    onMenuClick: (entry: BookshelfMenu) -> Unit = {},
 ) {
     val pagerState = rememberPagerState(initialPage = initialPage) { 30 }
     val coroutineScope = rememberCoroutineScope()
@@ -129,9 +146,11 @@ private fun BookshelfContent(
             isCollapsed = isCollapsed,
             onBookSourceChange = {
                 coroutineScope.launch {
-                    pagerState.animateScrollToPage(it)
+                    pagerState.scrollToPage(it)
                 }
             },
+            onBooklistClick = onBooklistClick,
+            onMenuClick = onMenuClick
         )
 
         HorizontalPager(
@@ -165,7 +184,7 @@ private fun BookshelfHeader(
     isCollapsed: Boolean,
     onBookSourceChange: (Int) -> Unit = {},
     onBooklistClick: () -> Unit = {},
-    onMenuClick: () -> Unit = {},
+    onMenuClick: (entry: BookshelfMenu) -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -214,19 +233,25 @@ private fun BookshelfHeader(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.network)) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.Search,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        },
-                        onClick = {
-                            expanded = false
-                        }
-                    )
+                    BookshelfMenu.entries.forEach { entry ->
+                        val text = stringResource(entry.title)
+                        DropdownMenuItem(
+                            text = { Text(text = text) },
+                            leadingIcon = entry.icon?.let {
+                                {
+                                    Icon(
+                                        imageVector = entry.icon,
+                                        contentDescription = text,
+                                        modifier = Modifier.size(entry.iconSize)
+                                    )
+                                }
+                            },
+                            onClick = {
+                                onMenuClick(entry)
+                                expanded = false
+                            }
+                        )
+                    }
                 }
             }
         }

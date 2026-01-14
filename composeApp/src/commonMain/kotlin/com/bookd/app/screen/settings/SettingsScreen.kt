@@ -13,13 +13,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.bookd.app.screen.LocalNavBackStack
 import com.bookd.app.ui.AppPreview
 import com.bookd.app.ui.AppPreviewContent
 
 @Composable
 fun SettingsScreen() {
-    val navBackStack = LocalNavBackStack.current
 
     Column(
         modifier = Modifier
