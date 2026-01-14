@@ -16,7 +16,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.booklist
@@ -48,28 +53,57 @@ private fun BookshelfContent() {
     // 每个 page 独立的滚动状态
     val scrollStates = remember { List(30) { LazyListState() } }
     
-    // 独立的折叠状态，不随 page 切换重置
-    var isCollapsed by remember { mutableStateOf(false) }
+    // Tab 行高度
+    val tabRowHeight = 40.dp
+    val density = LocalDensity.current
+    val tabRowHeightPx = with(density) { tabRowHeight.toPx() }
     
-    // 监听当前 page 的滚动，更新折叠状态
+    // 使用 offset 来平滑控制折叠，避免二元状态导致的闪烁
+    var tabRowOffset by remember { mutableStateOf(0f) }
+    
+    // 折叠状态由 offset 派生，避免中间状态
+    val isCollapsed by remember { derivedStateOf { tabRowOffset <= -tabRowHeightPx * 0.5f } }
+    
+    // 获取当前页的滚动状态
     val currentScrollState = scrollStates[pagerState.currentPage]
-    val collapseProgress by remember(currentScrollState) {
-        derivedStateOf {
-            val firstVisible = currentScrollState.firstVisibleItemIndex
-            val offset = currentScrollState.firstVisibleItemScrollOffset
-            if (firstVisible > 0) 1f
-            else (offset / 40f).coerceIn(0f, 1f)
-        }
-    }
     
-    // 只在滚动时更新折叠状态，page 切换不影响
-    // 添加防抖：只有明确的折叠/展开动作才更新状态
-    LaunchedEffect(currentScrollState.isScrollInProgress, collapseProgress) {
-        if (currentScrollState.isScrollInProgress) {
-            // 只在接近两端时才更新，避免中间状态闪烁
-            when {
-                collapseProgress > 0.8f -> isCollapsed = true
-                collapseProgress < 0.2f -> isCollapsed = false
+    // NestedScroll 处理惯性滚动
+    val nestedScrollConnection = remember(currentScrollState) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                
+                // 向上滚动（delta < 0）：先折叠 Tab，再滚动列表
+                if (delta < 0 && tabRowOffset > -tabRowHeightPx) {
+                    val consumed = (tabRowOffset + delta).coerceAtLeast(-tabRowHeightPx) - tabRowOffset
+                    tabRowOffset += consumed
+                    return Offset(0f, consumed)
+                }
+                
+                return Offset.Zero
+            }
+            
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                val delta = available.y
+                
+                // 向下滚动（delta > 0）：列表滚动完后展开 Tab（包括惯性滚动）
+                if (delta > 0 && tabRowOffset < 0) {
+                    // 检查列表是否已经在顶部
+                    val atTop = currentScrollState.firstVisibleItemIndex == 0 &&
+                            currentScrollState.firstVisibleItemScrollOffset == 0
+                    if (atTop) {
+                        val newOffset = (tabRowOffset + delta).coerceAtMost(0f)
+                        val consumed = newOffset - tabRowOffset
+                        tabRowOffset = newOffset
+                        return Offset(0f, consumed)
+                    }
+                }
+                
+                return Offset.Zero
             }
         }
     }
@@ -89,7 +123,10 @@ private fun BookshelfContent() {
         HorizontalPager(
             state = pagerState,
         ) { page ->
-            LazyColumn(state = scrollStates[page]) {
+            LazyColumn(
+                state = scrollStates[page],
+                modifier = Modifier.nestedScroll(nestedScrollConnection)
+            ) {
                 items(50) { i ->
                     Column(
                         modifier = Modifier

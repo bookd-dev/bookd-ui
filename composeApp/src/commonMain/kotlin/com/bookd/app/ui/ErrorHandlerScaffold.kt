@@ -7,11 +7,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import app.composeapp.generated.resources.Res
-import app.composeapp.generated.resources.error_network
-import app.composeapp.generated.resources.error_no_network_config
-import app.composeapp.generated.resources.error_token_expired
-import app.composeapp.generated.resources.error_unknown
+import app.composeapp.generated.resources.*
 import com.bookd.app.data.api.NetworkException
 import com.bookd.app.data.api.NoNetworkConfigException
 import com.bookd.app.data.api.TokenExpiredException
