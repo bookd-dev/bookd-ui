@@ -41,28 +41,40 @@ fun BookshelfScreen() {
     val viewModel = koinViewModel<BookshelfViewModel>()
 
     BookshelfContent(
-
+        initialPage = viewModel.currentPage,
+        scrollStates = viewModel.scrollStates,
+        tabRowOffset = viewModel.tabRowOffset,
+        onPageChanged = { viewModel.currentPage = it },
+        onTabRowOffsetChanged = { viewModel.tabRowOffset = it },
     )
 }
 
 @Composable
-private fun BookshelfContent() {
-    val pagerState = rememberPagerState(initialPage = 0) { 30 }
+private fun BookshelfContent(
+    initialPage: Int = 0,
+    scrollStates: List<LazyListState> = remember { List(30) { LazyListState() } },
+    tabRowOffset: Float = 0f,
+    onPageChanged: (Int) -> Unit = {},
+    onTabRowOffsetChanged: (Float) -> Unit = {},
+) {
+    val pagerState = rememberPagerState(initialPage = initialPage) { 30 }
     val coroutineScope = rememberCoroutineScope()
     
-    // 每个 page 独立的滚动状态
-    val scrollStates = remember { List(30) { LazyListState() } }
+    // 同步 pagerState 到外部
+    LaunchedEffect(pagerState.currentPage) {
+        onPageChanged(pagerState.currentPage)
+    }
     
     // Tab 行高度
     val tabRowHeight = 40.dp
     val density = LocalDensity.current
     val tabRowHeightPx = with(density) { tabRowHeight.toPx() }
     
-    // 使用 offset 来平滑控制折叠，避免二元状态导致的闪烁
-    var tabRowOffset by remember { mutableStateOf(0f) }
+    // 本地维护 offset 用于 UI，同步到外部
+    var localTabRowOffset by remember { mutableFloatStateOf(tabRowOffset) }
     
-    // 折叠状态由 offset 派生，避免中间状态
-    val isCollapsed by remember { derivedStateOf { tabRowOffset <= -tabRowHeightPx * 0.5f } }
+    // 折叠状态由 offset 派生
+    val isCollapsed by remember { derivedStateOf { localTabRowOffset <= -tabRowHeightPx * 0.5f } }
     
     // 获取当前页的滚动状态
     val currentScrollState = scrollStates[pagerState.currentPage]
@@ -74,9 +86,10 @@ private fun BookshelfContent() {
                 val delta = available.y
                 
                 // 向上滚动（delta < 0）：先折叠 Tab，再滚动列表
-                if (delta < 0 && tabRowOffset > -tabRowHeightPx) {
-                    val consumed = (tabRowOffset + delta).coerceAtLeast(-tabRowHeightPx) - tabRowOffset
-                    tabRowOffset += consumed
+                if (delta < 0 && localTabRowOffset > -tabRowHeightPx) {
+                    val consumed = (localTabRowOffset + delta).coerceAtLeast(-tabRowHeightPx) - localTabRowOffset
+                    localTabRowOffset += consumed
+                    onTabRowOffsetChanged(localTabRowOffset)
                     return Offset(0f, consumed)
                 }
                 
@@ -91,15 +104,16 @@ private fun BookshelfContent() {
                 val delta = available.y
                 
                 // 向下滚动（delta > 0）：列表滚动完后展开 Tab（包括惯性滚动）
-                if (delta > 0 && tabRowOffset < 0) {
+                if (delta > 0 && localTabRowOffset < 0) {
                     // 检查列表是否已经在顶部
                     val atTop = currentScrollState.firstVisibleItemIndex == 0 &&
                             currentScrollState.firstVisibleItemScrollOffset == 0
                     if (atTop) {
-                        val newOffset = (tabRowOffset + delta).coerceAtMost(0f)
-                        val consumed = newOffset - tabRowOffset
-                        tabRowOffset = newOffset
-                        return Offset(0f, consumed)
+                        val newOffset = (localTabRowOffset + delta).coerceAtMost(0f)
+                        val consumedOffset = newOffset - localTabRowOffset
+                        localTabRowOffset = newOffset
+                        onTabRowOffsetChanged(localTabRowOffset)
+                        return Offset(0f, consumedOffset)
                     }
                 }
                 
