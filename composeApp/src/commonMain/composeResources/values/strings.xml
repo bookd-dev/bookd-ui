@@ -8,9 +8,15 @@
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
     <string name="confirm">Confirm</string>
+    <string name="test">Test</string>
+    <string name="success">Success</string>
+    <string name="failed">Failed</string>
+    <string name="pending">Pending</string>
 
     <string name="search_book">Search book</string>
     <string name="network_config">Network configuration</string>
+    <string name="remote_url">Remote: </string>
+    <string name="local_url">Local: </string>
     <string name="remote_url_config">Remote address configuration</string>
     <string name="local_url_config">Local address configuration</string>
 

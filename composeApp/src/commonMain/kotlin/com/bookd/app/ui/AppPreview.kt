@@ -39,7 +39,28 @@ fun AppPreviewContent(
 }
 
 @Preview(name = "1 - Vertical EN", widthDp = 1080, heightDp = 1920, locale = "en", showBackground = true)
+annotation class AppVerticalENPreview
+
 @Preview(name = "2 - Vertical ZH", widthDp = 1080, heightDp = 1920, locale = "zh", showBackground = true)
+annotation class AppVerticalZHPreview
+
 @Preview(name = "3 - Horizontal EN", widthDp = 1920, heightDp = 1080, locale = "en", showBackground = true)
+annotation class AppHorizontalENPreview
+
 @Preview(name = "4 - Horizontal ZH", widthDp = 1920, heightDp = 1080, locale = "zh", showBackground = true)
+annotation class AppHorizontalZHPreview
+
+
+@AppVerticalENPreview
+@AppVerticalZHPreview
+annotation class AppHorizontalPreview
+
+
+@AppHorizontalENPreview
+@AppHorizontalZHPreview
+annotation class AppVerticalPreview
+
+
+@AppVerticalPreview
+@AppHorizontalPreview
 annotation class AppPreview

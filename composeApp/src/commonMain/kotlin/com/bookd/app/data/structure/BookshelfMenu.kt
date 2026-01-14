@@ -12,18 +12,18 @@ import app.composeapp.generated.resources.search_book
 import org.jetbrains.compose.resources.StringResource
 
 enum class BookshelfMenu(
-    val title: StringResource,
+    val text: StringResource,
     val icon: ImageVector? = null,
     val iconSize: Dp = 16.dp,
 ) {
 
     SearchBook(
-        title = Res.string.search_book,
+        text = Res.string.search_book,
         icon = Icons.Outlined.Search,
     ),
 
     NetworkConfig(
-        title = Res.string.network_config,
+        text = Res.string.network_config,
         icon = Icons.Outlined.NetworkPing,
     )
 }

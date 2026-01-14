@@ -1,13 +1,24 @@
+@file:OptIn(ExperimentalMaterial3AdaptiveApi::class)
+
 package com.bookd.app.screen
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
+import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
+import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
+import androidx.compose.material3.adaptive.navigation3.rememberSupportingPaneSceneStrategy
 import androidx.compose.runtime.*
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.scene.DialogSceneStrategy
+import androidx.navigation3.scene.SceneStrategy
+import androidx.navigation3.scene.SinglePaneSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.error_no_network_config
@@ -60,6 +71,21 @@ fun AppScreen() {
         }
     )
 
+    // Override the defaults so that there isn't a horizontal or vertical space between the panes.
+    // See b/444438086
+    val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+    val directive = remember(windowAdaptiveInfo) {
+        calculatePaneScaffoldDirective(windowAdaptiveInfo)
+            .copy(horizontalPartitionSpacerSize = 0.dp, verticalPartitionSpacerSize = 0.dp)
+    }
+
+    // Override the defaults so that the supporting pane can be dismissed by pressing back.
+    // See b/445826749
+    val supportingPaneStrategy = rememberSupportingPaneSceneStrategy<NavKey>(
+        backNavigationBehavior = BackNavigationBehavior.PopUntilCurrentDestinationChange,
+        directive = directive
+    )
+
 
     CompositionLocalProvider(
         LocalNavigator provides navigator,
@@ -68,10 +94,12 @@ fun AppScreen() {
        SnackbarHostScaffold(error) {
            NavDisplay(
                backStack = backStack,
-               onBack = { backStack.removeLastOrNull() },
                transitionSpec = transitionSpec(),
                popTransitionSpec = popTransitionSpec(),
                predictivePopTransitionSpec = predictivePopTransitionSpec(),
+               sceneStrategy = DialogSceneStrategy<NavKey>()
+                   .then(supportingPaneStrategy)
+                   .then(SinglePaneSceneStrategy()),
                entryProvider = entryProvider {
                    entry<RouteMain> {
                        MainScreen(
@@ -85,7 +113,7 @@ fun AppScreen() {
                    }
 
                    entry<RouteNetworkConfig>(
-                       metadata = DialogSceneStrategy.dialog(DialogProperties())
+                       metadata = DialogSceneStrategy.dialog()
                    ) {
                        NetworkConfigScreen()
                    }

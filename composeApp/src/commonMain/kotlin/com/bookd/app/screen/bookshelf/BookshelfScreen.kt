@@ -10,9 +10,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +36,6 @@ import com.bookd.app.ui.AppPreviewContent
 import com.bookd.app.ui.icons.BooklistMore
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun BookshelfScreen() {
@@ -234,7 +231,7 @@ private fun BookshelfHeader(
                     onDismissRequest = { expanded = false }
                 ) {
                     BookshelfMenu.entries.forEach { entry ->
-                        val text = stringResource(entry.title)
+                        val text = stringResource(entry.text)
                         DropdownMenuItem(
                             text = { Text(text = text) },
                             leadingIcon = entry.icon?.let {
