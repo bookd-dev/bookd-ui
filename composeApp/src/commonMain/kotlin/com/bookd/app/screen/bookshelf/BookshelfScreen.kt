@@ -1,41 +1,20 @@
 package com.bookd.app.screen.bookshelf
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import app.composeapp.generated.resources.Res
-import app.composeapp.generated.resources.booklist
-import app.composeapp.generated.resources.settings
-import com.bookd.app.basic.extension.noRippleClickable
 import com.bookd.app.data.structure.BookshelfMenu
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.screen.RouteNetworkConfig
 import com.bookd.app.screen.RouteSearchBook
 import com.bookd.app.screen.rememberScreenContext
-import com.bookd.app.ui.AppPreview
 import com.bookd.app.ui.AppPreviewContent
-import com.bookd.app.ui.icons.BooklistMore
+import com.bookd.app.ui.AppVerticalZHPreview
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun BookshelfScreen() {
@@ -48,9 +27,6 @@ fun BookshelfScreen() {
         tabRowOffset = screenContext.viewModel.tabRowOffset,
         onPageChanged = { screenContext.viewModel.currentPage = it },
         onTabRowOffsetChanged = { screenContext.viewModel.tabRowOffset = it },
-        onBooklistClick = {
-            //TODO 书架列表点击
-        },
         onMenuClick = {
             //TODO 设置页点击
             when(it) {
@@ -68,7 +44,6 @@ private fun BookshelfContent(
     tabRowOffset: Float = 0f,
     onPageChanged: (Int) -> Unit = {},
     onTabRowOffsetChanged: (Float) -> Unit = {},
-    onBooklistClick: () -> Unit = {},
     onMenuClick: (entry: BookshelfMenu) -> Unit = {},
 ) {
     val pagerState = rememberPagerState(initialPage = initialPage) { 30 }
@@ -78,237 +53,56 @@ private fun BookshelfContent(
     LaunchedEffect(pagerState.currentPage) {
         onPageChanged(pagerState.currentPage)
     }
-    
+
+    var isBookshelfVisible by remember { mutableStateOf(true) }
     // Tab 行高度
-    val tabRowHeight = 40.dp
-    val density = LocalDensity.current
-    val tabRowHeightPx = with(density) { tabRowHeight.toPx() }
-    
+    val tabRowHeightPx = with(LocalDensity.current) { 48.dp.toPx() }
     // 本地维护 offset 用于 UI，同步到外部
     var localTabRowOffset by remember { mutableFloatStateOf(tabRowOffset) }
-    
     // 折叠状态由 offset 派生
     val isCollapsed by remember { derivedStateOf { localTabRowOffset <= -tabRowHeightPx * 0.5f } }
 
     Column {
         // 固定 Header - 始终显示
-        BookshelfHeader(
+        BookshelfHeaderContent(
             pagerState = pagerState,
             isCollapsed = isCollapsed,
+            isBookshelfVisible = isBookshelfVisible,
             onBookSourceChange = {
                 coroutineScope.launch {
+                    isBookshelfVisible = false
                     pagerState.scrollToPage(it)
                 }
             },
-            onBooklistClick = onBooklistClick,
+            onBookshelfClick = {
+                isBookshelfVisible = !isBookshelfVisible
+            },
             onMenuClick = onMenuClick
         )
 
-        HorizontalPager(
-            state = pagerState,
-        ) { page ->
-            BookshelfSourcePage(
-                page = page,
-                scrollState = scrollStates[page],
-                tabRowHeightPx = tabRowHeightPx,
-                tabRowOffset = localTabRowOffset,
-                onTabRowOffsetChanged = { 
-                    localTabRowOffset = it
-                    onTabRowOffsetChanged(it)
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun BookshelfSourcePage(
-    page: Int,
-    scrollState: LazyListState,
-    tabRowHeightPx: Float,
-    tabRowOffset: Float,
-    onTabRowOffsetChanged: (Float) -> Unit,
-) {
-    // 使用 rememberUpdatedState 确保闭包中使用最新值
-    val currentTabRowOffset by rememberUpdatedState(tabRowOffset)
-    val currentOnChanged by rememberUpdatedState(onTabRowOffsetChanged)
-    
-    // 每个 page 独立的 NestedScrollConnection
-    val nestedScrollConnection = remember(page) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                
-                // 向上滚动（delta < 0）：先折叠 Tab，再滚动列表
-                if (delta < 0 && currentTabRowOffset > -tabRowHeightPx) {
-                    val newOffset = (currentTabRowOffset + delta).coerceAtLeast(-tabRowHeightPx)
-                    val consumed = newOffset - currentTabRowOffset
-                    currentOnChanged(newOffset)
-                    return Offset(0f, consumed)
-                }
-                
-                return Offset.Zero
-            }
-            
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset {
-                val delta = available.y
-                
-                // 向下滚动（delta > 0）：列表滚动完后展开 Tab（包括惯性滚动）
-                if (delta > 0 && currentTabRowOffset < 0) {
-                    // 检查列表是否已经在顶部
-                    val atTop = scrollState.firstVisibleItemIndex == 0 &&
-                            scrollState.firstVisibleItemScrollOffset == 0
-                    if (atTop) {
-                        val newOffset = (currentTabRowOffset + delta).coerceAtMost(0f)
-                        val consumedOffset = newOffset - currentTabRowOffset
-                        currentOnChanged(newOffset)
-                        return Offset(0f, consumedOffset)
+        if (isBookshelfVisible) {
+            BookshelfListContent()
+        } else {
+            HorizontalPager(
+                state = pagerState,
+            ) { page ->
+                BookshelfSourceContent(
+                    page = page,
+                    scrollState = scrollStates[page],
+                    tabRowHeightPx = tabRowHeightPx,
+                    tabRowOffset = localTabRowOffset,
+                    onTabRowOffsetChanged = {
+                        localTabRowOffset = it
+                        onTabRowOffsetChanged(it)
                     }
-                }
-                
-                return Offset.Zero
-            }
-        }
-    }
-    
-    LazyColumn(
-        state = scrollState,
-        modifier = Modifier.nestedScroll(nestedScrollConnection)
-    ) {
-        items(50) { i ->
-            Column(
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .background(color = Color.Red)
-            ) {
-                Text(text = "Book$i")
-            }
-        }
-    }
-}
-
-@Composable
-private fun BookshelfHeader(
-    pagerState: PagerState,
-    isCollapsed: Boolean,
-    onBookSourceChange: (Int) -> Unit = {},
-    onBooklistClick: () -> Unit = {},
-    onMenuClick: (entry: BookshelfMenu) -> Unit = {},
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column {
-        // 第一行：书架按钮 (始终显示), 书籍源(折叠显示), 设置网络(始终显示)
-        // 折叠时，数据源 Tabs 移到这一行
-
-        Row(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .padding(horizontal = 16.dp)
-                .height(40.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.BooklistMore,
-                contentDescription = stringResource(Res.string.booklist),
-                modifier = Modifier.size(24.dp).noRippleClickable { onBooklistClick() },
-            )
-
-            // 折叠时显示数据源选择
-            AnimatedVisibility(
-                visible = isCollapsed,
-                modifier = Modifier.weight(1f),
-            ) {
-                BookSourceTabList(
-                    pagerState = pagerState,
-                    onClick = onBookSourceChange
                 )
             }
-
-            if (!isCollapsed) {
-                Spacer(modifier = Modifier.weight(1f))
-            }
-
-            Box {
-                Icon(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = stringResource(Res.string.settings),
-                    modifier = Modifier.size(24.dp).noRippleClickable { expanded = true }
-                )
-
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    BookshelfMenu.entries.forEach { entry ->
-                        val text = stringResource(entry.text)
-                        DropdownMenuItem(
-                            text = { Text(text = text) },
-                            leadingIcon = entry.icon?.let {
-                                {
-                                    Icon(
-                                        imageVector = entry.icon,
-                                        contentDescription = text,
-                                        modifier = Modifier.size(entry.iconSize)
-                                    )
-                                }
-                            },
-                            onClick = {
-                                onMenuClick(entry)
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        // 第二行：数据源 Tabs (展开时显示)
-        AnimatedVisibility(
-            visible = !isCollapsed,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            BookSourceTabList(
-                pagerState = pagerState,
-                onClick = onBookSourceChange
-            )
-        }
-    }
-}
-
-@Composable
-private fun BookSourceTabList(
-    modifier: Modifier = Modifier,
-    pagerState: PagerState,
-    onClick: (Int) -> Unit = {}
-) {
-
-    LazyRow(
-        modifier = modifier.height(32.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        items(30) {
-            Tab(
-                selected = pagerState.currentPage == it,
-                onClick = { onClick(it) },
-            ) {
-                Text("数据源$it")
-            }
         }
     }
 }
 
 
-@AppPreview
+@AppVerticalZHPreview
 @Composable
 private fun BookshelfScreenPreview() {
     AppPreviewContent {

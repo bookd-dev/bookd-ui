@@ -1,15 +1,6 @@
 package com.bookd.app.screen.main
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
@@ -31,6 +22,7 @@ import app.composeapp.generated.resources.settings
 import com.bookd.app.basic.navigation.popTransitionSpec
 import com.bookd.app.basic.navigation.predictivePopTransitionSpec
 import com.bookd.app.basic.navigation.transitionSpec
+import com.bookd.app.screen.LocalNavigator
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSHELF
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_SETTINGS
 import com.bookd.app.screen.bookshelf.BookshelfScreen
@@ -83,6 +75,7 @@ fun MainScreen(
         navigationRailItemColors = NavigationRailItemDefaults.colors(indicatorColor = Color.Transparent),
         navigationDrawerItemColors = NavigationDrawerItemDefaults.colors(selectedContainerColor = Color.Transparent)
     )
+    val navigator = LocalNavigator.current
 
     NavigationSuiteScaffold(
         modifier = Modifier.consumeWindowInsets(WindowInsets.navigationBars),
