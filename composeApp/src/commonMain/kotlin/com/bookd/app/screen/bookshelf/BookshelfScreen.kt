@@ -89,52 +89,6 @@ private fun BookshelfContent(
     
     // 折叠状态由 offset 派生
     val isCollapsed by remember { derivedStateOf { localTabRowOffset <= -tabRowHeightPx * 0.5f } }
-    
-    // 获取当前页的滚动状态
-    val currentScrollState = scrollStates[pagerState.currentPage]
-    
-    // NestedScroll 处理惯性滚动
-    val nestedScrollConnection = remember(currentScrollState) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                
-                // 向上滚动（delta < 0）：先折叠 Tab，再滚动列表
-                if (delta < 0 && localTabRowOffset > -tabRowHeightPx) {
-                    val consumed = (localTabRowOffset + delta).coerceAtLeast(-tabRowHeightPx) - localTabRowOffset
-                    localTabRowOffset += consumed
-                    onTabRowOffsetChanged(localTabRowOffset)
-                    return Offset(0f, consumed)
-                }
-                
-                return Offset.Zero
-            }
-            
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset {
-                val delta = available.y
-                
-                // 向下滚动（delta > 0）：列表滚动完后展开 Tab（包括惯性滚动）
-                if (delta > 0 && localTabRowOffset < 0) {
-                    // 检查列表是否已经在顶部
-                    val atTop = currentScrollState.firstVisibleItemIndex == 0 &&
-                            currentScrollState.firstVisibleItemScrollOffset == 0
-                    if (atTop) {
-                        val newOffset = (localTabRowOffset + delta).coerceAtMost(0f)
-                        val consumedOffset = newOffset - localTabRowOffset
-                        localTabRowOffset = newOffset
-                        onTabRowOffsetChanged(localTabRowOffset)
-                        return Offset(0f, consumedOffset)
-                    }
-                }
-                
-                return Offset.Zero
-            }
-        }
-    }
 
     Column {
         // 固定 Header - 始终显示
@@ -153,23 +107,87 @@ private fun BookshelfContent(
         HorizontalPager(
             state = pagerState,
         ) { page ->
-            LazyColumn(
-                state = scrollStates[page],
-                modifier = Modifier.nestedScroll(nestedScrollConnection)
-            ) {
-                items(50) { i ->
-                    Column(
-                        modifier = Modifier
-                            .padding(vertical = 8.dp)
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .background(color = Color.Red)
-                    ) {
-                        Text(
-                            text = "Book$i",
-                        )
+            BookshelfSourcePage(
+                page = page,
+                scrollState = scrollStates[page],
+                tabRowHeightPx = tabRowHeightPx,
+                tabRowOffset = localTabRowOffset,
+                onTabRowOffsetChanged = { 
+                    localTabRowOffset = it
+                    onTabRowOffsetChanged(it)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun BookshelfSourcePage(
+    page: Int,
+    scrollState: LazyListState,
+    tabRowHeightPx: Float,
+    tabRowOffset: Float,
+    onTabRowOffsetChanged: (Float) -> Unit,
+) {
+    // 使用 rememberUpdatedState 确保闭包中使用最新值
+    val currentTabRowOffset by rememberUpdatedState(tabRowOffset)
+    val currentOnChanged by rememberUpdatedState(onTabRowOffsetChanged)
+    
+    // 每个 page 独立的 NestedScrollConnection
+    val nestedScrollConnection = remember(page) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                
+                // 向上滚动（delta < 0）：先折叠 Tab，再滚动列表
+                if (delta < 0 && currentTabRowOffset > -tabRowHeightPx) {
+                    val newOffset = (currentTabRowOffset + delta).coerceAtLeast(-tabRowHeightPx)
+                    val consumed = newOffset - currentTabRowOffset
+                    currentOnChanged(newOffset)
+                    return Offset(0f, consumed)
+                }
+                
+                return Offset.Zero
+            }
+            
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                val delta = available.y
+                
+                // 向下滚动（delta > 0）：列表滚动完后展开 Tab（包括惯性滚动）
+                if (delta > 0 && currentTabRowOffset < 0) {
+                    // 检查列表是否已经在顶部
+                    val atTop = scrollState.firstVisibleItemIndex == 0 &&
+                            scrollState.firstVisibleItemScrollOffset == 0
+                    if (atTop) {
+                        val newOffset = (currentTabRowOffset + delta).coerceAtMost(0f)
+                        val consumedOffset = newOffset - currentTabRowOffset
+                        currentOnChanged(newOffset)
+                        return Offset(0f, consumedOffset)
                     }
                 }
+                
+                return Offset.Zero
+            }
+        }
+    }
+    
+    LazyColumn(
+        state = scrollState,
+        modifier = Modifier.nestedScroll(nestedScrollConnection)
+    ) {
+        items(50) { i ->
+            Column(
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(color = Color.Red)
+            ) {
+                Text(text = "Book$i")
             }
         }
     }

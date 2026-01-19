@@ -7,8 +7,10 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 
+private val lazyInteractionSource by lazy { MutableInteractionSource() }
+
 fun Modifier.noRippleClickable(
-    interactionSource: MutableInteractionSource? = MutableInteractionSource(),
+    interactionSource: MutableInteractionSource? = lazyInteractionSource,
     indication: Indication? = null,
     enabled: Boolean = true,
     role: Role? = null,
