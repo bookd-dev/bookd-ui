@@ -90,8 +90,6 @@ private fun NetworkConfigContent(
             remoteUrl.isNotBlank() || localUrl.isNotBlank()
         }
     }
-    
-    val isTesting = remoteTestState == UrlTestState.Pending || localTestState == UrlTestState.Pending
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -189,7 +187,7 @@ private fun NetworkConfigContent(
             }
 
             TextButton(
-                enabled = enableConfirm && !isTesting,
+                enabled = enableConfirm,
                 onClick = { onTestRequest() },
                 modifier = Modifier
                     .border(
