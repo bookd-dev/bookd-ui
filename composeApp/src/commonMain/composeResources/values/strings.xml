@@ -27,4 +27,32 @@
     <string name="error_token_expired">Token expired</string>
     <string name="error_network">Network error, please retry</string>
     <string name="error_unknown">unknown error</string>
+
+    <!-- Sign In / Register Screen -->
+    <string name="sign_in">Sign In</string>
+    <string name="register">Register</string>
+    <string name="login">Login</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="email">Email (optional)</string>
+    <string name="invite_code">Invite Code</string>
+    <string name="guest_register">Guest Registration</string>
+    <string name="invite_register">Invite Code Registration</string>
+
+    <!-- Button States -->
+    <string name="signing_in">Signing in...</string>
+    <string name="registering">Registering...</string>
+
+    <!-- Validation Errors -->
+    <string name="error_username_too_short">Username must be at least 3 characters</string>
+    <string name="error_username_too_long">Username cannot exceed 20 characters</string>
+    <string name="error_username_invalid_chars">Username can only contain letters, numbers, and underscores</string>
+    <string name="error_password_too_short">Password must be at least 6 characters</string>
+    <string name="error_password_too_long">Password cannot exceed 32 characters</string>
+    <string name="error_email_invalid">Invalid email format</string>
+    <string name="error_invite_code_invalid">Invalid invite code format</string>
+
+    <!-- Success Messages -->
+    <string name="login_success">Login successful</string>
+    <string name="register_success">Registration successful</string>
 </resources>

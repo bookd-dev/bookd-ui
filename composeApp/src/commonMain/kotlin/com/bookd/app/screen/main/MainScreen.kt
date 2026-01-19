@@ -19,12 +19,16 @@ import androidx.navigation3.ui.NavDisplay
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.bookshelf
 import app.composeapp.generated.resources.settings
+import com.bookd.app.basic.navigation.NavigationResult
+import com.bookd.app.basic.navigation.Navigator
 import com.bookd.app.basic.navigation.popTransitionSpec
 import com.bookd.app.basic.navigation.predictivePopTransitionSpec
 import com.bookd.app.basic.navigation.transitionSpec
 import com.bookd.app.screen.LocalNavigator
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSHELF
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_SETTINGS
+import com.bookd.app.screen.RouteNetworkConfig
+import com.bookd.app.screen.RouteSignIn
 import com.bookd.app.screen.bookshelf.BookshelfScreen
 import com.bookd.app.screen.settings.SettingsScreen
 import com.bookd.app.ui.icons.Bookshelf
@@ -69,13 +73,14 @@ fun MainScreen(
     route: String,
     onBottomBarClick: (key: String) -> Unit,
 ) {
+    val navigator = LocalNavigator.current
     val topLevelBackStack = remember { TopLevelBackStack(fromRoute(route)) }
+
     val itemColors = NavigationSuiteDefaults.itemColors(
         navigationBarItemColors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent),
         navigationRailItemColors = NavigationRailItemDefaults.colors(indicatorColor = Color.Transparent),
         navigationDrawerItemColors = NavigationDrawerItemDefaults.colors(selectedContainerColor = Color.Transparent)
     )
-    val navigator = LocalNavigator.current
 
     NavigationSuiteScaffold(
         modifier = Modifier.consumeWindowInsets(WindowInsets.navigationBars),
@@ -85,8 +90,14 @@ fun MainScreen(
                 item(
                     selected = isSelected,
                     onClick = {
-                        topLevelBackStack.addTopLevel(topLevelRoute)
-                        onBottomBarClick(topLevelRoute.route)
+                        when (navigator.check()) {
+                            NavigationResult.Allowed -> {
+                                topLevelBackStack.addTopLevel(topLevelRoute)
+                                onBottomBarClick(topLevelRoute.route)
+                            }
+                            NavigationResult.NeedLogin -> navigator.navigateUnconditionally(RouteSignIn)
+                            NavigationResult.NeedNetworkConfig -> navigator.navigateUnconditionally(RouteNetworkConfig)
+                        }
                     },
                     icon = {
                         Icon(
@@ -156,7 +167,6 @@ class TopLevelBackStack<T : Any>(startKey: T) {
         }
 
     fun addTopLevel(key: T) {
-
         // If the top level doesn't exist, add it
         if (topLevelStacks[key] == null) {
             topLevelStacks[key] = mutableStateListOf(key)

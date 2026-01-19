@@ -30,7 +30,7 @@ fun SnackbarHostScaffold(
             val message = when (throwable) {
                 is NoNetworkConfigException -> noNetworkConfigMessage
                 is TokenExpiredException -> tokenExpiredMessage
-                is NetworkException -> networkErrorMessage
+                is NetworkException -> throwable.message ?: networkErrorMessage
                 else -> throwable.message ?: unknownErrorMessage
             }
             snackbarHostState.showSnackbar(message)

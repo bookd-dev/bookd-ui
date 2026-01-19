@@ -2,11 +2,13 @@ package com.bookd.app.di
 
 import com.bookd.app.data.api.ApiProvider
 import com.bookd.app.data.api.DefaultHeaderProvider
+import com.bookd.app.data.repository.LanguageRepository
 import com.bookd.app.data.repository.NetworkConfigRepository
 import com.bookd.app.data.repository.NetworkSwitcher
 import com.bookd.app.data.repository.UserRepository
 import com.bookd.app.data.vm.AppViewModel
 import com.bookd.app.data.vm.BookshelfViewModel
+import com.bookd.app.data.vm.SignInViewModel
 import com.bookd.app.settings
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
@@ -22,9 +24,12 @@ import org.koin.dsl.module
  * 网络模块 - Ktor HttpClient 配置
  */
 val networkModule = module {
-    // Header 提供者 - 从 UserRepository 获取 token
+    // Header 提供者 - 从 UserRepository 获取 token，从 LanguageRepository 获取语言
     single {
-        DefaultHeaderProvider { getOrNull<UserRepository>() }
+        DefaultHeaderProvider(
+            tokenProvider = { getOrNull<UserRepository>() },
+            languageProvider = { get<LanguageRepository>() }
+        )
     }
 
     // 动态 baseUrl 的 HttpClient
@@ -62,6 +67,7 @@ val networkModule = module {
  */
 val repositoryModule = module {
     single<Settings> { settings }
+    single { LanguageRepository(get()) }
     single { NetworkConfigRepository(get()) }
     single { UserRepository(get(), get()) }
 }
@@ -70,8 +76,9 @@ val repositoryModule = module {
  * ViewModel 模块
  */
 val viewModelModule = module {
-    viewModel { BookshelfViewModel() }
     viewModel { AppViewModel(get(), get(), get()) }
+    viewModel { BookshelfViewModel() }
+    viewModel { SignInViewModel(get()) }
 }
 
 val appNavigation = module {

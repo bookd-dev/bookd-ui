@@ -1,6 +1,5 @@
 package com.bookd.app.basic.lifecycle
 
-import com.bookd.app.basic.lifecycle.GlobalExceptionHandler.listeners
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext

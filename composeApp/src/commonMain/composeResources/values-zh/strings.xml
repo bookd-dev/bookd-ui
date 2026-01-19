@@ -27,4 +27,32 @@
     <string name="error_token_expired">凭证过期，请重新登录</string>
     <string name="error_network">网络发送错误，请重试</string>
     <string name="error_unknown">发生未知错误</string>
+
+    <!-- Sign In / Register Screen -->
+    <string name="sign_in">登录</string>
+    <string name="register">注册</string>
+    <string name="login">登录</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="email">邮箱（可选）</string>
+    <string name="invite_code">邀请码</string>
+    <string name="guest_register">访客注册</string>
+    <string name="invite_register">邀请码注册</string>
+
+    <!-- Button States -->
+    <string name="signing_in">登录中...</string>
+    <string name="registering">注册中...</string>
+
+    <!-- Validation Errors -->
+    <string name="error_username_too_short">用户名至少 3 个字符</string>
+    <string name="error_username_too_long">用户名最多 20 个字符</string>
+    <string name="error_username_invalid_chars">用户名只能包含字母、数字和下划线</string>
+    <string name="error_password_too_short">密码至少 6 个字符</string>
+    <string name="error_password_too_long">密码最多 32 个字符</string>
+    <string name="error_email_invalid">邮箱格式不正确</string>
+    <string name="error_invite_code_invalid">邀请码格式不正确</string>
+
+    <!-- Success Messages -->
+    <string name="login_success">登录成功</string>
+    <string name="register_success">注册成功</string>
 </resources>
