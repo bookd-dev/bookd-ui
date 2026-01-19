@@ -7,7 +7,8 @@ import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.bookd.app.data.repository.AuthState
-import com.bookd.app.data.repository.ConnectionState
+import com.bookd.app.data.repository.ConnectionStatus
+import com.bookd.app.data.repository.NetworkState
 import com.bookd.app.screen.RouteSignIn
 import kotlinx.coroutines.flow.StateFlow
 
@@ -31,7 +32,7 @@ sealed class NavigationResult {
 @Stable
 class Navigator(
     private val backStack: NavBackStack<NavKey>,
-    private val connectionState: StateFlow<ConnectionState>,
+    private val networkState: StateFlow<NetworkState>,
     private val authState: StateFlow<AuthState>,
     private val onNeedNetworkConfig: () -> Unit,
 ) {
@@ -48,8 +49,8 @@ class Navigator(
     ): NavigationResult {
         // 检查网络配置
         if (requireNetwork) {
-            val connection = connectionState.value
-            if (connection is ConnectionState.Offline || connection is ConnectionState.Checking) {
+            val status = networkState.value.status
+            if (status is ConnectionStatus.Offline || status is ConnectionStatus.Checking) {
                 return NavigationResult.NeedNetworkConfig
             }
         }
@@ -115,14 +116,14 @@ class Navigator(
 @Composable
 fun rememberNavigationInterceptor(
     backStack: NavBackStack<NavKey>,
-    connectionState: StateFlow<ConnectionState>,
+    networkState: StateFlow<NetworkState>,
     authState: StateFlow<AuthState>,
     onNeedNetworkConfig: () -> Unit,
 ): Navigator {
-    return remember(backStack, connectionState, authState, onNeedNetworkConfig) {
+    return remember(backStack, networkState, authState, onNeedNetworkConfig) {
         Navigator(
             backStack = backStack,
-            connectionState = connectionState,
+            networkState = networkState,
             authState = authState,
             onNeedNetworkConfig = onNeedNetworkConfig,
         )

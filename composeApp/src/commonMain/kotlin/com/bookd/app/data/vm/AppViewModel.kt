@@ -18,7 +18,7 @@ class AppViewModel(
     private val apiProvider: ApiProvider,
 ) : BaseViewModel(true) {
 
-    val connectionState = networkSwitcher.connectionState
+    val networkState = networkSwitcher.networkState
     val authState = userRepository.authState
 
     // 初始化状态
@@ -30,6 +30,7 @@ class AppViewModel(
 
     init {
         initialize()
+        startNetworkMonitor()
     }
 
     private fun initialize() {
@@ -54,7 +55,6 @@ class AppViewModel(
         }
     }
 
-    // 开启后台网络监控（可选）
     fun startNetworkMonitor() {
         scope.launch {
             networkSwitcher.startMonitor()

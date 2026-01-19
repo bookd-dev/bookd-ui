@@ -52,7 +52,7 @@ fun AppScreen() {
 
     val navigator = rememberNavigationInterceptor(
         backStack = backStack,
-        connectionState = viewModel.connectionState,
+        networkState = viewModel.networkState,
         authState = viewModel.authState,
         onNeedNetworkConfig = {
             coroutineScope.launch {
