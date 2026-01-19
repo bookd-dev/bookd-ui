@@ -23,10 +23,10 @@ fun BookshelfScreen() {
 
     BookshelfContent(
         initialPage = screenContext.viewModel.currentPage,
-        scrollStates = screenContext.viewModel.scrollStates,
         tabRowOffset = screenContext.viewModel.tabRowOffset,
         onPageChanged = { screenContext.viewModel.currentPage = it },
         onTabRowOffsetChanged = { screenContext.viewModel.tabRowOffset = it },
+        onGetScrollState = { page -> screenContext.viewModel.getScrollState(page) },
         onMenuClick = {
             //TODO 设置页点击
             when(it) {
@@ -40,10 +40,10 @@ fun BookshelfScreen() {
 @Composable
 private fun BookshelfContent(
     initialPage: Int = 0,
-    scrollStates: List<LazyListState> = remember { List(30) { LazyListState() } },
     tabRowOffset: Float = 0f,
     onPageChanged: (Int) -> Unit = {},
     onTabRowOffsetChanged: (Float) -> Unit = {},
+    onGetScrollState: (Int) -> LazyListState = { LazyListState() },
     onMenuClick: (entry: BookshelfMenu) -> Unit = {},
 ) {
     val pagerState = rememberPagerState(initialPage = initialPage) { 30 }
@@ -85,10 +85,11 @@ private fun BookshelfContent(
         } else {
             HorizontalPager(
                 state = pagerState,
+                beyondViewportPageCount = 1,  // 只预加载相邻 1 页，减少初始渲染开销
             ) { page ->
                 BookshelfSourceContent(
                     page = page,
-                    scrollState = scrollStates[page],
+                    scrollState = onGetScrollState(page),  // 按需获取 scrollState
                     tabRowHeightPx = tabRowHeightPx,
                     tabRowOffset = localTabRowOffset,
                     onTabRowOffsetChanged = {
