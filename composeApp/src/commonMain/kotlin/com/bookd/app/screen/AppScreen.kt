@@ -8,7 +8,6 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
-import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberSupportingPaneSceneStrategy
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
@@ -17,7 +16,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.scene.DialogSceneStrategy
-import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import app.composeapp.generated.resources.Res
@@ -115,7 +113,7 @@ fun AppScreen() {
                    entry<RouteNetworkConfig>(
                        metadata = DialogSceneStrategy.dialog()
                    ) {
-                       NetworkConfigScreen()
+                       NetworkConfigScreen(viewModel = viewModel)
                    }
                }
            )

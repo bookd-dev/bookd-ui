@@ -17,26 +17,33 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import app.composeapp.generated.resources.*
 import com.bookd.app.data.repository.NetworkConfigRepository
 import com.bookd.app.data.structure.NetworkConnectState
+import com.bookd.app.data.structure.color
 import com.bookd.app.data.vm.AppViewModel
 import com.bookd.app.screen.rememberScreenContext
-import com.bookd.app.ui.AppHorizontalZHPreview
 import com.bookd.app.ui.AppVerticalZHPreview
 import com.bookd.app.ui.theme.AppTheme
-import com.bookd.app.ui.theme.Gray300
-import com.bookd.app.ui.theme.Gray400
 import com.bookd.app.ui.theme.Gray500
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @Composable
-fun NetworkConfigScreen() {
+fun NetworkConfigScreen(viewModel: AppViewModel) {
 
     val screenContext = rememberScreenContext()
     val networkConfigRepository = koinInject<NetworkConfigRepository>()
-    val appViewModel = koinInject<AppViewModel>()
+    val httpClient = koinInject<HttpClient>()
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+    }
 
     Dialog(
         onDismissRequest = { screenContext.navigator.navigateBack() },
@@ -49,10 +56,34 @@ fun NetworkConfigScreen() {
             onConfirmRequest = { remoteUrl, localUrl ->
                 networkConfigRepository.externalUrl = remoteUrl
                 networkConfigRepository.internalUrl = localUrl
-                appViewModel.retryNetwork()
+                viewModel.retryNetwork()
                 screenContext.navigator.navigateBack()
+            },
+            onConnectTestRequest = { remoteUrl, localUrl, onResult ->
+                coroutineScope.launch {
+                    // 测试远程 URL
+                    if (remoteUrl.isNotBlank()) {
+                        onResult(remoteUrl, testConnection(httpClient, remoteUrl))
+                    }
+                    // 测试本地 URL
+                    if (localUrl.isNotBlank()) {
+                        onResult(localUrl, testConnection(httpClient, localUrl))
+                    }
+                }
             }
         )
+    }
+}
+
+private suspend fun testConnection(httpClient: HttpClient, url: String): NetworkConnectState {
+    return try {
+        withTimeout(5000L) {
+            val response = httpClient.get("$url/api/health")
+            if (response.status.isSuccess()) NetworkConnectState.Success else NetworkConnectState.Failed
+        }
+    } catch (e: Exception) {
+        println("Connection test failed: ${e.message}")  // 添加日志
+        NetworkConnectState.Failed
     }
 }
 
@@ -62,15 +93,30 @@ private fun NetworkConfigContent(
     initialLocalUrl: String = "",
     onDismissRequest: () -> Unit = {},
     onConfirmRequest: (remoteUrl: String, localUrl: String) -> Unit = { _, _ -> },
-    onConnectTestRequest: (remoteUrl: String, localUrl: String) -> Unit = { _, _ -> }
+    onConnectTestRequest: (
+        remoteUrl: String,
+        localUrl: String,
+        onResult: (url: String, state: NetworkConnectState) -> Unit
+    ) -> Unit = { _, _, _ -> }
 ) {
     var remoteUrl by remember { mutableStateOf(initialRemoteUrl) }
     var localUrl by remember { mutableStateOf(initialLocalUrl) }
+    var remoteTestState by remember { mutableStateOf(NetworkConnectState.Pending) }
+    var localTestState by remember { mutableStateOf(NetworkConnectState.Pending) }
+    var isTesting by remember { mutableStateOf(false) }
 
     val enableConfirm by remember {
         derivedStateOf {
             remoteUrl.isNotBlank() || localUrl.isNotBlank()
         }
+    }
+
+    // URL 变化时重置测试状态
+    LaunchedEffect(remoteUrl) {
+        remoteTestState = NetworkConnectState.Pending
+    }
+    LaunchedEffect(localUrl) {
+        localTestState = NetworkConnectState.Pending
     }
 
     Column(
@@ -137,7 +183,7 @@ private fun NetworkConfigContent(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                Row() {
+                Row {
                     Text(
                         text = stringResource(Res.string.remote_url),
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
@@ -145,8 +191,9 @@ private fun NetworkConfigContent(
                     )
 
                     Text(
-                        text = "Pending",
+                        text = stringResource(remoteTestState.text),
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = remoteTestState.color(),
                         modifier = Modifier.alignByBaseline()
                     )
                 }
@@ -159,16 +206,30 @@ private fun NetworkConfigContent(
                     )
 
                     Text(
-                        text = "Pending",
+                        text = stringResource(localTestState.text),
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = localTestState.color(),
                         modifier = Modifier.alignByBaseline()
                     )
                 }
             }
 
             TextButton(
-                enabled = enableConfirm,
-                onClick = { onConnectTestRequest(remoteUrl, localUrl) },
+                enabled = enableConfirm && !isTesting,
+                onClick = {
+                    isTesting = true
+                    onConnectTestRequest(remoteUrl, localUrl) { url, state ->
+                        when (url) {
+                            remoteUrl -> remoteTestState = state
+                            localUrl -> localTestState = state
+                        }
+                        // 两个都测试完成后重置 isTesting
+                        if ((remoteUrl.isBlank() || remoteTestState != NetworkConnectState.Pending) &&
+                            (localUrl.isBlank() || localTestState != NetworkConnectState.Pending)) {
+                            isTesting = false
+                        }
+                    }
+                },
                 modifier = Modifier
                     .border(
                         color = if (enableConfirm)
