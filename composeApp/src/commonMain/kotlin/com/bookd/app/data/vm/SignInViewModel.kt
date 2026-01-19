@@ -173,10 +173,6 @@ class SignInViewModel(
     private val _effect = Channel<SignInEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
     
-    // Error (统一错误处理，传递给 SnackbarHostScaffold)
-    private val _error = MutableStateFlow<Result<Any>?>(null)
-    val error = _error.asStateFlow()
-    
     /**
      * 处理用户意图
      */
@@ -306,8 +302,8 @@ class SignInViewModel(
                     _effect.send(SignInEffect.LoginSuccess)
                 },
                 onFailure = { throwable ->
-                    // 错误通过 _error 传递给 SnackbarHostScaffold 统一处理
-                    _error.value = Result.failure(throwable)
+                    // 抛出异常，由 GlobalExceptionHandler -> AppViewModel 统一处理
+                    throw throwable
                 }
             )
         }
@@ -352,15 +348,15 @@ class SignInViewModel(
                             _effect.send(SignInEffect.RegisterSuccess)
                         },
                         onFailure = { throwable ->
-                            // 注册成功但登录失败
-                            _error.value = Result.failure(throwable)
+                            // 抛出异常，由 GlobalExceptionHandler -> AppViewModel 统一处理
+                            throw throwable
                         }
                     )
                 },
                 onFailure = { throwable ->
                     _state.update { it.copy(isLoading = false) }
-                    // 错误通过 _error 传递给 SnackbarHostScaffold 统一处理
-                    _error.value = Result.failure(throwable)
+                    // 抛出异常，由 GlobalExceptionHandler -> AppViewModel 统一处理
+                    throw throwable
                 }
             )
         }

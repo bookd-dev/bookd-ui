@@ -32,24 +32,14 @@ import org.jetbrains.compose.resources.stringResource
 fun SignInScreen() {
     val screenContext = rememberScreenContext<SignInViewModel>()
     val state by screenContext.viewModel.state.collectAsState()
-    val error by screenContext.viewModel.error.collectAsState()
     
     // 提前转换字符串资源用于 LaunchedEffect
     val loginSuccessMessage = stringResource(Res.string.login_success)
     val registerSuccessMessage = stringResource(Res.string.register_success)
     val snackbarHostState = LocalSnackbarHostState.current
     
-    // 处理错误 - 使用顶层的 SnackbarHostState
-    LaunchedEffect(error) {
-        error?.onFailure { throwable ->
-            // 优先使用服务器返回的错误消息
-            throwable.message?.let { message ->
-                snackbarHostState.showSnackbar(message)
-            }
-        }
-    }
-    
     // 处理副作用 (Effect) - 仅处理导航
+    // 错误由 GlobalExceptionHandler -> AppViewModel -> SnackbarHostScaffold 统一处理
     LaunchedEffect(Unit) {
         screenContext.viewModel.effect.collect { effect ->
             when (effect) {

@@ -64,5 +64,6 @@ class AppViewModel(
 
     override fun handleException(context: CoroutineContext, exception: Throwable) {
         _error.value = Result.failure(exception)
+        exception.printStackTrace()
     }
 }
