@@ -16,7 +16,9 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -37,7 +39,12 @@ val networkModule = module {
         val headerProvider = get<DefaultHeaderProvider>()
 
         HttpClient {
-            install(ContentNegotiation) { json() }
+            install(ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                })
+            }
             install(Logging) {
                 logger = Logger.DEFAULT
                 level = LogLevel.INFO
@@ -47,6 +54,7 @@ val networkModule = module {
                 connectTimeoutMillis = 10_000
             }
             defaultRequest {
+                contentType(ContentType.Application.Json)
                 // 自动添加所有 Headers
                 headerProvider.getHeaders().forEach { (key, value) ->
                     header(key, value)
