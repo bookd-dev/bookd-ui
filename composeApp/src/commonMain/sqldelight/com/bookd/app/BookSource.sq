@@ -1,0 +1,28 @@
+-- BookSource 表：缓存书源列表
+CREATE TABLE BookSourceEntity (
+    id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    path TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1
+);
+
+-- 获取所有书源
+selectAll:
+SELECT * FROM BookSourceEntity;
+
+-- 根据 ID 获取书源
+selectById:
+SELECT * FROM BookSourceEntity WHERE id = ?;
+
+-- 插入或替换书源
+insertOrReplace:
+INSERT OR REPLACE INTO BookSourceEntity (id, name, path, enabled)
+VALUES (?, ?, ?, ?);
+
+-- 删除所有书源（用于刷新）
+deleteAll:
+DELETE FROM BookSourceEntity;
+
+-- 获取书源数量
+count:
+SELECT COUNT(*) FROM BookSourceEntity;

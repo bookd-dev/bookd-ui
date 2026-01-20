@@ -57,6 +57,20 @@ class ApiProvider(
         return if (isConfigured) getKtorfit().createHealthApi() else null
     }
     
+    /**
+     * 获取 BookSourceApi，如果未配置网络返回 null
+     */
+    fun getBookSourceApiOrNull(): BookSourceApi? {
+        return if (isConfigured) getKtorfit().createBookSourceApi() else null
+    }
+    
+    /**
+     * 获取 BookApi，如果未配置网络返回 null
+     */
+    fun getBookApiOrNull(): BookApi? {
+        return if (isConfigured) getKtorfit().createBookApi() else null
+    }
+    
     private fun ensureTrailingSlash(url: String): String {
         return if (url.endsWith("/")) url else "$url/"
     }

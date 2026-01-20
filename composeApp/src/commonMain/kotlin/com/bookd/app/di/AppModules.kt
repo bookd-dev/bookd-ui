@@ -1,7 +1,11 @@
 package com.bookd.app.di
 
+import com.bookd.app.Database
 import com.bookd.app.data.api.ApiProvider
 import com.bookd.app.data.api.DefaultHeaderProvider
+import com.bookd.app.data.db.DatabaseDriverFactory
+import com.bookd.app.data.repository.BookRepository
+import com.bookd.app.data.repository.BookSourceRepository
 import com.bookd.app.data.repository.LanguageRepository
 import com.bookd.app.data.repository.NetworkConfigRepository
 import com.bookd.app.data.repository.NetworkSwitcher
@@ -72,6 +76,14 @@ val networkModule = module {
 }
 
 /**
+ * 数据库模块 - SQLDelight
+ */
+val databaseModule = module {
+    single { get<DatabaseDriverFactory>().createDriver() }
+    single { Database(get()) }
+}
+
+/**
  * 数据仓库模块
  */
 val repositoryModule = module {
@@ -79,6 +91,8 @@ val repositoryModule = module {
     single { LanguageRepository(get()) }
     single { NetworkConfigRepository(get()) }
     single { UserRepository(get(), get()) }
+    single { BookSourceRepository(get(), get()) }
+    single { BookRepository(get(), get()) }
 }
 
 /**
@@ -87,7 +101,7 @@ val repositoryModule = module {
 val viewModelModule = module {
     viewModel { AppViewModel(get(), get(), get()) }
     viewModel { BookshelfViewModel() }
-    viewModel { BookSourceViewModel() }
+    viewModel { BookSourceViewModel(get(), get()) }
     viewModel { SignInViewModel(get()) }
 }
 
@@ -98,7 +112,9 @@ val appNavigation = module {
  * 所有模块列表
  */
 val appModules = listOf(
+    platformModule,
     networkModule,
+    databaseModule,
     repositoryModule,
     viewModelModule,
     appNavigation

@@ -27,11 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bookd.app.basic.extension.noRippleClickable
+import com.bookd.app.data.model.BookSource
 import com.bookd.app.data.structure.BookSourceMenu
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun BookSourceHeaderContent(
+    sources: List<BookSource>,
     pagerState: PagerState,
     isCollapsed: Boolean,
     onBookSourceChange: (Int) -> Unit = {},
@@ -55,6 +57,7 @@ fun BookSourceHeaderContent(
             modifier = Modifier.weight(1f),
         ) {
             BookSourceTabList(
+                sources = sources,
                 pagerState = pagerState,
                 onClick = onBookSourceChange
             )
@@ -101,6 +104,7 @@ fun BookSourceHeaderContent(
     // 第二行：数据源 Tabs (展开时显示)
     AnimatedVisibility(visible = !isCollapsed) {
         BookSourceTabList(
+            sources = sources,
             pagerState = pagerState,
             onClick = onBookSourceChange,
         )
@@ -109,23 +113,26 @@ fun BookSourceHeaderContent(
 
 @Composable
 private fun BookSourceTabList(
+    sources: List<BookSource>,
     modifier: Modifier = Modifier,
     pagerState: PagerState,
     onClick: (Int) -> Unit = {}
 ) {
+    if (sources.isEmpty()) return
+    
     PrimaryScrollableTabRow(
-        selectedTabIndex = pagerState.currentPage,
+        selectedTabIndex = pagerState.currentPage.coerceIn(0, sources.size - 1),
         modifier = modifier.height(40.dp),
         divider = {},
-        edgePadding = 0.dp,  // 移除默认的边距
+        edgePadding = 0.dp,
     ) {
-        repeat(30) { index ->
+        sources.forEachIndexed { index, source ->
             Tab(
                 selected = pagerState.currentPage == index,
                 onClick = { onClick(index) },
             ) {
                 Text(
-                    text = "数据源$index",
+                    text = source.name,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
