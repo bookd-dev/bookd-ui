@@ -1,5 +1,6 @@
 package com.bookd.app.data.api
 
+import com.bookd.app.data.converter.SuccessResponseConverterFactory
 import com.bookd.app.data.repository.NetworkSwitcher
 import de.jensklingenberg.ktorfit.Ktorfit
 import io.ktor.client.HttpClient
@@ -29,6 +30,7 @@ class ApiProvider(
             cachedKtorfit = Ktorfit.Builder()
                 .baseUrl(ensureTrailingSlash(currentUrl))
                 .httpClient(httpClient)
+                .converterFactories(SuccessResponseConverterFactory())
                 .build()
         }
         

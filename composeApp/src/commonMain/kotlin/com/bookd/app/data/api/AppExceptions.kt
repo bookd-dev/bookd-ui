@@ -17,5 +17,10 @@ class TokenExpiredException : Exception()
 
 /**
  * 网络请求失败异常
+ * @param message 可选的错误消息（通常来自后端的国际化消息）
+ * @param cause 原始异常
  */
-class NetworkException(cause: Throwable? = null) : Exception(cause)
+class NetworkException(
+    message: String? = null,
+    cause: Throwable? = null
+) : Exception(message, cause)

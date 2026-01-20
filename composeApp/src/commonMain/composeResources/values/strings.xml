@@ -25,6 +25,7 @@
 
     <string name="error_no_network_config">Network settings are not configured. Please go to Settings first.</string>
     <string name="error_token_expired">Token expired</string>
+    <string name="error_not_authenticated">Not authenticated, please login</string>
     <string name="error_network">Network error, please retry</string>
     <string name="error_unknown">unknown error</string>
 
