@@ -57,7 +57,9 @@ fun NetworkConfigScreen(viewModel: AppViewModel) {
                 viewModel.retryNetwork()
                 screenContext.navigator.navigateBack()
             },
-            onTestRequest = {
+            onTestRequest = { remoteUrl, localUrl ->
+                networkConfigRepository.externalUrl = remoteUrl
+                networkConfigRepository.internalUrl = localUrl
                 viewModel.retryNetwork()
             }
         )
@@ -72,7 +74,7 @@ private fun NetworkConfigContent(
     localTestState: UrlTestState = UrlTestState.Pending,
     onDismissRequest: () -> Unit = {},
     onConfirmRequest: (remoteUrl: String, localUrl: String) -> Unit = { _, _ -> },
-    onTestRequest: () -> Unit = {}
+    onTestRequest: (remoteUrl: String, localUrl: String) -> Unit = { _, _ -> }
 ) {
     var remoteUrl by remember { mutableStateOf(initialRemoteUrl) }
     var localUrl by remember { mutableStateOf(initialLocalUrl) }
@@ -188,7 +190,7 @@ private fun NetworkConfigContent(
 
             TextButton(
                 enabled = enableConfirm,
-                onClick = { onTestRequest() },
+                onClick = { onTestRequest(remoteUrl, localUrl) },
                 modifier = Modifier
                     .border(
                         color = if (enableConfirm)

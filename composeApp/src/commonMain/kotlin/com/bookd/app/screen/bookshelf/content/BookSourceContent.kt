@@ -1,4 +1,4 @@
-package com.bookd.app.screen.bookshelf
+package com.bookd.app.screen.bookshelf.content
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column

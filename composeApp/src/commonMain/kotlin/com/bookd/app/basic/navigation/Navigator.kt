@@ -103,6 +103,70 @@ class Navigator(
     }
     
     /**
+     * SingleTask 模式导航
+     * 
+     * 如果目标页面已在回退栈中：
+     * - 移除目标页面之上的所有页面
+     * - 目标页面成为栈顶
+     * 
+     * 如果目标页面不在栈中：
+     * - 直接添加到栈顶
+     * 
+     * @param destination 目标路由
+     * @param requireNetwork 是否需要网络
+     * @param requireAuth 是否需要认证
+     * @return 是否成功导航
+     */
+    fun navigateSingleTask(
+        destination: NavKey,
+        requireNetwork: Boolean = true,
+        requireAuth: Boolean = true,
+    ): Boolean {
+        return when (check(requireNetwork, requireAuth)) {
+            NavigationResult.Allowed -> {
+                navigateSingleTaskUnconditionally(destination)
+                true
+            }
+            NavigationResult.NeedNetworkConfig -> {
+                onNeedNetworkConfig()
+                false
+            }
+            NavigationResult.NeedLogin -> {
+                backStack.add(RouteSignIn)
+                false
+            }
+        }
+    }
+    
+    /**
+     * SingleTask 模式导航（无条件，不做任何检查）
+     * 
+     * 如果目标页面已在回退栈中：
+     * - 移除目标页面之上的所有页面
+     * - 目标页面成为栈顶
+     * 
+     * 如果目标页面不在栈中：
+     * - 直接添加到栈顶
+     * 
+     * @param destination 目标路由
+     */
+    fun navigateSingleTaskUnconditionally(destination: NavKey) {
+        // 查找目标在栈中的位置
+        val index = backStack.indexOfFirst { it == destination }
+        
+        if (index >= 0) {
+            // 目标已在栈中，移除它之上的所有页面
+            val removeCount = backStack.size - 1 - index
+            repeat(removeCount) {
+                backStack.removeLastOrNull()
+            }
+        } else {
+            // 目标不在栈中，直接添加
+            backStack.add(destination)
+        }
+    }
+    
+    /**
      * 返回上一页
      */
     fun navigateBack(): NavKey? {

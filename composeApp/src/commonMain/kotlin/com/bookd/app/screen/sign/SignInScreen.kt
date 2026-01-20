@@ -44,11 +44,11 @@ fun SignInScreen() {
         screenContext.viewModel.effect.collect { effect ->
             when (effect) {
                 is SignInEffect.LoginSuccess -> {
-                    screenContext.navigator.navigateTo(RouteBookshelf)
+                    screenContext.navigator.navigateSingleTask(RouteBookshelf)
                     snackbarHostState.showSnackbar(loginSuccessMessage)
                 }
                 is SignInEffect.RegisterSuccess -> {
-                    screenContext.navigator.navigateTo(RouteBookshelf)
+                    screenContext.navigator.navigateSingleTask(RouteBookshelf)
                     snackbarHostState.showSnackbar(registerSuccessMessage)
                 }
             }

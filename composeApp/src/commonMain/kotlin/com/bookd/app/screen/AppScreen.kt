@@ -29,6 +29,7 @@ import com.bookd.app.data.vm.AppViewModel
 import com.bookd.app.ui.SnackbarHostScaffold
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSHELF
 import com.bookd.app.screen.RouteMain.Companion.RouteBookshelf
+import com.bookd.app.screen.bookshelf.SearchBookScreen
 import com.bookd.app.screen.main.MainScreen
 import com.bookd.app.screen.settings.NetworkConfigScreen
 import com.bookd.app.screen.sign.SignInScreen
@@ -108,6 +109,10 @@ fun AppScreen() {
 
                    entry<RouteSignIn> {
                        SignInScreen()
+                   }
+
+                   entry<RouteSearchBook> {
+                       SearchBookScreen()
                    }
 
                    entry<RouteNetworkConfig>(
