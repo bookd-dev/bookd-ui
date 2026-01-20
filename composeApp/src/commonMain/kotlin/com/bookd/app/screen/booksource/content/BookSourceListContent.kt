@@ -1,4 +1,4 @@
-package com.bookd.app.screen.bookshelf.content
+package com.bookd.app.screen.booksource.content
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -21,7 +21,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun BookshelfSourceContent(
+fun BookSourceListContent(
     page: Int,
     scrollState: LazyListState,
     tabRowHeightPx: Float,

@@ -8,6 +8,7 @@ import com.bookd.app.data.repository.NetworkSwitcher
 import com.bookd.app.data.repository.UserRepository
 import com.bookd.app.data.vm.AppViewModel
 import com.bookd.app.data.vm.BookshelfViewModel
+import com.bookd.app.data.vm.BookSourceViewModel
 import com.bookd.app.data.vm.SignInViewModel
 import com.bookd.app.settings
 import com.russhwolf.settings.Settings
@@ -86,6 +87,7 @@ val repositoryModule = module {
 val viewModelModule = module {
     viewModel { AppViewModel(get(), get(), get()) }
     viewModel { BookshelfViewModel() }
+    viewModel { BookSourceViewModel() }
     viewModel { SignInViewModel(get()) }
 }
 

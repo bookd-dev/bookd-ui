@@ -2,6 +2,7 @@
     <string name="app_name">Bookd</string>
 
     <string name="bookshelf">书架</string>
+    <string name="booksource">书源</string>
     <string name="settings">设置</string>
     <string name="booklist">书单</string>
     <string name="goto">前往</string>

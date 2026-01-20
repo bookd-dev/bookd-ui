@@ -2,6 +2,7 @@
     <string name="app_name">Bookd</string>
 
     <string name="bookshelf">Bookshelf</string>
+    <string name="booksource">Sources</string>
     <string name="settings">Settings</string>
     <string name="booklist">Booklist</string>
     <string name="goto">Goto</string>

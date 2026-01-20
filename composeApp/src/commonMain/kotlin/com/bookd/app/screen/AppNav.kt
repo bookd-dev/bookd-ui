@@ -12,9 +12,11 @@ data class RouteMain(val route: String?) : NavKey {
 
     companion object {
         const val ROUTE_BOOKSHELF = "bookshelf"
+        const val ROUTE_BOOKSOURCE = "booksource"
         const val ROUTE_SETTINGS = "settings"
 
         val RouteBookshelf = RouteMain(ROUTE_BOOKSHELF)
+        val RouteBookSource = RouteMain(ROUTE_BOOKSOURCE)
         val RouteSettings = RouteMain(ROUTE_SETTINGS)
 
     }

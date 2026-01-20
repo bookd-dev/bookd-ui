@@ -1,4 +1,4 @@
-package com.bookd.app.screen.main
+package com.bookd.app.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -18,20 +18,20 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.bookshelf
+import app.composeapp.generated.resources.booksource
 import app.composeapp.generated.resources.settings
 import com.bookd.app.basic.navigation.NavigationResult
-import com.bookd.app.basic.navigation.Navigator
 import com.bookd.app.basic.navigation.popTransitionSpec
 import com.bookd.app.basic.navigation.predictivePopTransitionSpec
 import com.bookd.app.basic.navigation.transitionSpec
-import com.bookd.app.screen.LocalNavigator
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSHELF
+import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSOURCE
 import com.bookd.app.screen.RouteMain.Companion.ROUTE_SETTINGS
-import com.bookd.app.screen.RouteNetworkConfig
-import com.bookd.app.screen.RouteSignIn
 import com.bookd.app.screen.bookshelf.BookshelfScreen
+import com.bookd.app.screen.booksource.BookSourceScreen
 import com.bookd.app.screen.settings.SettingsScreen
 import com.bookd.app.ui.icons.Bookshelf
+import com.bookd.app.ui.icons.CloudQueue
 import com.bookd.app.ui.icons.Settings
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
@@ -63,7 +63,16 @@ private data object Settings : TopLevelRoute {
     override val route: String = ROUTE_SETTINGS
 }
 
-private val TOP_LEVEL_ROUTES: List<TopLevelRoute> = listOf(Bookshelf, Settings)
+@Serializable
+private data object BookSource : TopLevelRoute {
+    override val iconOutline: ImageVector = Icons.Outlined.CloudQueue
+    override val iconFilled: ImageVector = Icons.Filled.CloudQueue
+
+    override val description: StringResource = Res.string.booksource
+    override val route: String = ROUTE_BOOKSOURCE
+}
+
+private val TOP_LEVEL_ROUTES: List<TopLevelRoute> = listOf(Bookshelf, BookSource, Settings)
 
 private fun fromRoute(route: String): TopLevelRoute = TOP_LEVEL_ROUTES.firstOrNull { it.route == route }
     ?: throw IllegalArgumentException("Route $route not found")
@@ -135,6 +144,10 @@ fun MainScreen(
                 entryProvider = entryProvider {
                     entry<Bookshelf> {
                         BookshelfScreen()
+                    }
+
+                    entry<BookSource> {
+                        BookSourceScreen()
                     }
 
                     entry<Settings> {
