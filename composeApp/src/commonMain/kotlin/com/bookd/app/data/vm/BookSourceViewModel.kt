@@ -36,6 +36,7 @@ data class BookSourceState(
     val booksBySource: Map<Int, List<Book>> = emptyMap(),
     val booksLoading: Map<Int, Boolean> = emptyMap(),
     val booksLoadingMore: Map<Int, Boolean> = emptyMap(),
+    val booksRefreshing: Map<Int, Boolean> = emptyMap(),
     val booksError: Map<Int, String?> = emptyMap(),
     val booksHasMore: Map<Int, Boolean> = emptyMap(),
     val booksTotal: Map<Int, Int> = emptyMap()
@@ -63,6 +64,12 @@ data class BookSourceState(
      */
     val isCurrentLoadingMore: Boolean
         get() = currentSource?.let { booksLoadingMore[it.id] } ?: false
+    
+    /**
+     * 当前书源是否正在刷新
+     */
+    val isCurrentRefreshing: Boolean
+        get() = currentSource?.let { booksRefreshing[it.id] } ?: false
     
     /**
      * 当前书源的错误信息
@@ -207,6 +214,7 @@ class BookSourceViewModel(
             _state.update { state ->
                 state.copy(
                     booksLoading = state.booksLoading + (sourceId to true),
+                    booksRefreshing = if (forceRefresh) state.booksRefreshing + (sourceId to true) else state.booksRefreshing,
                     booksError = state.booksError + (sourceId to null)
                 )
             }
@@ -217,6 +225,7 @@ class BookSourceViewModel(
                         state.copy(
                             booksBySource = state.booksBySource + (sourceId to response.books),
                             booksLoading = state.booksLoading + (sourceId to false),
+                            booksRefreshing = state.booksRefreshing + (sourceId to false),
                             booksHasMore = state.booksHasMore + (sourceId to response.hasMore),
                             booksTotal = state.booksTotal + (sourceId to response.total)
                         )
@@ -230,6 +239,7 @@ class BookSourceViewModel(
                     _state.update { state ->
                         state.copy(
                             booksLoading = state.booksLoading + (sourceId to false),
+                            booksRefreshing = state.booksRefreshing + (sourceId to false),
                             booksError = state.booksError + (sourceId to (e.message ?: "加载书籍失败"))
                         )
                     }

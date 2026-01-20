@@ -9,15 +9,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -30,16 +30,20 @@ import androidx.compose.ui.unit.dp
 import com.bookd.app.data.model.Book
 import com.bookd.app.screen.booksource.component.BookListItem
 import com.bookd.app.screen.booksource.component.BookListSkeletonList
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 /**
  * 书源书籍列表内容
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookSourceListContent(
     sourceId: Int,
     books: List<Book>,
     isLoading: Boolean,
     isLoadingMore: Boolean,
+    isRefreshing: Boolean,
     hasMore: Boolean,
     error: String?,
     scrollState: LazyListState,
@@ -47,14 +51,20 @@ fun BookSourceListContent(
     tabRowOffset: Float,
     onTabRowOffsetChanged: (Float) -> Unit,
     onLoadMore: () -> Unit,
+    onRefresh: () -> Unit,
     onBookClick: (Book) -> Unit = {},
 ) {
     // 使用 rememberUpdatedState 确保闭包中使用最新值
     val currentTabRowOffset by rememberUpdatedState(tabRowOffset)
     val currentOnChanged by rememberUpdatedState(onTabRowOffsetChanged)
+    val currentOnLoadMore by rememberUpdatedState(onLoadMore)
+    val currentIsLoading by rememberUpdatedState(isLoading)
+    val currentIsLoadingMore by rememberUpdatedState(isLoadingMore)
+    val currentHasMore by rememberUpdatedState(hasMore)
+    val currentBooksSize by rememberUpdatedState(books.size)
 
     // NestedScrollConnection for Tab collapse/expand
-    val nestedScrollConnection = remember(sourceId) {
+    val nestedScrollConnection = androidx.compose.runtime.remember(sourceId) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 val delta = available.y
@@ -95,25 +105,30 @@ fun BookSourceListContent(
         }
     }
     
-    // 触发加载更多
-    val shouldLoadMore by remember {
-        derivedStateOf {
-            val lastVisibleItem = scrollState.layoutInfo.visibleItemsInfo.lastOrNull()
-            val totalItems = scrollState.layoutInfo.totalItemsCount
-            lastVisibleItem != null && 
-                lastVisibleItem.index >= totalItems - 3 && 
-                !isLoading && 
-                !isLoadingMore && 
-                hasMore &&
-                books.isNotEmpty()
+    // 使用 snapshotFlow 监听滚动状态变化，触发加载更多
+    LaunchedEffect(scrollState, sourceId) {
+        snapshotFlow {
+            val layoutInfo = scrollState.layoutInfo
+            val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+            val totalItems = layoutInfo.totalItemsCount
+            
+            // 判断是否需要加载更多
+            lastVisibleItem != null &&
+                totalItems > 0 &&
+                lastVisibleItem.index >= totalItems - 3
+        }
+        .distinctUntilChanged()
+        .filter { it } // 只在需要加载更多时触发
+        .collect {
+            // 在 collect 内部检查最新状态
+            if (!currentIsLoading && !currentIsLoadingMore && currentHasMore && currentBooksSize > 0) {
+                currentOnLoadMore()
+            }
         }
     }
-    
-    LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) {
-            onLoadMore()
-        }
-    }
+
+    // 下拉刷新状态
+    val pullToRefreshState = rememberPullToRefreshState()
 
     Box(
         modifier = Modifier
@@ -121,8 +136,8 @@ fun BookSourceListContent(
             .nestedScroll(nestedScrollConnection)
     ) {
         when {
-            // 初始加载中
-            isLoading && books.isEmpty() -> {
+            // 初始加载中（非刷新状态）
+            isLoading && books.isEmpty() && !isRefreshing -> {
                 BookListSkeletonList(count = 5)
             }
             
@@ -135,59 +150,66 @@ fun BookSourceListContent(
             }
             
             // 空数据
-            !isLoading && books.isEmpty() -> {
+            !isLoading && books.isEmpty() && !isRefreshing -> {
                 EmptyContent(
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
             
-            // 有数据
+            // 有数据或正在刷新
             else -> {
-                LazyColumn(
-                    state = scrollState,
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    state = pullToRefreshState,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(
-                        items = books,
-                        key = { it.id }
-                    ) { book ->
-                        BookListItem(
-                            book = book,
-                            onClick = { onBookClick(book) }
-                        )
-                    }
-                    
-                    // 加载更多指示器
-                    if (isLoadingMore) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
+                    LazyColumn(
+                        state = scrollState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(
+                            items = books,
+                            key = { it.id }
+                        ) { book ->
+                            BookListItem(
+                                book = book,
+                                onClick = { onBookClick(book) }
+                            )
+                        }
+                        
+                        // 加载更多指示器
+                        if (isLoadingMore) {
+                            item(key = "loading_more") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
                             }
                         }
-                    }
-                    
-                    // 没有更多数据
-                    if (!hasMore && books.isNotEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "没有更多了",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                        
+                        // 没有更多数据
+                        if (!hasMore && books.isNotEmpty() && !isLoadingMore) {
+                            item(key = "no_more") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "没有更多了",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }

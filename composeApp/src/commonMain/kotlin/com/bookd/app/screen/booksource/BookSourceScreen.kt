@@ -192,6 +192,7 @@ private fun BookSourceContent(
                         val books = state.booksBySource[source.id] ?: emptyList()
                         val isLoading = state.booksLoading[source.id] ?: false
                         val isLoadingMore = state.booksLoadingMore[source.id] ?: false
+                        val isRefreshing = state.booksRefreshing[source.id] ?: false
                         val hasMore = state.booksHasMore[source.id] ?: true
                         val error = state.booksError[source.id]
                         
@@ -200,6 +201,7 @@ private fun BookSourceContent(
                             books = books,
                             isLoading = isLoading,
                             isLoadingMore = isLoadingMore,
+                            isRefreshing = isRefreshing,
                             hasMore = hasMore,
                             error = error,
                             scrollState = onGetScrollState(page),
@@ -210,6 +212,7 @@ private fun BookSourceContent(
                                 onTabRowOffsetChanged(it)
                             },
                             onLoadMore = { onLoadMore(source.id) },
+                            onRefresh = onRefresh,
                             onBookClick = onBookClick
                         )
                     }
