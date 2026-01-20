@@ -25,6 +25,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.bookd.app.data.model.Book
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.chapters_count
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 书籍列表项
@@ -88,7 +91,7 @@ fun BookListItem(
                 // 章节数
                 if (book.chaptersCount > 0) {
                     Text(
-                        text = "${book.chaptersCount} 章",
+                        text = stringResource(Res.string.chapters_count, book.chaptersCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

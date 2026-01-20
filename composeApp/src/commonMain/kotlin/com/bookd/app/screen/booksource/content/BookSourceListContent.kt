@@ -30,8 +30,12 @@ import androidx.compose.ui.unit.dp
 import com.bookd.app.data.model.Book
 import com.bookd.app.screen.booksource.component.BookListItem
 import com.bookd.app.screen.booksource.component.BookListSkeletonList
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.no_more_data
+import app.composeapp.generated.resources.source_no_books
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 书源书籍列表内容
@@ -205,7 +209,7 @@ fun BookSourceListContent(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "没有更多了",
+                                        text = stringResource(Res.string.no_more_data),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -226,7 +230,7 @@ private fun EmptyContent(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "此书源暂无书籍",
+            text = stringResource(Res.string.source_no_books),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

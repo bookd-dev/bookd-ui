@@ -27,8 +27,11 @@ import com.bookd.app.screen.booksource.content.BookSourceListContent
 import com.bookd.app.screen.rememberScreenContext
 import com.bookd.app.ui.AppPreviewContent
 import com.bookd.app.ui.AppVerticalZHPreview
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.no_book_source
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun BookSourceScreen() {
@@ -174,7 +177,7 @@ private fun BookSourceContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "暂无书源",
+                        text = stringResource(Res.string.no_book_source),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

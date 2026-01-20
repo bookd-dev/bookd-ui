@@ -57,4 +57,10 @@
     <!-- Success Messages -->
     <string name="login_success">登录成功</string>
     <string name="register_success">注册成功</string>
+
+    <!-- BookSource Screen -->
+    <string name="no_book_source">暂无书源</string>
+    <string name="no_more_data">没有更多了</string>
+    <string name="source_no_books">此书源暂无书籍</string>
+    <string name="chapters_count">%1$d 章</string>
 </resources>

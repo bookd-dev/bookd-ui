@@ -57,4 +57,10 @@
     <!-- Success Messages -->
     <string name="login_success">Login successful</string>
     <string name="register_success">Registration successful</string>
+
+    <!-- BookSource Screen -->
+    <string name="no_book_source">No book sources</string>
+    <string name="no_more_data">No more data</string>
+    <string name="source_no_books">No books in this source</string>
+    <string name="chapters_count">%1$d chapters</string>
 </resources>
