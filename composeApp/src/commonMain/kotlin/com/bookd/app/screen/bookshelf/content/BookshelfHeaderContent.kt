@@ -45,12 +45,6 @@ fun BookshelfHeaderContent(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(
-            imageVector = Icons.Filled.BooklistMore,
-            contentDescription = stringResource(Res.string.booklist),
-            modifier = Modifier.size(24.dp),
-        )
-
         Spacer(modifier = Modifier.weight(1f))
 
         Box {
