@@ -1,6 +1,5 @@
 import de.jensklingenberg.ktorfit.gradle.ErrorCheckingMode
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -31,16 +30,12 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            // 链接 SQLite 库，SQLDelight Native 驱动需要
+            linkerOpts("-lsqlite3")
         }
     }
 
     jvm()
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
 
     sourceSets {
         androidMain.dependencies {
@@ -111,17 +106,6 @@ kotlin {
             implementation(libs.ktor.client.darwin)
             //storage
             implementation(libs.sqldelight.native)
-        }
-        wasmJsMain {
-            dependsOn(commonMain.get())
-            dependencies {
-                implementation(libs.ktor.client.js)
-                implementation(libs.nav3.browser)
-                //storage
-                implementation(libs.sqldelight.js)
-                npm("sql.js", "1.6.2")
-                devNpm("copy-webpack-plugin", "9.1.0")
-            }
         }
     }
 
