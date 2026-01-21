@@ -10,7 +10,9 @@ import com.bookd.app.data.repository.AuthState
 import com.bookd.app.data.repository.ConnectionStatus
 import com.bookd.app.data.repository.NetworkState
 import com.bookd.app.screen.RouteSignIn
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * 导航拦截结果
@@ -36,6 +38,13 @@ class Navigator(
     private val authState: StateFlow<AuthState>,
     private val onNeedNetworkConfig: () -> Unit,
 ) {
+    // 导航栈大小，用于监听返回事件
+    private val _backStackSize = MutableStateFlow(backStack.size)
+    val backStackSize: StateFlow<Int> = _backStackSize.asStateFlow()
+    
+    private fun updateBackStackSize() {
+        _backStackSize.value = backStack.size
+    }
     /**
      * 检查是否可以导航到需要认证的页面
      * 
@@ -82,6 +91,7 @@ class Navigator(
         return when (check(requireNetwork, requireAuth)) {
             NavigationResult.Allowed -> {
                 backStack.add(destination)
+                updateBackStackSize()
                 true
             }
             NavigationResult.NeedNetworkConfig -> {
@@ -90,6 +100,7 @@ class Navigator(
             }
             NavigationResult.NeedLogin -> {
                 backStack.add(RouteSignIn)
+                updateBackStackSize()
                 false
             }
         }
@@ -100,6 +111,7 @@ class Navigator(
      */
     fun navigateUnconditionally(destination: NavKey) {
         backStack.add(destination)
+        updateBackStackSize()
     }
     
     /**
@@ -133,6 +145,7 @@ class Navigator(
             }
             NavigationResult.NeedLogin -> {
                 backStack.add(RouteSignIn)
+                updateBackStackSize()
                 false
             }
         }
@@ -164,13 +177,16 @@ class Navigator(
             // 目标不在栈中，直接添加
             backStack.add(destination)
         }
+        updateBackStackSize()
     }
     
     /**
      * 返回上一页
      */
     fun navigateBack(): NavKey? {
-        return backStack.removeLastOrNull()
+        val result = backStack.removeLastOrNull()
+        updateBackStackSize()
+        return result
     }
 }
 

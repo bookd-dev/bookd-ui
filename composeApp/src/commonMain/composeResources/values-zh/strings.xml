@@ -63,4 +63,26 @@
     <string name="no_more_data">没有更多了</string>
     <string name="source_no_books">此书源暂无书籍</string>
     <string name="chapters_count">%1$d 章</string>
+
+    <!-- Bookshelf Screen -->
+    <string name="bookshelf_empty">暂无书架</string>
+    <string name="bookshelf_no_books">此书架暂无书籍</string>
+    <string name="bookshelf_create">创建书架</string>
+    <string name="bookshelf_edit">编辑书架</string>
+    <string name="bookshelf_delete">删除书架</string>
+    <string name="bookshelf_delete_confirm">确定要删除此书架吗？</string>
+    <string name="bookshelf_name">书架名称</string>
+    <string name="bookshelf_description">描述（可选）</string>
+    <string name="bookshelf_created">书架创建成功</string>
+    <string name="bookshelf_updated">书架更新成功</string>
+    <string name="bookshelf_deleted">书架删除成功</string>
+    <string name="book_removed">已从书架移除</string>
+    <string name="reading_progress">已读 %1$d%%</string>
+    <string name="list_view">列表视图</string>
+    <string name="grid_view">网格视图</string>
+    <string name="add_bookshelf">添加书架</string>
+    <string name="manage_bookshelves">管理书架</string>
+    <string name="bookshelf_system_default_readonly">系统默认书架名称不可修改</string>
+    <string name="bookshelf_delete_info">「%1$s」（%2$d 本书籍）</string>
+    <string name="bookshelf_delete_note">注意：删除书架不会删除其中的书籍</string>
 </resources>

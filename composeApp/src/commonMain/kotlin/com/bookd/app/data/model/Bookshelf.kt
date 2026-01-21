@@ -61,11 +61,22 @@ data class AddToBookshelvesRequest(
 )
 
 /**
+ * 书籍及其阅读进度
+ * 用于书架书籍列表展示
+ */
+@Serializable
+data class BookWithProgress(
+    val book: Book,
+    val progress: ReadingProgressResponse?  // null = 未开始阅读
+)
+
+/**
  * 书架中书籍列表响应
+ * 书籍按最新阅读时间排序，未读书籍排在最后
  */
 @Serializable
 data class BooksInBookshelfResponse(
-    val books: List<Book>,
+    val books: List<BookWithProgress>,
     val total: Int,
     val limit: Int,
     val offset: Long,

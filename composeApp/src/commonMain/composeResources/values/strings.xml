@@ -63,4 +63,26 @@
     <string name="no_more_data">No more data</string>
     <string name="source_no_books">No books in this source</string>
     <string name="chapters_count">%1$d chapters</string>
+
+    <!-- Bookshelf Screen -->
+    <string name="bookshelf_empty">No bookshelves yet</string>
+    <string name="bookshelf_no_books">No books in this bookshelf</string>
+    <string name="bookshelf_create">Create Bookshelf</string>
+    <string name="bookshelf_edit">Edit Bookshelf</string>
+    <string name="bookshelf_delete">Delete Bookshelf</string>
+    <string name="bookshelf_delete_confirm">Are you sure you want to delete this bookshelf?</string>
+    <string name="bookshelf_name">Bookshelf Name</string>
+    <string name="bookshelf_description">Description (optional)</string>
+    <string name="bookshelf_created">Bookshelf created</string>
+    <string name="bookshelf_updated">Bookshelf updated</string>
+    <string name="bookshelf_deleted">Bookshelf deleted</string>
+    <string name="book_removed">Book removed from bookshelf</string>
+    <string name="reading_progress">%1$d%% read</string>
+    <string name="list_view">List View</string>
+    <string name="grid_view">Grid View</string>
+    <string name="add_bookshelf">Add Bookshelf</string>
+    <string name="manage_bookshelves">Manage Bookshelves</string>
+    <string name="bookshelf_system_default_readonly">System default bookshelf name cannot be modified</string>
+    <string name="bookshelf_delete_info">「%1$s」(%2$d books)</string>
+    <string name="bookshelf_delete_note">Note: Deleting the bookshelf will not delete the books in it</string>
 </resources>
