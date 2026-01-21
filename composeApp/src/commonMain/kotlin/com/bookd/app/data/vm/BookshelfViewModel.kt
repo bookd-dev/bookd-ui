@@ -456,9 +456,48 @@ class BookshelfViewModel(
         // 保存选中的书架 ID 到偏好设置
         preferenceRepository.lastSelectedBookshelfId = bookshelfId
         
-        // 如果该书架的书籍尚未加载，则加载
-        if (_state.value.booksByBookshelf[bookshelfId] == null) {
-            loadBooks(bookshelfId)
+        // 每次切换都静默刷新书籍列表
+        // 如果有缓存数据会先显示，同时后台获取最新数据
+        silentRefreshBooks(bookshelfId)
+    }
+    
+    /**
+     * 静默刷新书籍列表
+     * 
+     * 不显示 loading 状态，直接后台请求最新数据
+     * 适用于 Tab 切换时的刷新
+     */
+    private fun silentRefreshBooks(bookshelfId: Int) {
+        // 如果正在加载中，不重复请求
+        if (_state.value.loadingBooksForBookshelf == bookshelfId) return
+        
+        scope.launch {
+            // 如果没有缓存数据，显示 loading
+            val hasCachedData = _state.value.booksByBookshelf[bookshelfId] != null
+            if (!hasCachedData) {
+                _state.update { it.copy(loadingBooksForBookshelf = bookshelfId) }
+            }
+            
+            bookshelfRepository.getBooksInBookshelf(bookshelfId, offset = 0, forceRefresh = true).fold(
+                onSuccess = { response ->
+                    _state.update { state ->
+                        state.copy(
+                            booksByBookshelf = state.booksByBookshelf + (bookshelfId to response.books),
+                            totalByBookshelf = state.totalByBookshelf + (bookshelfId to response.total),
+                            hasMoreByBookshelf = state.hasMoreByBookshelf + (bookshelfId to response.hasMore),
+                            loadingBooksForBookshelf = if (state.loadingBooksForBookshelf == bookshelfId) null else state.loadingBooksForBookshelf
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    // 静默刷新失败不影响用户体验（如果有缓存数据的话）
+                    if (!hasCachedData) {
+                        _state.update { it.copy(loadingBooksForBookshelf = null, error = e.message) }
+                        throw e
+                    }
+                    // 有缓存数据时静默失败，不抛出异常
+                }
+            )
         }
     }
     
