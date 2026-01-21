@@ -7,7 +7,7 @@ import com.bookd.app.screen.App
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "app",
+        title = "Bookd",
     ) {
         App()
     }
