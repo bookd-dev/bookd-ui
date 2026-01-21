@@ -113,6 +113,7 @@ class Navigator(
         backStack.add(destination)
         updateBackStackSize()
     }
+
     
     /**
      * SingleTask 模式导航

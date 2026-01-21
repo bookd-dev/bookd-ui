@@ -136,7 +136,15 @@ private fun InfoRow(
 private fun formatWordCount(count: Int): String {
     return when {
         count < 10000 -> stringResource(Res.string.word_count_value, count)
-        count < 100000000 -> stringResource(Res.string.word_count_wan, count / 10000.0)
-        else -> stringResource(Res.string.word_count_yi, count / 100000000.0)
+        count < 100000000 -> {
+            val wan = count / 10000.0
+            val formatted = ((wan * 10).toLong() / 10.0).toString()
+            stringResource(Res.string.word_count_wan, formatted)
+        }
+        else -> {
+            val yi = count / 100000000.0
+            val formatted = ((yi * 10).toLong() / 10.0).toString()
+            stringResource(Res.string.word_count_yi, formatted)
+        }
     }
 }

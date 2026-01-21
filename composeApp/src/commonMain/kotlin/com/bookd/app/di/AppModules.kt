@@ -17,6 +17,7 @@ import com.bookd.app.data.vm.BookDetailViewModel
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.data.vm.BookSourceViewModel
 import com.bookd.app.data.vm.SignInViewModel
+import com.bookd.app.data.vm.SettingsViewModel
 import com.bookd.app.settings
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
@@ -109,6 +110,7 @@ val viewModelModule = module {
     viewModel { BookSourceViewModel(get(), get()) }
     viewModel { BookDetailViewModel(get(), get()) }
     viewModel { SignInViewModel(get()) }
+    viewModel { SettingsViewModel(get(), get()) }
 }
 
 val appNavigation = module {
