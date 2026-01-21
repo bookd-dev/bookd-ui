@@ -166,6 +166,53 @@ class BookRepository(
     suspend fun clearAllCache() {
         queries.deleteAll()
     }
+    
+    /**
+     * 获取书籍详情
+     * 包含书籍完整信息、标签、阅读进度和所在书架信息
+     */
+    suspend fun getBookDetail(bookId: Int): Result<com.bookd.app.data.model.BookDetailResponse> {
+        if (!apiProvider.isConfigured) {
+            return Result.failure(NoNetworkConfigException())
+        }
+        
+        return try {
+            val api = apiProvider.getBookApiOrNull()
+                ?: return Result.failure(NoNetworkConfigException())
+            
+            val response = api.getBookDetail(bookId)
+            
+            // 更新本地缓存中的书籍信息
+            val book = response.book
+            queries.insertOrReplace(
+                id = book.id.toLong(),
+                title = book.title,
+                author = book.author,
+                format = book.format,
+                filePath = book.filePath,
+                fileSize = book.fileSize,
+                coverPath = book.coverPath,
+                isbn = book.isbn,
+                publisher = book.publisher,
+                description = book.description,
+                sourceId = book.sourceId?.toLong(),
+                chapterCount = book.chapterCount.toLong(),
+                totalWordCount = book.totalWordCount.toLong(),
+                totalImageCount = book.totalImageCount.toLong(),
+                chaptersParsed = if (book.chaptersParsed) 1L else 0L,
+                chaptersCount = book.chaptersCount.toLong(),
+                lastParsedAt = book.lastParsedAt,
+                parseStatus = book.parseStatus,
+                parseProgress = book.parseProgress.toLong(),
+                createdAt = book.createdAt,
+                updatedAt = book.updatedAt
+            )
+            
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
 
 /**

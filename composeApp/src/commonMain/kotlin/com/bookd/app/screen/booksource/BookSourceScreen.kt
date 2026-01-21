@@ -21,6 +21,7 @@ import com.bookd.app.data.vm.BookSourceEffect
 import com.bookd.app.data.vm.BookSourceIntent
 import com.bookd.app.data.vm.BookSourceState
 import com.bookd.app.data.vm.BookSourceViewModel
+import com.bookd.app.screen.RouteBookDetail
 import com.bookd.app.screen.RouteSearchBook
 import com.bookd.app.screen.booksource.content.BookSourceHeaderContent
 import com.bookd.app.screen.booksource.content.BookSourceListContent
@@ -38,7 +39,6 @@ fun BookSourceScreen() {
     val screenContext = rememberScreenContext<BookSourceViewModel>()
     val viewModel = screenContext.viewModel
     val state by viewModel.state.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
     
     // 初始加载
     LaunchedEffect(Unit) {
@@ -49,9 +49,6 @@ fun BookSourceScreen() {
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                is BookSourceEffect.ShowError -> {
-                    // TODO: Show snackbar or toast
-                }
                 is BookSourceEffect.ScrollToTop -> {
                     // 滚动到顶部
                     val scrollState = viewModel.getScrollState(
@@ -78,7 +75,7 @@ fun BookSourceScreen() {
             viewModel.onIntent(BookSourceIntent.RefreshCurrentBooks)
         },
         onBookClick = { book ->
-            // TODO: Navigate to book detail
+            screenContext.navigator.navigateTo(RouteBookDetail(bookId = book.id))
         },
         onMenuClick = {
             when (it) {

@@ -1,5 +1,6 @@
 package com.bookd.app.screen
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -20,6 +21,8 @@ private interface IAppScreenContext {
     val navigator: Navigator
 
     val coroutineScope: CoroutineScope
+
+    val snackbarHostState: SnackbarHostState
 }
 
 data class AppScreenContext <T : ViewModel> (
@@ -28,12 +31,16 @@ data class AppScreenContext <T : ViewModel> (
     override val navigator: Navigator,
 
     override val coroutineScope: CoroutineScope,
+
+    override val snackbarHostState: SnackbarHostState,
 ) : IAppScreenContext
 
 data class NonVMAppScreenContext(
     override val navigator: Navigator,
 
     override val coroutineScope: CoroutineScope,
+
+    override val snackbarHostState: SnackbarHostState,
 ) : IAppScreenContext
 
 
@@ -59,22 +66,26 @@ inline fun <reified T : ViewModel> rememberScreenContext(
     )
 
     val navigator = LocalNavigator.current
+    val snackbarHostState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
 
     return AppScreenContext(
         viewModel = viewModel,
         navigator = navigator,
         coroutineScope = coroutineScope,
+        snackbarHostState = snackbarHostState,
     )
 }
 
 @Composable
 fun rememberScreenContext(): NonVMAppScreenContext {
     val navigator = LocalNavigator.current
+    val snackbarHostState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     return NonVMAppScreenContext(
         navigator = navigator,
-        coroutineScope = coroutineScope
+        coroutineScope = coroutineScope,
+        snackbarHostState = snackbarHostState,
     )
 }
 
