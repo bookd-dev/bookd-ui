@@ -61,6 +61,14 @@ data class AddToBookshelvesRequest(
 )
 
 /**
+ * 批量从多个书架移除书籍请求
+ */
+@Serializable
+data class RemoveFromBookshelvesRequest(
+    val bookshelfIds: List<Int>
+)
+
+/**
  * 书籍及其阅读进度
  * 用于书架书籍列表展示
  */

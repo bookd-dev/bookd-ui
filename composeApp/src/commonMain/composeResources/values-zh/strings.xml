@@ -85,4 +85,27 @@
     <string name="bookshelf_system_default_readonly">系统默认书架名称不可修改</string>
     <string name="bookshelf_delete_info">「%1$s」（%2$d 本书籍）</string>
     <string name="bookshelf_delete_note">注意：删除书架不会删除其中的书籍</string>
+
+    <!-- Book Context Menu -->
+    <string name="book_detail">书籍详情</string>
+    <string name="add_to_bookshelves">添加到书架</string>
+    <string name="move_to_bookshelf">移动到书架</string>
+    <string name="remove_from_all_bookshelves">移除</string>
+
+    <!-- Add to Bookshelves Dialog -->
+    <string name="add_to_bookshelves_title">添加到书架</string>
+    <string name="bookshelves_updated">书架已更新</string>
+    <string name="no_available_bookshelves">没有可添加的书架</string>
+    <string name="book_added_to_bookshelves">已添加到书架</string>
+
+    <!-- Move to Bookshelf Dialog -->
+    <string name="move_to_bookshelf_title">移动到书架</string>
+    <string name="move_to_bookshelf_description">选择目标书架（将从当前书架移除）</string>
+    <string name="book_moved_to_bookshelf">已移动到书架</string>
+    <string name="no_other_bookshelves">没有其他可用书架</string>
+    
+    <!-- Remove from All Bookshelves Dialog -->
+    <string name="remove_from_all_title">从所有书架移除</string>
+    <string name="remove_from_all_message">确定要从所有书架移除「%1$s」吗？\n\n书籍文件不会被删除，仍可通过搜索找到。</string>
+    <string name="book_removed_from_all">已从所有书架移除</string>
 </resources>

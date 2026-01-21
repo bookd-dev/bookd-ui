@@ -85,4 +85,27 @@
     <string name="bookshelf_system_default_readonly">System default bookshelf name cannot be modified</string>
     <string name="bookshelf_delete_info">「%1$s」(%2$d books)</string>
     <string name="bookshelf_delete_note">Note: Deleting the bookshelf will not delete the books in it</string>
+
+    <!-- Book Context Menu -->
+    <string name="book_detail">Book Detail</string>
+    <string name="add_to_bookshelves">Add to Bookshelves</string>
+    <string name="move_to_bookshelf">Move to Bookshelf</string>
+    <string name="remove_from_all_bookshelves">Remove from All</string>
+
+    <!-- Add to Bookshelves Dialog -->
+    <string name="add_to_bookshelves_title">Add to Bookshelves</string>
+    <string name="bookshelves_updated">Bookshelves updated</string>
+    <string name="no_available_bookshelves">No available bookshelves</string>
+    <string name="book_added_to_bookshelves">Book added to bookshelves</string>
+
+    <!-- Move to Bookshelf Dialog -->
+    <string name="move_to_bookshelf_title">Move to Bookshelf</string>
+    <string name="move_to_bookshelf_description">Select target bookshelf (will be removed from current bookshelf)</string>
+    <string name="book_moved_to_bookshelf">Book moved to bookshelf</string>
+    <string name="no_other_bookshelves">No other bookshelves available</string>
+    
+    <!-- Remove from All Bookshelves Dialog -->
+    <string name="remove_from_all_title">Remove from All Bookshelves</string>
+    <string name="remove_from_all_message">Are you sure you want to remove「%1$s」from all bookshelves?\n\nThe book file will not be deleted and can still be found via search.</string>
+    <string name="book_removed_from_all">Book removed from all bookshelves</string>
 </resources>

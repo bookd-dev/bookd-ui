@@ -33,6 +33,7 @@ import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.bookshelf_no_books
 import app.composeapp.generated.resources.no_more_data
 import com.bookd.app.data.model.BookWithProgress
+import com.bookd.app.screen.bookshelf.component.BookMenuAction
 import com.bookd.app.screen.bookshelf.component.BookshelfBookGridItem
 import com.bookd.app.screen.bookshelf.component.BookshelfBookListItem
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -53,10 +54,12 @@ fun BookshelfListContent(
     isLoadingMore: Boolean,
     isRefreshing: Boolean,
     isGridMode: Boolean,
+    isSystemDefaultBookshelf: Boolean,
     hasMore: Boolean,
     onLoadMore: () -> Unit,
     onRefresh: () -> Unit,
     onBookClick: (BookWithProgress) -> Unit = {},
+    onMenuAction: (BookWithProgress, BookMenuAction) -> Unit = { _, _ -> },
 ) {
     // 使用 rememberUpdatedState 确保闭包中使用最新值
     val currentOnLoadMore by rememberUpdatedState(onLoadMore)
@@ -99,13 +102,15 @@ fun BookshelfListContent(
                             bookshelfId = bookshelfId,
                             books = books,
                             isLoadingMore = isLoadingMore,
+                            isSystemDefaultBookshelf = isSystemDefaultBookshelf,
                             hasMore = hasMore,
                             onLoadMore = { 
                                 if (!currentIsLoading && !currentIsLoadingMore && currentHasMore && currentBooksSize > 0) {
                                     currentOnLoadMore()
                                 }
                             },
-                            onBookClick = onBookClick
+                            onBookClick = onBookClick,
+                            onMenuAction = onMenuAction
                         )
                     } else {
                         // 列表模式
@@ -113,13 +118,15 @@ fun BookshelfListContent(
                             bookshelfId = bookshelfId,
                             books = books,
                             isLoadingMore = isLoadingMore,
+                            isSystemDefaultBookshelf = isSystemDefaultBookshelf,
                             hasMore = hasMore,
                             onLoadMore = { 
                                 if (!currentIsLoading && !currentIsLoadingMore && currentHasMore && currentBooksSize > 0) {
                                     currentOnLoadMore()
                                 }
                             },
-                            onBookClick = onBookClick
+                            onBookClick = onBookClick,
+                            onMenuAction = onMenuAction
                         )
                     }
                 }
@@ -136,9 +143,11 @@ private fun ListContent(
     bookshelfId: Int,
     books: List<BookWithProgress>,
     isLoadingMore: Boolean,
+    isSystemDefaultBookshelf: Boolean,
     hasMore: Boolean,
     onLoadMore: () -> Unit,
     onBookClick: (BookWithProgress) -> Unit,
+    onMenuAction: (BookWithProgress, BookMenuAction) -> Unit,
 ) {
     val listState = rememberLazyListState()
     val currentOnLoadMore by rememberUpdatedState(onLoadMore)
@@ -171,7 +180,9 @@ private fun ListContent(
         ) { book ->
             BookshelfBookListItem(
                 bookWithProgress = book,
-                onClick = { onBookClick(book) }
+                showMoveToBookshelf = !isSystemDefaultBookshelf,
+                onClick = { onBookClick(book) },
+                onMenuAction = { action -> onMenuAction(book, action) }
             )
         }
         
@@ -199,9 +210,11 @@ private fun GridContent(
     bookshelfId: Int,
     books: List<BookWithProgress>,
     isLoadingMore: Boolean,
+    isSystemDefaultBookshelf: Boolean,
     hasMore: Boolean,
     onLoadMore: () -> Unit,
     onBookClick: (BookWithProgress) -> Unit,
+    onMenuAction: (BookWithProgress, BookMenuAction) -> Unit,
 ) {
     val gridState = rememberLazyGridState()
     val currentOnLoadMore by rememberUpdatedState(onLoadMore)
@@ -238,7 +251,9 @@ private fun GridContent(
         ) { book ->
             BookshelfBookGridItem(
                 bookWithProgress = book,
-                onClick = { onBookClick(book) }
+                showMoveToBookshelf = !isSystemDefaultBookshelf,
+                onClick = { onBookClick(book) },
+                onMenuAction = { action -> onMenuAction(book, action) }
             )
         }
     }

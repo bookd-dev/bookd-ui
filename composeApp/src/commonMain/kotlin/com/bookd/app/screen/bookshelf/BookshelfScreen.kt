@@ -19,6 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.book_added_to_bookshelves
+import app.composeapp.generated.resources.book_moved_to_bookshelf
+import app.composeapp.generated.resources.book_removed_from_all
 import app.composeapp.generated.resources.bookshelf_created
 import app.composeapp.generated.resources.bookshelf_deleted
 import app.composeapp.generated.resources.bookshelf_empty
@@ -33,9 +36,13 @@ import com.bookd.app.data.vm.BookshelfState
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.screen.RouteBookDetail
 import com.bookd.app.screen.RouteNetworkConfig
+import com.bookd.app.screen.bookshelf.component.AddToBookshelvesDialog
+import com.bookd.app.screen.bookshelf.component.BookMenuAction
 import com.bookd.app.screen.bookshelf.component.CreateBookshelfDialog
 import com.bookd.app.screen.bookshelf.component.DeleteBookshelfDialog
 import com.bookd.app.screen.bookshelf.component.EditBookshelfDialog
+import com.bookd.app.screen.bookshelf.component.MoveToBookshelfDialog
+import com.bookd.app.screen.bookshelf.component.RemoveFromAllDialog
 import com.bookd.app.screen.bookshelf.content.BookshelfHeaderContent
 import com.bookd.app.screen.bookshelf.content.BookshelfListContent
 import com.bookd.app.screen.rememberScreenContext
@@ -58,6 +65,9 @@ fun BookshelfScreen() {
     val bookshelfUpdatedMsg = stringResource(Res.string.bookshelf_updated)
     val bookshelfDeletedMsg = stringResource(Res.string.bookshelf_deleted)
     val bookRemovedMsg = stringResource(Res.string.book_removed)
+    val bookAddedToBookshelvesMsg = stringResource(Res.string.book_added_to_bookshelves)
+    val bookMovedToBookshelfMsg = stringResource(Res.string.book_moved_to_bookshelf)
+    val bookRemovedFromAllMsg = stringResource(Res.string.book_removed_from_all)
     
     // 记录上一次的导航栈大小，用于检测返回
     var lastBackStackSize by remember { mutableIntStateOf(navigator.backStackSize.value) }
@@ -102,6 +112,15 @@ fun BookshelfScreen() {
                 is BookshelfEffect.BookRemoved -> {
                     screenContext.snackbarHostState.showSnackbar(bookRemovedMsg)
                 }
+                is BookshelfEffect.BookAddedToBookshelves -> {
+                    screenContext.snackbarHostState.showSnackbar(bookAddedToBookshelvesMsg)
+                }
+                is BookshelfEffect.BookMovedToBookshelf -> {
+                    screenContext.snackbarHostState.showSnackbar(bookMovedToBookshelfMsg)
+                }
+                is BookshelfEffect.BookRemovedFromAll -> {
+                    screenContext.snackbarHostState.showSnackbar(bookRemovedFromAllMsg)
+                }
             }
         }
     }
@@ -117,7 +136,24 @@ fun BookshelfScreen() {
             }
         },
         onBookClick = { book ->
-            screenContext.navigator.navigateTo(RouteBookDetail(bookId = book.book.id))
+            // 点击书籍直接开始阅读
+            viewModel.onIntent(BookshelfIntent.StartReading(book.book.id))
+        },
+        onMenuAction = { book, action ->
+            when (action) {
+                BookMenuAction.Detail -> {
+                    viewModel.onIntent(BookshelfIntent.OpenBookDetail(book.book.id))
+                }
+                BookMenuAction.AddToBookshelves -> {
+                    viewModel.onIntent(BookshelfIntent.ShowAddToBookshelvesDialog(book))
+                }
+                BookMenuAction.MoveToBookshelf -> {
+                    viewModel.onIntent(BookshelfIntent.ShowMoveToBookshelfDialog(book))
+                }
+                BookMenuAction.RemoveFromAll -> {
+                    viewModel.onIntent(BookshelfIntent.ShowRemoveFromAllDialog(book))
+                }
+            }
         },
         onEditBookshelf = { bookshelf ->
             viewModel.onIntent(BookshelfIntent.ShowEditDialog(bookshelf))
@@ -134,6 +170,7 @@ private fun BookshelfContent(
     onIntent: (BookshelfIntent) -> Unit = {},
     onMenuClick: (BookshelfMenu) -> Unit = {},
     onBookClick: (BookWithProgress) -> Unit = {},
+    onMenuAction: (BookWithProgress, BookMenuAction) -> Unit = { _, _ -> },
     onEditBookshelf: (Bookshelf) -> Unit = {},
     onDeleteBookshelf: (Bookshelf) -> Unit = {},
 ) {
@@ -242,10 +279,12 @@ private fun BookshelfContent(
                             isLoadingMore = isLoadingMore,
                             isRefreshing = state.isRefreshing,
                             isGridMode = state.isGridMode,
+                            isSystemDefaultBookshelf = bookshelf.isSystemDefault,
                             hasMore = hasMore,
                             onLoadMore = { onIntent(BookshelfIntent.LoadMoreBooks(bookshelf.id)) },
                             onRefresh = { onIntent(BookshelfIntent.Refresh) },
-                            onBookClick = onBookClick
+                            onBookClick = onBookClick,
+                            onMenuAction = onMenuAction
                         )
                     }
                 }
@@ -286,6 +325,54 @@ private fun BookshelfContent(
             onDismiss = { onIntent(BookshelfIntent.HideDeleteDialog) },
             onConfirm = { id ->
                 onIntent(BookshelfIntent.DeleteBookshelf(id))
+            }
+        )
+    }
+    
+    // 添加到书架对话框
+    if (state.showAddToBookshelvesDialog && state.addToBookshelvesBook != null) {
+        AddToBookshelvesDialog(
+            book = state.addToBookshelvesBook,
+            availableBookshelves = state.addToBookshelvesAvailable,
+            selectedBookshelves = state.addToBookshelvesSelected,
+            isLoading = state.isLoadingAddToBookshelves,
+            isUpdating = state.isAddingToBookshelves,
+            onToggleBookshelf = { bookshelfId ->
+                onIntent(BookshelfIntent.ToggleAddToBookshelfSelection(bookshelfId))
+            },
+            onDismiss = { onIntent(BookshelfIntent.HideAddToBookshelvesDialog) },
+            onConfirm = { bookId ->
+                onIntent(BookshelfIntent.ConfirmAddToBookshelves(bookId))
+            }
+        )
+    }
+    
+    // 移动到书架对话框
+    if (state.showMoveToBookshelfDialog && state.moveToBookshelfBook != null) {
+        MoveToBookshelfDialog(
+            book = state.moveToBookshelfBook,
+            availableBookshelves = state.moveToBookshelfAvailable,
+            selectedBookshelf = state.moveToBookshelfSelected,
+            isLoading = state.isLoadingMoveToBookshelf,
+            isUpdating = state.isMovingToBookshelf,
+            onSelectBookshelf = { bookshelfId ->
+                onIntent(BookshelfIntent.SelectMoveToBookshelf(bookshelfId))
+            },
+            onDismiss = { onIntent(BookshelfIntent.HideMoveToBookshelfDialog) },
+            onConfirm = { bookId ->
+                onIntent(BookshelfIntent.ConfirmMoveToBookshelf(bookId))
+            }
+        )
+    }
+    
+    // 从所有书架移除确认对话框
+    if (state.showRemoveFromAllDialog && state.removeFromAllBook != null) {
+        RemoveFromAllDialog(
+            book = state.removeFromAllBook,
+            isRemoving = state.isRemovingFromAll,
+            onDismiss = { onIntent(BookshelfIntent.HideRemoveFromAllDialog) },
+            onConfirm = { bookId ->
+                onIntent(BookshelfIntent.ConfirmRemoveFromAll(bookId))
             }
         )
     }

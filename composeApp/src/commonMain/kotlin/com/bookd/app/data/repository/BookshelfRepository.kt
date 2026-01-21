@@ -14,6 +14,7 @@ import com.bookd.app.data.model.BookWithProgress
 import com.bookd.app.data.model.BooksInBookshelfResponse
 import com.bookd.app.data.model.CreateBookshelfRequest
 import com.bookd.app.data.model.ReadingProgressResponse
+import com.bookd.app.data.model.RemoveFromBookshelvesRequest
 import com.bookd.app.data.model.ReorderBookshelvesRequest
 import com.bookd.app.data.model.UpdateBookshelfRequest
 
@@ -469,6 +470,29 @@ class BookshelfRepository(
                 ?: return Result.failure(NoNetworkConfigException())
             
             api.addBookToBookshelves(bookId, AddToBookshelvesRequest(bookshelfIds))
+            
+            // 同步书架列表（更新 bookCount）
+            syncBookshelves()
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * 批量从多个书架移除书籍
+     */
+    suspend fun removeBookFromBookshelves(bookId: Int, bookshelfIds: List<Int>): Result<Unit> {
+        if (!apiProvider.isConfigured) {
+            return Result.failure(NoNetworkConfigException())
+        }
+        
+        return try {
+            val api = apiProvider.getBookshelfApiOrNull()
+                ?: return Result.failure(NoNetworkConfigException())
+            
+            api.removeBookFromBookshelves(bookId, RemoveFromBookshelvesRequest(bookshelfIds))
             
             // 同步书架列表（更新 bookCount）
             syncBookshelves()

@@ -52,6 +52,27 @@ data class BookshelfState(
     val editingBookshelf: Bookshelf? = null,
     val isDialogLoading: Boolean = false,
     
+    // 添加到书架对话框状态（只显示书籍未加入的书架）
+    val showAddToBookshelvesDialog: Boolean = false,
+    val addToBookshelvesBook: BookWithProgress? = null,
+    val addToBookshelvesAvailable: List<Bookshelf> = emptyList(),  // 可添加的书架（书籍未加入的）
+    val addToBookshelvesSelected: Set<Int> = emptySet(),           // 用户选中的书架 ID
+    val isLoadingAddToBookshelves: Boolean = false,
+    val isAddingToBookshelves: Boolean = false,
+    
+    // 移动到书架对话框状态（单选，从当前书架移动到目标书架）
+    val showMoveToBookshelfDialog: Boolean = false,
+    val moveToBookshelfBook: BookWithProgress? = null,
+    val moveToBookshelfAvailable: List<Bookshelf> = emptyList(),  // 可移动到的书架（排除当前书架和系统默认）
+    val moveToBookshelfSelected: Int? = null,                      // 选中的目标书架ID（单选）
+    val isLoadingMoveToBookshelf: Boolean = false,
+    val isMovingToBookshelf: Boolean = false,
+    
+    // 从所有书架移除确认对话框状态
+    val showRemoveFromAllDialog: Boolean = false,
+    val removeFromAllBook: BookWithProgress? = null,
+    val isRemovingFromAll: Boolean = false,
+    
     // 错误状态
     val error: String? = null
 ) {
@@ -184,6 +205,45 @@ sealed class BookshelfIntent {
     
     /** 开始阅读 */
     data class StartReading(val bookId: Int) : BookshelfIntent()
+    
+    // ==================== 添加到书架对话框 ====================
+    
+    /** 显示添加到书架对话框（只显示书籍未加入的书架） */
+    data class ShowAddToBookshelvesDialog(val book: BookWithProgress) : BookshelfIntent()
+    
+    /** 隐藏添加到书架对话框 */
+    data object HideAddToBookshelvesDialog : BookshelfIntent()
+    
+    /** 切换添加到书架对话框中的书架选中状态 */
+    data class ToggleAddToBookshelfSelection(val bookshelfId: Int) : BookshelfIntent()
+    
+    /** 确认添加到选中的书架 */
+    data class ConfirmAddToBookshelves(val bookId: Int) : BookshelfIntent()
+    
+    // ==================== 移动到书架对话框 ====================
+    
+    /** 显示移动到书架对话框（单选目标书架） */
+    data class ShowMoveToBookshelfDialog(val book: BookWithProgress) : BookshelfIntent()
+    
+    /** 隐藏移动到书架对话框 */
+    data object HideMoveToBookshelfDialog : BookshelfIntent()
+    
+    /** 选择目标书架（单选） */
+    data class SelectMoveToBookshelf(val bookshelfId: Int) : BookshelfIntent()
+    
+    /** 确认移动到书架 */
+    data class ConfirmMoveToBookshelf(val bookId: Int) : BookshelfIntent()
+    
+    // ==================== 从所有书架移除对话框 ====================
+    
+    /** 显示从所有书架移除确认对话框 */
+    data class ShowRemoveFromAllDialog(val book: BookWithProgress) : BookshelfIntent()
+    
+    /** 隐藏从所有书架移除确认对话框 */
+    data object HideRemoveFromAllDialog : BookshelfIntent()
+    
+    /** 确认从所有书架移除 */
+    data class ConfirmRemoveFromAll(val bookId: Int) : BookshelfIntent()
 }
 
 /**
@@ -207,8 +267,17 @@ sealed class BookshelfEffect {
     /** 书架删除成功 */
     data object BookshelfDeleted : BookshelfEffect()
     
-    /** 书籍移除成功 */
+    /** 书籍移除成功（从单个书架） */
     data object BookRemoved : BookshelfEffect()
+    
+    /** 书籍已添加到书架 */
+    data object BookAddedToBookshelves : BookshelfEffect()
+    
+    /** 书籍已移动到书架 */
+    data object BookMovedToBookshelf : BookshelfEffect()
+    
+    /** 书籍已从所有书架移除 */
+    data object BookRemovedFromAll : BookshelfEffect()
 }
 
 /**
@@ -261,6 +330,20 @@ class BookshelfViewModel(
             is BookshelfIntent.RemoveBookFromBookshelf -> removeBookFromBookshelf(intent.bookshelfId, intent.bookId)
             is BookshelfIntent.OpenBookDetail -> openBookDetail(intent.bookId)
             is BookshelfIntent.StartReading -> startReading(intent.bookId)
+            // 添加到书架对话框
+            is BookshelfIntent.ShowAddToBookshelvesDialog -> showAddToBookshelvesDialog(intent.book)
+            is BookshelfIntent.HideAddToBookshelvesDialog -> hideAddToBookshelvesDialog()
+            is BookshelfIntent.ToggleAddToBookshelfSelection -> toggleAddToBookshelfSelection(intent.bookshelfId)
+            is BookshelfIntent.ConfirmAddToBookshelves -> confirmAddToBookshelves(intent.bookId)
+            // 移动到书架对话框
+            is BookshelfIntent.ShowMoveToBookshelfDialog -> showMoveToBookshelfDialog(intent.book)
+            is BookshelfIntent.HideMoveToBookshelfDialog -> hideMoveToBookshelfDialog()
+            is BookshelfIntent.SelectMoveToBookshelf -> selectMoveToBookshelf(intent.bookshelfId)
+            is BookshelfIntent.ConfirmMoveToBookshelf -> confirmMoveToBookshelf(intent.bookId)
+            // 从所有书架移除对话框
+            is BookshelfIntent.ShowRemoveFromAllDialog -> showRemoveFromAllDialog(intent.book)
+            is BookshelfIntent.HideRemoveFromAllDialog -> hideRemoveFromAllDialog()
+            is BookshelfIntent.ConfirmRemoveFromAll -> confirmRemoveFromAll(intent.bookId)
         }
     }
     
@@ -608,6 +691,292 @@ class BookshelfViewModel(
     private fun startReading(bookId: Int) {
         scope.launch {
             _effect.emit(BookshelfEffect.NavigateToReader(bookId))
+        }
+    }
+    
+    // ==================== 添加到书架对话框 ====================
+    
+    private fun showAddToBookshelvesDialog(book: BookWithProgress) {
+        scope.launch {
+            _state.update { 
+                it.copy(
+                    showAddToBookshelvesDialog = true,
+                    addToBookshelvesBook = book,
+                    addToBookshelvesAvailable = emptyList(),
+                    addToBookshelvesSelected = emptySet(),
+                    isLoadingAddToBookshelves = true
+                )
+            }
+            
+            // 获取书籍当前所属的书架
+            bookshelfRepository.getBookshelvesForBook(book.book.id).fold(
+                onSuccess = { bookBookshelves ->
+                    val bookBookshelfIds = bookBookshelves.map { it.id }.toSet()
+                    // 过滤出书籍未加入的书架（排除系统默认书架）
+                    val availableBookshelves = _state.value.bookshelves.filter { 
+                        it.id !in bookBookshelfIds && !it.isSystemDefault
+                    }
+                    _state.update { 
+                        it.copy(
+                            addToBookshelvesAvailable = availableBookshelves,
+                            isLoadingAddToBookshelves = false
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    _state.update { it.copy(isLoadingAddToBookshelves = false) }
+                    throw e
+                }
+            )
+        }
+    }
+    
+    private fun hideAddToBookshelvesDialog() {
+        _state.update { 
+            it.copy(
+                showAddToBookshelvesDialog = false,
+                addToBookshelvesBook = null,
+                addToBookshelvesAvailable = emptyList(),
+                addToBookshelvesSelected = emptySet(),
+                isLoadingAddToBookshelves = false,
+                isAddingToBookshelves = false
+            )
+        }
+    }
+    
+    private fun toggleAddToBookshelfSelection(bookshelfId: Int) {
+        _state.update { state ->
+            val newSelected = if (bookshelfId in state.addToBookshelvesSelected) {
+                state.addToBookshelvesSelected - bookshelfId
+            } else {
+                state.addToBookshelvesSelected + bookshelfId
+            }
+            state.copy(addToBookshelvesSelected = newSelected)
+        }
+    }
+    
+    private fun confirmAddToBookshelves(bookId: Int) {
+        val selectedIds = _state.value.addToBookshelvesSelected.toList()
+        
+        if (selectedIds.isEmpty()) {
+            hideAddToBookshelvesDialog()
+            return
+        }
+        
+        scope.launch {
+            _state.update { it.copy(isAddingToBookshelves = true) }
+            
+            bookshelfRepository.addBookToBookshelves(bookId, selectedIds).fold(
+                onSuccess = {
+                    // 刷新当前书架的书籍列表
+                    _state.value.selectedBookshelfId?.let { currentBookshelfId ->
+                        loadBooks(currentBookshelfId, forceRefresh = true)
+                    }
+                    
+                    // 同步刷新书架列表（更新 bookCount）
+                    syncBookshelves()
+                    
+                    hideAddToBookshelvesDialog()
+                    _effect.emit(BookshelfEffect.BookAddedToBookshelves)
+                },
+                onFailure = { e ->
+                    _state.update { it.copy(isAddingToBookshelves = false) }
+                    throw e
+                }
+            )
+        }
+    }
+    
+    // ==================== 移动到书架对话框 ====================
+    
+    private fun showMoveToBookshelfDialog(book: BookWithProgress) {
+        val currentBookshelfId = _state.value.selectedBookshelfId
+        
+        scope.launch {
+            _state.update { 
+                it.copy(
+                    showMoveToBookshelfDialog = true,
+                    moveToBookshelfBook = book,
+                    moveToBookshelfAvailable = emptyList(),
+                    moveToBookshelfSelected = null,
+                    isLoadingMoveToBookshelf = true
+                )
+            }
+            
+            // 过滤出可移动到的书架（排除当前书架和系统默认书架）
+            val availableBookshelves = _state.value.bookshelves.filter { 
+                it.id != currentBookshelfId && !it.isSystemDefault
+            }
+            
+            _state.update { 
+                it.copy(
+                    moveToBookshelfAvailable = availableBookshelves,
+                    isLoadingMoveToBookshelf = false
+                )
+            }
+        }
+    }
+    
+    private fun hideMoveToBookshelfDialog() {
+        _state.update { 
+            it.copy(
+                showMoveToBookshelfDialog = false,
+                moveToBookshelfBook = null,
+                moveToBookshelfAvailable = emptyList(),
+                moveToBookshelfSelected = null,
+                isLoadingMoveToBookshelf = false,
+                isMovingToBookshelf = false
+            )
+        }
+    }
+    
+    private fun selectMoveToBookshelf(bookshelfId: Int) {
+        _state.update { state ->
+            // 单选：如果已选中则取消，否则选中
+            val newSelected = if (state.moveToBookshelfSelected == bookshelfId) null else bookshelfId
+            state.copy(moveToBookshelfSelected = newSelected)
+        }
+    }
+    
+    private fun confirmMoveToBookshelf(bookId: Int) {
+        val currentBookshelfId = _state.value.selectedBookshelfId ?: return
+        val targetBookshelfId = _state.value.moveToBookshelfSelected ?: run {
+            hideMoveToBookshelfDialog()
+            return
+        }
+        
+        scope.launch {
+            _state.update { it.copy(isMovingToBookshelf = true) }
+            
+            // 先从当前书架移除
+            bookshelfRepository.removeBookFromBookshelf(currentBookshelfId, bookId).fold(
+                onSuccess = {
+                    // 再添加到目标书架
+                    bookshelfRepository.addBookToBookshelf(targetBookshelfId, bookId).fold(
+                        onSuccess = {
+                            // 从当前书架的本地状态移除书籍
+                            _state.update { state ->
+                                val currentBooks = state.booksByBookshelf[currentBookshelfId] ?: emptyList()
+                                val newBooks = currentBooks.filter { it.book.id != bookId }
+                                val currentTotal = state.totalByBookshelf[currentBookshelfId] ?: 0
+                                
+                                // 更新书架的 bookCount
+                                val updatedBookshelves = state.bookshelves.map { bookshelf ->
+                                    when (bookshelf.id) {
+                                        currentBookshelfId -> bookshelf.copy(bookCount = (bookshelf.bookCount - 1).coerceAtLeast(0))
+                                        targetBookshelfId -> bookshelf.copy(bookCount = bookshelf.bookCount + 1)
+                                        else -> bookshelf
+                                    }
+                                }
+                                
+                                state.copy(
+                                    bookshelves = updatedBookshelves,
+                                    booksByBookshelf = state.booksByBookshelf + (currentBookshelfId to newBooks),
+                                    totalByBookshelf = state.totalByBookshelf + (currentBookshelfId to (currentTotal - 1).coerceAtLeast(0))
+                                )
+                            }
+                            
+                            hideMoveToBookshelfDialog()
+                            _effect.emit(BookshelfEffect.BookMovedToBookshelf)
+                        },
+                        onFailure = { e ->
+                            _state.update { it.copy(isMovingToBookshelf = false) }
+                            throw e
+                        }
+                    )
+                },
+                onFailure = { e ->
+                    _state.update { it.copy(isMovingToBookshelf = false) }
+                    throw e
+                }
+            )
+        }
+    }
+    
+    // ==================== 从所有书架移除对话框 ====================
+    
+    private fun showRemoveFromAllDialog(book: BookWithProgress) {
+        _state.update { 
+            it.copy(
+                showRemoveFromAllDialog = true,
+                removeFromAllBook = book
+            )
+        }
+    }
+    
+    private fun hideRemoveFromAllDialog() {
+        _state.update { 
+            it.copy(
+                showRemoveFromAllDialog = false,
+                removeFromAllBook = null,
+                isRemovingFromAll = false
+            )
+        }
+    }
+    
+    private fun confirmRemoveFromAll(bookId: Int) {
+        scope.launch {
+            _state.update { it.copy(isRemovingFromAll = true) }
+            
+            // 获取书籍当前所属的所有书架
+            bookshelfRepository.getBookshelvesForBook(bookId).fold(
+                onSuccess = { bookBookshelves ->
+                    val bookshelfIds = bookBookshelves.map { it.id }
+                    
+                    if (bookshelfIds.isEmpty()) {
+                        hideRemoveFromAllDialog()
+                        return@launch
+                    }
+                    
+                    // 从所有书架移除
+                    bookshelfRepository.removeBookFromBookshelves(bookId, bookshelfIds).fold(
+                        onSuccess = {
+                            // 从本地状态移除书籍
+                            _state.update { state ->
+                                val updatedBooksByBookshelf = state.booksByBookshelf.mapValues { (bookshelfId, books) ->
+                                    if (bookshelfId in bookshelfIds) {
+                                        books.filter { it.book.id != bookId }
+                                    } else {
+                                        books
+                                    }
+                                }
+                                val updatedTotalByBookshelf = state.totalByBookshelf.mapValues { (bookshelfId, total) ->
+                                    if (bookshelfId in bookshelfIds) {
+                                        (total - 1).coerceAtLeast(0)
+                                    } else {
+                                        total
+                                    }
+                                }
+                                // 更新书架的 bookCount
+                                val updatedBookshelves = state.bookshelves.map { bookshelf ->
+                                    if (bookshelf.id in bookshelfIds) {
+                                        bookshelf.copy(bookCount = (bookshelf.bookCount - 1).coerceAtLeast(0))
+                                    } else {
+                                        bookshelf
+                                    }
+                                }
+                                
+                                state.copy(
+                                    bookshelves = updatedBookshelves,
+                                    booksByBookshelf = updatedBooksByBookshelf,
+                                    totalByBookshelf = updatedTotalByBookshelf
+                                )
+                            }
+                            
+                            hideRemoveFromAllDialog()
+                            _effect.emit(BookshelfEffect.BookRemovedFromAll)
+                        },
+                        onFailure = { e ->
+                            _state.update { it.copy(isRemovingFromAll = false) }
+                            throw e
+                        }
+                    )
+                },
+                onFailure = { e ->
+                    _state.update { it.copy(isRemovingFromAll = false) }
+                    throw e
+                }
+            )
         }
     }
 }

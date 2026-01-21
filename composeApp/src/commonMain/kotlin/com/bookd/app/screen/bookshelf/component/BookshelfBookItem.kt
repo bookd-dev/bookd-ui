@@ -12,9 +12,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.LibraryAdd
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,26 +36,50 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.add_to_bookshelves
+import app.composeapp.generated.resources.book_detail
 import app.composeapp.generated.resources.chapters_count
+import app.composeapp.generated.resources.move_to_bookshelf
 import app.composeapp.generated.resources.reading_progress
+import app.composeapp.generated.resources.remove_from_all_bookshelves
 import coil3.compose.AsyncImage
+import com.bookd.app.basic.extension.noRippleClickable
 import com.bookd.app.data.model.BookWithProgress
 import org.jetbrains.compose.resources.stringResource
+
+/**
+ * 书籍操作菜单类型
+ */
+enum class BookMenuAction {
+    /** 查看书籍详情 */
+    Detail,
+    /** 添加到其他书架（书籍未加入的） */
+    AddToBookshelves,
+    /** 移动到书架（从当前书架移除并添加到其他书架） */
+    MoveToBookshelf,
+    /** 从所有书架移除 */
+    RemoveFromAll
+}
 
 /**
  * 书架书籍列表项（列表模式）
  * 
  * 显示书籍封面、标题、作者、格式、阅读进度等信息
+ * 点击打开阅读器，三点图标显示更多操作
  */
 @Composable
 fun BookshelfBookListItem(
     bookWithProgress: BookWithProgress,
+    showMoveToBookshelf: Boolean = true,
     onClick: () -> Unit = {},
+    onMenuAction: (BookMenuAction) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val book = bookWithProgress.book
     val progress = bookWithProgress.progress
     val progressPercent = progress?.let { (it.progress * 100).toInt() } ?: 0
+    
+    var showMenu by remember { mutableStateOf(false) }
     
     Row(
         modifier = modifier
@@ -91,8 +128,9 @@ fun BookshelfBookListItem(
             
             Spacer(modifier = Modifier.weight(1f))
             
-            // 底部信息行：格式 + 章节数
+            // 底部信息行：格式 + 章节数 + 三点菜单
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -107,6 +145,20 @@ fun BookshelfBookListItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                // 三点菜单（右下角）
+                BookContextMenu(
+                    showMenu = showMenu,
+                    showMoveToBookshelf = showMoveToBookshelf,
+                    onShowMenu = { showMenu = true },
+                    onDismissMenu = { showMenu = false },
+                    onMenuAction = { action ->
+                        showMenu = false
+                        onMenuAction(action)
+                    }
+                )
             }
         }
     }
@@ -116,16 +168,21 @@ fun BookshelfBookListItem(
  * 书架书籍卡片（瀑布流/网格模式）
  * 
  * 显示封面、书名、阅读进度、作者
+ * 点击打开阅读器，三点图标显示更多操作
  */
 @Composable
 fun BookshelfBookGridItem(
     bookWithProgress: BookWithProgress,
+    showMoveToBookshelf: Boolean = true,
     onClick: () -> Unit = {},
+    onMenuAction: (BookMenuAction) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val book = bookWithProgress.book
     val progress = bookWithProgress.progress
     val progressPercent = progress?.let { (it.progress * 100).toInt() } ?: 0
+    
+    var showMenu by remember { mutableStateOf(false) }
     
     Column(
         modifier = modifier
@@ -157,15 +214,122 @@ fun BookshelfBookGridItem(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        // 作者
-        book.author?.let { author ->
+        // 底部行：作者 + 三点菜单
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 作者
             Text(
-                text = author,
+                text = book.author ?: "",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
+            )
+            
+            // 三点菜单（右下角）
+            BookContextMenu(
+                showMenu = showMenu,
+                showMoveToBookshelf = showMoveToBookshelf,
+                onShowMenu = { showMenu = true },
+                onDismissMenu = { showMenu = false },
+                onMenuAction = { action ->
+                    showMenu = false
+                    onMenuAction(action)
+                }
+            )
+        }
+    }
+}
+
+/**
+ * 书籍上下文菜单（三点图标 + 下拉菜单）
+ */
+@Composable
+private fun BookContextMenu(
+    showMenu: Boolean,
+    showMoveToBookshelf: Boolean,
+    onShowMenu: () -> Unit,
+    onDismissMenu: () -> Unit,
+    onMenuAction: (BookMenuAction) -> Unit
+) {
+    Box(contentAlignment = Alignment.Center) {
+        // 三点图标
+        Icon(
+            imageVector = Icons.Default.MoreVert,
+            contentDescription = null,
+            modifier = Modifier
+                .size(18.dp)
+                .noRippleClickable { onShowMenu() },
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        
+        // 下拉菜单
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = onDismissMenu
+        ) {
+            // 书籍详情
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.book_detail)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                onClick = { onMenuAction(BookMenuAction.Detail) }
+            )
+            
+            // 添加到书架
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.add_to_bookshelves)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.LibraryAdd,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                onClick = { onMenuAction(BookMenuAction.AddToBookshelves) }
+            )
+            
+            // 移动到书架（系统默认书架不显示此选项）
+            if (showMoveToBookshelf) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.move_to_bookshelf)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.DriveFileMove,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = { onMenuAction(BookMenuAction.MoveToBookshelf) }
+                )
+            }
+            
+            // 从所有书架移除
+            DropdownMenuItem(
+                text = { 
+                    Text(
+                        text = stringResource(Res.string.remove_from_all_bookshelves),
+                        color = MaterialTheme.colorScheme.error
+                    ) 
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = { onMenuAction(BookMenuAction.RemoveFromAll) }
             )
         }
     }

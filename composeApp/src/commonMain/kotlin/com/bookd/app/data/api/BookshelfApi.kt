@@ -5,6 +5,7 @@ import com.bookd.app.data.model.AddToBookshelvesRequest
 import com.bookd.app.data.model.Bookshelf
 import com.bookd.app.data.model.BooksInBookshelfResponse
 import com.bookd.app.data.model.CreateBookshelfRequest
+import com.bookd.app.data.model.RemoveFromBookshelvesRequest
 import com.bookd.app.data.model.ReorderBookshelvesRequest
 import com.bookd.app.data.model.UpdateBookshelfRequest
 import de.jensklingenberg.ktorfit.http.Body
@@ -94,5 +95,14 @@ interface BookshelfApi {
     suspend fun addBookToBookshelves(
         @Path("bookId") bookId: Int,
         @Body request: AddToBookshelvesRequest
+    )
+    
+    /**
+     * 批量从多个书架移除书籍
+     */
+    @DELETE("api/books/{bookId}/bookshelves")
+    suspend fun removeBookFromBookshelves(
+        @Path("bookId") bookId: Int,
+        @Body request: RemoveFromBookshelvesRequest
     )
 }
