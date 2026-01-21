@@ -186,8 +186,18 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
-            packageName = "com.bookd.app"
+            packageName = "Bookd"
             packageVersion = "1.0.0"
+            
+            macOS {
+                iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
+            }
+            windows {
+                iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("src/jvmMain/resources/icon.png"))
+            }
         }
     }
 }

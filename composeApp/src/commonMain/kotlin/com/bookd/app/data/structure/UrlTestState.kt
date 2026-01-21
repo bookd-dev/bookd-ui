@@ -7,6 +7,8 @@ import app.composeapp.generated.resources.failed
 import app.composeapp.generated.resources.pending
 import app.composeapp.generated.resources.success
 import com.bookd.app.ui.theme.Gray500
+import com.bookd.app.ui.theme.StatusFailed
+import com.bookd.app.ui.theme.StatusSuccess
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -34,6 +36,6 @@ val UrlTestState.text: StringResource
  */
 fun UrlTestState.color(): Color = when (this) {
     UrlTestState.Pending -> Gray500
-    UrlTestState.Success -> Color(0xFF4CAF50)
-    UrlTestState.Failed -> Color(0xFFF44336)
+    UrlTestState.Success -> StatusSuccess
+    UrlTestState.Failed -> StatusFailed
 }

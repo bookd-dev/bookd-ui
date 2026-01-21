@@ -111,9 +111,6 @@ sealed class BookSourceIntent {
  * 一次性效果
  */
 sealed class BookSourceEffect {
-    /** 显示错误消息 */
-    data class ShowError(val message: String) : BookSourceEffect()
-    
     /** 滚动到顶部 */
     data class ScrollToTop(val sourceId: Int) : BookSourceEffect()
 }
@@ -183,10 +180,10 @@ class BookSourceViewModel(
                     _state.update { 
                         it.copy(
                             sourcesLoading = false,
-                            sourcesError = e.message ?: "加载书源失败"
+                            sourcesError = e.message
                         )
                     }
-                    _effect.emit(BookSourceEffect.ShowError(e.message ?: "加载书源失败"))
+                    throw e
                 }
             )
         }
@@ -240,10 +237,10 @@ class BookSourceViewModel(
                         state.copy(
                             booksLoading = state.booksLoading + (sourceId to false),
                             booksRefreshing = state.booksRefreshing + (sourceId to false),
-                            booksError = state.booksError + (sourceId to (e.message ?: "加载书籍失败"))
+                            booksError = state.booksError + (sourceId to e.message)
                         )
                     }
-                    _effect.emit(BookSourceEffect.ShowError(e.message ?: "加载书籍失败"))
+                    throw e
                 }
             )
         }
@@ -281,7 +278,7 @@ class BookSourceViewModel(
                     _state.update { state ->
                         state.copy(booksLoadingMore = state.booksLoadingMore + (sourceId to false))
                     }
-                    _effect.emit(BookSourceEffect.ShowError(e.message ?: "加载更多失败"))
+                    throw e
                 }
             )
         }

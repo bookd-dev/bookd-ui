@@ -1,7 +1,9 @@
 package com.bookd.app.data.api
 
 import com.bookd.app.data.model.AppBooksResponse
+import com.bookd.app.data.model.BookDetailResponse
 import de.jensklingenberg.ktorfit.http.GET
+import de.jensklingenberg.ktorfit.http.Path
 import de.jensklingenberg.ktorfit.http.Query
 
 /**
@@ -22,4 +24,14 @@ interface BookApi {
         @Query("limit") limit: Int = 20,
         @Query("offset") offset: Long = 0
     ): AppBooksResponse
+    
+    /**
+     * 获取书籍详情
+     * 
+     * 包含书籍完整信息、标签、阅读进度和所在书架信息
+     * 
+     * @param id 书籍 ID
+     */
+    @GET("api/books/{id}/detail")
+    suspend fun getBookDetail(@Path("id") id: Int): BookDetailResponse
 }

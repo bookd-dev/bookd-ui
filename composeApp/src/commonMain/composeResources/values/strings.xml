@@ -63,4 +63,82 @@
     <string name="no_more_data">No more data</string>
     <string name="source_no_books">No books in this source</string>
     <string name="chapters_count">%1$d chapters</string>
+
+    <!-- Bookshelf Screen -->
+    <string name="bookshelf_empty">No bookshelves yet</string>
+    <string name="bookshelf_no_books">No books in this bookshelf</string>
+    <string name="bookshelf_create">Create Bookshelf</string>
+    <string name="bookshelf_edit">Edit Bookshelf</string>
+    <string name="bookshelf_delete">Delete Bookshelf</string>
+    <string name="bookshelf_delete_confirm">Are you sure you want to delete this bookshelf?</string>
+    <string name="bookshelf_name">Bookshelf Name</string>
+    <string name="bookshelf_description">Description (optional)</string>
+    <string name="bookshelf_created">Bookshelf created</string>
+    <string name="bookshelf_updated">Bookshelf updated</string>
+    <string name="bookshelf_deleted">Bookshelf deleted</string>
+    <string name="book_removed">Book removed from bookshelf</string>
+    <string name="reading_progress">%1$d%% read</string>
+    <string name="list_view">List View</string>
+    <string name="grid_view">Grid View</string>
+    <string name="add_bookshelf">Add Bookshelf</string>
+    <string name="manage_bookshelves">Manage Bookshelves</string>
+    <string name="bookshelf_system_default_readonly">System default bookshelf name cannot be modified</string>
+    <string name="bookshelf_delete_info">「%1$s」(%2$d books)</string>
+    <string name="bookshelf_delete_note">Note: Deleting the bookshelf will not delete the books in it</string>
+
+    <!-- Book Context Menu -->
+    <string name="book_detail">Book Detail</string>
+    <string name="add_to_bookshelves">Add to Bookshelves</string>
+    <string name="move_to_bookshelf">Move to Bookshelf</string>
+    <string name="remove_from_all_bookshelves">Remove from All</string>
+
+    <!-- Add to Bookshelves Dialog -->
+    <string name="add_to_bookshelves_title">Add to Bookshelves</string>
+    <string name="bookshelves_updated">Bookshelves updated</string>
+    <string name="no_available_bookshelves">No available bookshelves</string>
+    <string name="book_added_to_bookshelves">Book added to bookshelves</string>
+
+    <!-- Move to Bookshelf Dialog -->
+    <string name="move_to_bookshelf_title">Move to Bookshelf</string>
+    <string name="move_to_bookshelf_description">Select target bookshelf (will be removed from current bookshelf)</string>
+    <string name="book_moved_to_bookshelf">Book moved to bookshelf</string>
+    <string name="no_other_bookshelves">No other bookshelves available</string>
+    
+    <!-- Remove from All Bookshelves Dialog -->
+    <string name="remove_from_all_title">Remove from All Bookshelves</string>
+    <string name="remove_from_all_message">Are you sure you want to remove「%1$s」from all bookshelves?\n\nThe book file will not be deleted and can still be found via search.</string>
+    <string name="book_removed_from_all">Book removed from all bookshelves</string>
+
+    <!-- Add to Bookshelf Dialog (BookDetail) -->
+    <string name="select_bookshelves_hint">Select bookshelves to add</string>
+    <string name="no_bookshelves_create_first">No available bookshelves, please create one first</string>
+    <string name="books_count">%1$d books</string>
+
+    <!-- Book Detail Info Section -->
+    <string name="detail_info">Details</string>
+    <string name="publisher_label">Publisher</string>
+    <string name="isbn_label">ISBN</string>
+    <string name="chapters_label">Chapters</string>
+    <string name="word_count_label">Word Count</string>
+    <string name="image_count_label">Images</string>
+    <string name="word_count_value">%1$d words</string>
+    <string name="word_count_wan">%1$.1f0k words</string>
+    <string name="word_count_yi">%1$.1f00M words</string>
+    <string name="chapters_value">%1$d chapters</string>
+    <string name="images_value">%1$d images</string>
+
+    <!-- Book Detail Screen -->
+    <string name="start_reading">Start Reading</string>
+    <string name="add_to_default_bookshelf">Add to bookshelf</string>
+    <string name="remove_from_default_bookshelf">Remove from bookshelf</string>
+    <string name="add_to_other_bookshelf">Bookshelf</string>
+    <string name="back">Back</string>
+    <string name="added_to_bookshelf">Added to bookshelf</string>
+    <string name="removed_from_bookshelf">Removed from bookshelf</string>
+    <string name="added_to_default_bookshelf">Added to default bookshelf</string>
+    <string name="removed_from_default_bookshelf">Removed from default bookshelf</string>
+    <string name="file_size_bytes">%1$d B</string>
+    <string name="file_size_kb">%1$d KB</string>
+    <string name="file_size_mb">%1$.1f MB</string>
+    <string name="file_size_gb">%1$.1f GB</string>
 </resources>

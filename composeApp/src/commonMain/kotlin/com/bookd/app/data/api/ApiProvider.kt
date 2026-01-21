@@ -71,6 +71,13 @@ class ApiProvider(
         return if (isConfigured) getKtorfit().createBookApi() else null
     }
     
+    /**
+     * 获取 BookshelfApi，如果未配置网络返回 null
+     */
+    fun getBookshelfApiOrNull(): BookshelfApi? {
+        return if (isConfigured) getKtorfit().createBookshelfApi() else null
+    }
+    
     private fun ensureTrailingSlash(url: String): String {
         return if (url.endsWith("/")) url else "$url/"
     }

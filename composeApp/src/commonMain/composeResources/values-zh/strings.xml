@@ -63,4 +63,82 @@
     <string name="no_more_data">没有更多了</string>
     <string name="source_no_books">此书源暂无书籍</string>
     <string name="chapters_count">%1$d 章</string>
+
+    <!-- Bookshelf Screen -->
+    <string name="bookshelf_empty">暂无书架</string>
+    <string name="bookshelf_no_books">此书架暂无书籍</string>
+    <string name="bookshelf_create">创建书架</string>
+    <string name="bookshelf_edit">编辑书架</string>
+    <string name="bookshelf_delete">删除书架</string>
+    <string name="bookshelf_delete_confirm">确定要删除此书架吗？</string>
+    <string name="bookshelf_name">书架名称</string>
+    <string name="bookshelf_description">描述（可选）</string>
+    <string name="bookshelf_created">书架创建成功</string>
+    <string name="bookshelf_updated">书架更新成功</string>
+    <string name="bookshelf_deleted">书架删除成功</string>
+    <string name="book_removed">已从书架移除</string>
+    <string name="reading_progress">已读 %1$d%%</string>
+    <string name="list_view">列表视图</string>
+    <string name="grid_view">网格视图</string>
+    <string name="add_bookshelf">添加书架</string>
+    <string name="manage_bookshelves">管理书架</string>
+    <string name="bookshelf_system_default_readonly">系统默认书架名称不可修改</string>
+    <string name="bookshelf_delete_info">「%1$s」（%2$d 本书籍）</string>
+    <string name="bookshelf_delete_note">注意：删除书架不会删除其中的书籍</string>
+
+    <!-- Book Context Menu -->
+    <string name="book_detail">书籍详情</string>
+    <string name="add_to_bookshelves">添加到书架</string>
+    <string name="move_to_bookshelf">移动到书架</string>
+    <string name="remove_from_all_bookshelves">移除</string>
+
+    <!-- Add to Bookshelves Dialog -->
+    <string name="add_to_bookshelves_title">添加到书架</string>
+    <string name="bookshelves_updated">书架已更新</string>
+    <string name="no_available_bookshelves">没有可添加的书架</string>
+    <string name="book_added_to_bookshelves">已添加到书架</string>
+
+    <!-- Move to Bookshelf Dialog -->
+    <string name="move_to_bookshelf_title">移动到书架</string>
+    <string name="move_to_bookshelf_description">选择目标书架（将从当前书架移除）</string>
+    <string name="book_moved_to_bookshelf">已移动到书架</string>
+    <string name="no_other_bookshelves">没有其他可用书架</string>
+    
+    <!-- Remove from All Bookshelves Dialog -->
+    <string name="remove_from_all_title">从所有书架移除</string>
+    <string name="remove_from_all_message">确定要从所有书架移除「%1$s」吗？\n\n书籍文件不会被删除，仍可通过搜索找到。</string>
+    <string name="book_removed_from_all">已从所有书架移除</string>
+
+    <!-- Add to Bookshelf Dialog (BookDetail) -->
+    <string name="select_bookshelves_hint">选择要添加到的书架</string>
+    <string name="no_bookshelves_create_first">暂无可用书架，请先创建书架</string>
+    <string name="books_count">%1$d 本</string>
+
+    <!-- Book Detail Info Section -->
+    <string name="detail_info">详细信息</string>
+    <string name="publisher_label">出版社</string>
+    <string name="isbn_label">ISBN</string>
+    <string name="chapters_label">章节数</string>
+    <string name="word_count_label">总字数</string>
+    <string name="image_count_label">图片数</string>
+    <string name="word_count_value">%1$d 字</string>
+    <string name="word_count_wan">%1$.1f 万字</string>
+    <string name="word_count_yi">%1$.1f 亿字</string>
+    <string name="chapters_value">%1$d 章</string>
+    <string name="images_value">%1$d 张</string>
+
+    <!-- Book Detail Screen -->
+    <string name="start_reading">开始阅读</string>
+    <string name="add_to_default_bookshelf">添加到书架</string>
+    <string name="remove_from_default_bookshelf">从书架移除</string>
+    <string name="add_to_other_bookshelf">书架</string>
+    <string name="back">返回</string>
+    <string name="added_to_bookshelf">已添加到书架</string>
+    <string name="removed_from_bookshelf">已从书架移除</string>
+    <string name="added_to_default_bookshelf">已添加到默认书架</string>
+    <string name="removed_from_default_bookshelf">已从默认书架移除</string>
+    <string name="file_size_bytes">%1$d B</string>
+    <string name="file_size_kb">%1$d KB</string>
+    <string name="file_size_mb">%1$.1f MB</string>
+    <string name="file_size_gb">%1$.1f GB</string>
 </resources>

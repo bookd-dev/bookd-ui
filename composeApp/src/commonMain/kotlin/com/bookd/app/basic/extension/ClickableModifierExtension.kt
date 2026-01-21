@@ -1,40 +1,39 @@
 package com.bookd.app.basic.extension
 
-import androidx.compose.foundation.Indication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.semantics.Role
 
-private val lazyInteractionSource by lazy { MutableInteractionSource() }
-
 fun Modifier.noRippleClickable(
-    interactionSource: MutableInteractionSource? = lazyInteractionSource,
-    indication: Indication? = null,
     enabled: Boolean = true,
     role: Role? = null,
     onClick: () -> Unit
-) = clickable(
-    interactionSource = interactionSource,
-    indication = indication,
-    enabled = enabled,
-    onClick = onClick,
-    role = role
-)
+) = composed {
+    clickable(
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null,
+        enabled = enabled,
+        onClick = onClick,
+        role = role
+    )
+}
 
 fun Modifier.noRippleSelectable(
     selected: Boolean,
-    interactionSource: MutableInteractionSource? = MutableInteractionSource(),
-    indication: Indication? = null,
     enabled: Boolean = true,
     role: Role? = null,
     onClick: () -> Unit
-) = selectable(
-    selected = selected,
-    interactionSource = interactionSource,
-    indication = indication,
-    enabled = enabled,
-    role = role,
-    onClick = onClick
-)
+) = composed {
+    selectable(
+        selected = selected,
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null,
+        enabled = enabled,
+        role = role,
+        onClick = onClick
+    )
+}

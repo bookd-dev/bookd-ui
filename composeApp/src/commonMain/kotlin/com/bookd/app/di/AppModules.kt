@@ -5,12 +5,15 @@ import com.bookd.app.data.api.ApiProvider
 import com.bookd.app.data.api.DefaultHeaderProvider
 import com.bookd.app.data.db.DatabaseDriverFactory
 import com.bookd.app.data.repository.BookRepository
+import com.bookd.app.data.repository.BookshelfPreferenceRepository
+import com.bookd.app.data.repository.BookshelfRepository
 import com.bookd.app.data.repository.BookSourceRepository
 import com.bookd.app.data.repository.LanguageRepository
 import com.bookd.app.data.repository.NetworkConfigRepository
 import com.bookd.app.data.repository.NetworkSwitcher
 import com.bookd.app.data.repository.UserRepository
 import com.bookd.app.data.vm.AppViewModel
+import com.bookd.app.data.vm.BookDetailViewModel
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.data.vm.BookSourceViewModel
 import com.bookd.app.data.vm.SignInViewModel
@@ -93,6 +96,8 @@ val repositoryModule = module {
     single { UserRepository(get(), get()) }
     single { BookSourceRepository(get(), get()) }
     single { BookRepository(get(), get()) }
+    single { BookshelfRepository(get(), get()) }
+    single { BookshelfPreferenceRepository(get()) }
 }
 
 /**
@@ -100,8 +105,9 @@ val repositoryModule = module {
  */
 val viewModelModule = module {
     viewModel { AppViewModel(get(), get(), get()) }
-    viewModel { BookshelfViewModel() }
+    viewModel { BookshelfViewModel(get(), get()) }
     viewModel { BookSourceViewModel(get(), get()) }
+    viewModel { BookDetailViewModel(get(), get()) }
     viewModel { SignInViewModel(get()) }
 }
 

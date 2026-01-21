@@ -111,3 +111,27 @@ val DarkError = Color(0xFFCF6679)
 val DarkOnError = Black
 val DarkErrorContainer = Color(0xFF8C0018)
 val DarkOnErrorContainer = Color(0xFFFCD8DF)
+
+// ==================== 格式标签颜色 ====================
+// 书籍格式标签使用的语义颜色
+
+/** EPUB 格式标签颜色 - 绿色 */
+val FormatEpub = Color(0xFF4CAF50)
+
+/** PDF 格式标签颜色 - 粉红色 */
+val FormatPdf = Color(0xFFE91E63)
+
+/** TXT 格式标签颜色 - 蓝色 */
+val FormatTxt = Color(0xFF2196F3)
+
+/** MOBI 格式标签颜色 - 橙色 */
+val FormatMobi = Color(0xFFFF9800)
+
+// ==================== 状态颜色 ====================
+// 用于表示操作状态的语义颜色
+
+/** 成功状态颜色 - 绿色 */
+val StatusSuccess = Color(0xFF4CAF50)
+
+/** 失败状态颜色 - 红色 */
+val StatusFailed = Color(0xFFF44336)
