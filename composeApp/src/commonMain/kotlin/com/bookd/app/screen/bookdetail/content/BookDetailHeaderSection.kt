@@ -16,8 +16,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.file_size_bytes
+import app.composeapp.generated.resources.file_size_gb
+import app.composeapp.generated.resources.file_size_kb
+import app.composeapp.generated.resources.file_size_mb
 import coil3.compose.AsyncImage
 import com.bookd.app.data.model.Book
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 书籍详情头部区域
@@ -92,12 +98,15 @@ fun BookDetailHeaderSection(
 
 /**
  * 格式化文件大小
+ * 
+ * 使用 Kotlin 跨平台兼容的方式格式化
  */
+@Composable
 private fun formatFileSize(bytes: Long): String {
     return when {
-        bytes < 1024 -> "$bytes B"
-        bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-        bytes < 1024 * 1024 * 1024 -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
-        else -> String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0))
+        bytes < 1024 -> stringResource(Res.string.file_size_bytes, bytes.toInt())
+        bytes < 1024 * 1024 -> stringResource(Res.string.file_size_kb, (bytes / 1024).toInt())
+        bytes < 1024 * 1024 * 1024 -> stringResource(Res.string.file_size_mb, bytes / (1024.0 * 1024.0))
+        else -> stringResource(Res.string.file_size_gb, bytes / (1024.0 * 1024.0 * 1024.0))
     }
 }

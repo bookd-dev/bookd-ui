@@ -14,7 +14,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.chapters_value
+import app.composeapp.generated.resources.chapters_label
+import app.composeapp.generated.resources.detail_info
+import app.composeapp.generated.resources.image_count_label
+import app.composeapp.generated.resources.images_value
+import app.composeapp.generated.resources.isbn_label
+import app.composeapp.generated.resources.publisher_label
+import app.composeapp.generated.resources.word_count_label
+import app.composeapp.generated.resources.word_count_value
+import app.composeapp.generated.resources.word_count_wan
+import app.composeapp.generated.resources.word_count_yi
 import com.bookd.app.data.model.Book
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 书籍详细信息区域
@@ -34,7 +47,7 @@ fun BookDetailInfoSection(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "详细信息",
+                text = stringResource(Res.string.detail_info),
                 style = MaterialTheme.typography.titleSmall
             )
             
@@ -56,27 +69,36 @@ fun BookDetailInfoSection(
             
             // 出版社
             if (!book.publisher.isNullOrBlank()) {
-                InfoRow(label = "出版社", value = book.publisher)
+                InfoRow(label = stringResource(Res.string.publisher_label), value = book.publisher)
             }
             
             // ISBN
             if (!book.isbn.isNullOrBlank()) {
-                InfoRow(label = "ISBN", value = book.isbn)
+                InfoRow(label = stringResource(Res.string.isbn_label), value = book.isbn)
             }
             
             // 章节数
             if (book.chapterCount > 0) {
-                InfoRow(label = "章节数", value = "${book.chapterCount} 章")
+                InfoRow(
+                    label = stringResource(Res.string.chapters_label), 
+                    value = stringResource(Res.string.chapters_value, book.chapterCount)
+                )
             }
             
             // 总字数
             if (book.totalWordCount > 0) {
-                InfoRow(label = "总字数", value = formatWordCount(book.totalWordCount))
+                InfoRow(
+                    label = stringResource(Res.string.word_count_label), 
+                    value = formatWordCount(book.totalWordCount)
+                )
             }
             
             // 图片数
             if (book.totalImageCount > 0) {
-                InfoRow(label = "图片数", value = "${book.totalImageCount} 张")
+                InfoRow(
+                    label = stringResource(Res.string.image_count_label), 
+                    value = stringResource(Res.string.images_value, book.totalImageCount)
+                )
             }
         }
     }
@@ -110,10 +132,11 @@ private fun InfoRow(
 /**
  * 格式化字数
  */
+@Composable
 private fun formatWordCount(count: Int): String {
     return when {
-        count < 10000 -> "$count 字"
-        count < 100000000 -> String.format("%.1f 万字", count / 10000.0)
-        else -> String.format("%.1f 亿字", count / 100000000.0)
+        count < 10000 -> stringResource(Res.string.word_count_value, count)
+        count < 100000000 -> stringResource(Res.string.word_count_wan, count / 10000.0)
+        else -> stringResource(Res.string.word_count_yi, count / 100000000.0)
     }
 }

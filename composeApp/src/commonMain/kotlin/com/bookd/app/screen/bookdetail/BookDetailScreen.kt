@@ -14,8 +14,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -28,6 +26,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.added_to_bookshelf
+import app.composeapp.generated.resources.added_to_default_bookshelf
+import app.composeapp.generated.resources.back
+import app.composeapp.generated.resources.removed_from_bookshelf
+import app.composeapp.generated.resources.removed_from_default_bookshelf
 import com.bookd.app.data.model.Book
 import com.bookd.app.data.model.Bookshelf
 import com.bookd.app.data.model.ReadingProgressResponse
@@ -47,6 +51,7 @@ import com.bookd.app.screen.rememberScreenContext
 import com.bookd.app.ui.AppPreviewContent
 import com.bookd.app.ui.AppVerticalZHPreview
 import kotlinx.coroutines.flow.collectLatest
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun BookDetailScreen(
@@ -59,6 +64,12 @@ fun BookDetailScreen(
     
     val state by viewModel.state.collectAsState()
     
+    // 预加载国际化字符串
+    val addedToBookshelfMsg = stringResource(Res.string.added_to_bookshelf)
+    val removedFromBookshelfMsg = stringResource(Res.string.removed_from_bookshelf)
+    val addedToDefaultBookshelfMsg = stringResource(Res.string.added_to_default_bookshelf)
+    val removedFromDefaultBookshelfMsg = stringResource(Res.string.removed_from_default_bookshelf)
+    
     // 初始加载
     LaunchedEffect(bookId) {
         viewModel.onIntent(BookDetailIntent.LoadBookDetail(bookId))
@@ -68,8 +79,17 @@ fun BookDetailScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                is BookDetailEffect.ShowSuccess -> {
-                    snackbarHostState.showSnackbar(effect.message)
+                is BookDetailEffect.AddedToBookshelf -> {
+                    snackbarHostState.showSnackbar(addedToBookshelfMsg)
+                }
+                is BookDetailEffect.RemovedFromBookshelf -> {
+                    snackbarHostState.showSnackbar(removedFromBookshelfMsg)
+                }
+                is BookDetailEffect.AddedToDefaultBookshelf -> {
+                    snackbarHostState.showSnackbar(addedToDefaultBookshelfMsg)
+                }
+                is BookDetailEffect.RemovedFromDefaultBookshelf -> {
+                    snackbarHostState.showSnackbar(removedFromDefaultBookshelfMsg)
                 }
                 is BookDetailEffect.NavigateToReader -> {
                     // TODO: Navigate to reader screen
@@ -83,7 +103,6 @@ fun BookDetailScreen(
     
     BookDetailContent(
         state = state,
-        snackbarHostState = snackbarHostState,
         onBackClick = { navigator.navigateBack() },
         onRefresh = { viewModel.onIntent(BookDetailIntent.Refresh) },
         onStartReading = { viewModel.onIntent(BookDetailIntent.StartReading) },
@@ -103,7 +122,6 @@ fun BookDetailScreen(
 @Composable
 private fun BookDetailContent(
     state: BookDetailState,
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onBackClick: () -> Unit = {},
     onRefresh: () -> Unit = {},
     onStartReading: () -> Unit = {},
@@ -129,13 +147,12 @@ private fun BookDetailContent(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(Res.string.back)
                         )
                     }
                 }
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { paddingValues ->
         Box(
             modifier = Modifier

@@ -354,8 +354,7 @@ class BookshelfRepository(
             
             // 从本地缓存删除
             bookshelfQueries.deleteBooksByBookshelfId(id.toLong())
-            // Note: 需要单独删除书架记录，但当前 SQL 没有这个方法
-            // 下次同步时会自动清理
+            bookshelfQueries.deleteById(id.toLong())
             
             Result.success(Unit)
         } catch (e: Exception) {

@@ -21,7 +21,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.add_to_bookshelves_title
+import app.composeapp.generated.resources.books_count
+import app.composeapp.generated.resources.cancel
+import app.composeapp.generated.resources.confirm
+import app.composeapp.generated.resources.no_bookshelves_create_first
+import app.composeapp.generated.resources.select_bookshelves_hint
 import com.bookd.app.data.model.Bookshelf
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 添加到书架对话框
@@ -48,19 +56,19 @@ fun AddToBookshelfDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("添加到书架")
+            Text(stringResource(Res.string.add_to_bookshelves_title))
         },
         text = {
             Column {
                 if (availableBookshelves.isEmpty()) {
                     Text(
-                        text = "暂无可用书架，请先创建书架",
+                        text = stringResource(Res.string.no_bookshelves_create_first),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
                     Text(
-                        text = "选择要添加到的书架",
+                        text = stringResource(Res.string.select_bookshelves_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -111,13 +119,13 @@ fun AddToBookshelfDialog(
                     },
                     enabled = availableBookshelves.isNotEmpty()
                 ) {
-                    Text("确定")
+                    Text(stringResource(Res.string.confirm))
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(Res.string.cancel))
             }
         }
     )
@@ -159,7 +167,7 @@ private fun BookshelfCheckItem(
         
         // 书籍数量
         Text(
-            text = "${bookshelf.bookCount} 本",
+            text = stringResource(Res.string.books_count, bookshelf.bookCount),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

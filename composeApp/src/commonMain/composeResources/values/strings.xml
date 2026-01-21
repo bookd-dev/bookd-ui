@@ -108,4 +108,37 @@
     <string name="remove_from_all_title">Remove from All Bookshelves</string>
     <string name="remove_from_all_message">Are you sure you want to remove「%1$s」from all bookshelves?\n\nThe book file will not be deleted and can still be found via search.</string>
     <string name="book_removed_from_all">Book removed from all bookshelves</string>
+
+    <!-- Add to Bookshelf Dialog (BookDetail) -->
+    <string name="select_bookshelves_hint">Select bookshelves to add</string>
+    <string name="no_bookshelves_create_first">No available bookshelves, please create one first</string>
+    <string name="books_count">%1$d books</string>
+
+    <!-- Book Detail Info Section -->
+    <string name="detail_info">Details</string>
+    <string name="publisher_label">Publisher</string>
+    <string name="isbn_label">ISBN</string>
+    <string name="chapters_label">Chapters</string>
+    <string name="word_count_label">Word Count</string>
+    <string name="image_count_label">Images</string>
+    <string name="word_count_value">%1$d words</string>
+    <string name="word_count_wan">%1$.1f0k words</string>
+    <string name="word_count_yi">%1$.1f00M words</string>
+    <string name="chapters_value">%1$d chapters</string>
+    <string name="images_value">%1$d images</string>
+
+    <!-- Book Detail Screen -->
+    <string name="start_reading">Start Reading</string>
+    <string name="add_to_default_bookshelf">Add to bookshelf</string>
+    <string name="remove_from_default_bookshelf">Remove from bookshelf</string>
+    <string name="add_to_other_bookshelf">Bookshelf</string>
+    <string name="back">Back</string>
+    <string name="added_to_bookshelf">Added to bookshelf</string>
+    <string name="removed_from_bookshelf">Removed from bookshelf</string>
+    <string name="added_to_default_bookshelf">Added to default bookshelf</string>
+    <string name="removed_from_default_bookshelf">Removed from default bookshelf</string>
+    <string name="file_size_bytes">%1$d B</string>
+    <string name="file_size_kb">%1$d KB</string>
+    <string name="file_size_mb">%1$.1f MB</string>
+    <string name="file_size_gb">%1$.1f GB</string>
 </resources>

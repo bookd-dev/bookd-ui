@@ -55,6 +55,10 @@ INSERT OR REPLACE INTO BookshelfEntity (
 deleteAll:
 DELETE FROM BookshelfEntity;
 
+-- 根据 ID 删除书架
+deleteById:
+DELETE FROM BookshelfEntity WHERE id = ?;
+
 -- 获取书架数量
 count:
 SELECT COUNT(*) FROM BookshelfEntity;

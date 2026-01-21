@@ -88,10 +88,21 @@ sealed class BookDetailIntent {
  * 一次性效果
  * 
  * 仅用于导航和成功提示，错误由 GlobalExceptionHandler -> AppViewModel -> SnackbarHostScaffold 统一处理
+ * 
+ * 注意：成功提示使用标识符而非硬编码文本，在 Screen 层使用 stringResource() 获取国际化文本
  */
 sealed class BookDetailEffect {
-    /** 显示成功消息 */
-    data class ShowSuccess(val message: String) : BookDetailEffect()
+    /** 已添加到书架 */
+    data object AddedToBookshelf : BookDetailEffect()
+    
+    /** 已从书架移除 */
+    data object RemovedFromBookshelf : BookDetailEffect()
+    
+    /** 已添加到默认书架 */
+    data object AddedToDefaultBookshelf : BookDetailEffect()
+    
+    /** 已从默认书架移除 */
+    data object RemovedFromDefaultBookshelf : BookDetailEffect()
     
     /** 导航到阅读器 */
     data class NavigateToReader(val bookId: Int) : BookDetailEffect()
@@ -218,7 +229,7 @@ class BookDetailViewModel(
                             showAddToBookshelfDialog = false
                         )
                     }
-                    _effect.emit(BookDetailEffect.ShowSuccess("已添加到书架"))
+                    _effect.emit(BookDetailEffect.AddedToBookshelf)
                     
                     // 刷新书籍详情以更新书架列表
                     refresh()
@@ -239,7 +250,7 @@ class BookDetailViewModel(
         scope.launch {
             bookshelfRepository.removeBookFromBookshelf(bookshelfId, bookId).fold(
                 onSuccess = {
-                    _effect.emit(BookDetailEffect.ShowSuccess("已从书架移除"))
+                    _effect.emit(BookDetailEffect.RemovedFromBookshelf)
                     // 刷新书籍详情以更新书架列表
                     refresh()
                 },
@@ -288,7 +299,7 @@ class BookDetailViewModel(
             bookshelfRepository.removeBookFromBookshelf(defaultShelfId, bookId).fold(
                 onSuccess = {
                     _state.update { it.copy(inDefaultBookshelf = false) }
-                    _effect.emit(BookDetailEffect.ShowSuccess("已从默认书架移除"))
+                    _effect.emit(BookDetailEffect.RemovedFromDefaultBookshelf)
                 },
                 onFailure = { e ->
                     // 抛出异常，由 GlobalExceptionHandler -> AppViewModel 统一处理
@@ -300,7 +311,7 @@ class BookDetailViewModel(
             bookshelfRepository.addBookToBookshelf(defaultShelfId, bookId).fold(
                 onSuccess = {
                     _state.update { it.copy(inDefaultBookshelf = true) }
-                    _effect.emit(BookDetailEffect.ShowSuccess("已添加到默认书架"))
+                    _effect.emit(BookDetailEffect.AddedToDefaultBookshelf)
                 },
                 onFailure = { e ->
                     // 抛出异常，由 GlobalExceptionHandler -> AppViewModel 统一处理

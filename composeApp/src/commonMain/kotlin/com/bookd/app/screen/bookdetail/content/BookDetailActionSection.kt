@@ -20,6 +20,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.add_to_default_bookshelf
+import app.composeapp.generated.resources.add_to_other_bookshelf
+import app.composeapp.generated.resources.remove_from_default_bookshelf
+import app.composeapp.generated.resources.start_reading
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 操作按钮区域
@@ -47,7 +53,7 @@ fun BookDetailActionSection(
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("开始阅读")
+            Text(stringResource(Res.string.start_reading))
         }
         
         Spacer(modifier = Modifier.width(8.dp))
@@ -56,7 +62,10 @@ fun BookDetailActionSection(
         IconButton(onClick = onToggleDefaultBookshelf) {
             Icon(
                 imageVector = if (inDefaultBookshelf) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (inDefaultBookshelf) "从书架移除" else "添加到书架",
+                contentDescription = stringResource(
+                    if (inDefaultBookshelf) Res.string.remove_from_default_bookshelf 
+                    else Res.string.add_to_default_bookshelf
+                ),
                 tint = if (inDefaultBookshelf) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -68,7 +77,7 @@ fun BookDetailActionSection(
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text("书架")
+            Text(stringResource(Res.string.add_to_other_bookshelf))
         }
     }
 }
