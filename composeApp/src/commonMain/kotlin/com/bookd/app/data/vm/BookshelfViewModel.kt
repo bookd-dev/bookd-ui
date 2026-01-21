@@ -14,6 +14,64 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// ==================== 子状态类 ====================
+
+/**
+ * 加载状态
+ */
+data class BookshelfLoadingState(
+    val isLoadingBookshelves: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val loadingBooksForBookshelf: Int? = null,  // 正在加载书籍的书架 ID
+    val loadingMoreForBookshelf: Int? = null    // 正在加载更多的书架 ID
+)
+
+/**
+ * 书架管理对话框状态（创建、编辑、删除）
+ */
+data class BookshelfManageDialogState(
+    val showCreateDialog: Boolean = false,
+    val showEditDialog: Boolean = false,
+    val showDeleteDialog: Boolean = false,
+    val editingBookshelf: Bookshelf? = null,
+    val isDialogLoading: Boolean = false
+)
+
+/**
+ * 添加到书架对话框状态
+ */
+data class AddToBookshelvesDialogState(
+    val isVisible: Boolean = false,
+    val book: BookWithProgress? = null,
+    val availableBookshelves: List<Bookshelf> = emptyList(),  // 可添加的书架（书籍未加入的）
+    val selectedBookshelfIds: Set<Int> = emptySet(),          // 用户选中的书架 ID
+    val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false
+)
+
+/**
+ * 移动到书架对话框状态
+ */
+data class MoveToBookshelfDialogState(
+    val isVisible: Boolean = false,
+    val book: BookWithProgress? = null,
+    val availableBookshelves: List<Bookshelf> = emptyList(),  // 可移动到的书架（排除当前书架和系统默认）
+    val selectedBookshelfId: Int? = null,                     // 选中的目标书架 ID（单选）
+    val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false
+)
+
+/**
+ * 从所有书架移除对话框状态
+ */
+data class RemoveFromAllDialogState(
+    val isVisible: Boolean = false,
+    val book: BookWithProgress? = null,
+    val isSubmitting: Boolean = false
+)
+
+// ==================== 主状态类 ====================
+
 /**
  * 书架页面状态
  */
@@ -39,43 +97,49 @@ data class BookshelfState(
     // 显示模式: "list" 或 "grid"
     val viewMode: String = BookshelfPreferenceRepository.VIEW_MODE_LIST,
     
-    // 加载状态
-    val isLoadingBookshelves: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val loadingBooksForBookshelf: Int? = null, // 正在加载书籍的书架 ID
-    val loadingMoreForBookshelf: Int? = null,  // 正在加载更多的书架 ID
-    
-    // 对话框状态
-    val showCreateDialog: Boolean = false,
-    val showEditDialog: Boolean = false,
-    val showDeleteDialog: Boolean = false,
-    val editingBookshelf: Bookshelf? = null,
-    val isDialogLoading: Boolean = false,
-    
-    // 添加到书架对话框状态（只显示书籍未加入的书架）
-    val showAddToBookshelvesDialog: Boolean = false,
-    val addToBookshelvesBook: BookWithProgress? = null,
-    val addToBookshelvesAvailable: List<Bookshelf> = emptyList(),  // 可添加的书架（书籍未加入的）
-    val addToBookshelvesSelected: Set<Int> = emptySet(),           // 用户选中的书架 ID
-    val isLoadingAddToBookshelves: Boolean = false,
-    val isAddingToBookshelves: Boolean = false,
-    
-    // 移动到书架对话框状态（单选，从当前书架移动到目标书架）
-    val showMoveToBookshelfDialog: Boolean = false,
-    val moveToBookshelfBook: BookWithProgress? = null,
-    val moveToBookshelfAvailable: List<Bookshelf> = emptyList(),  // 可移动到的书架（排除当前书架和系统默认）
-    val moveToBookshelfSelected: Int? = null,                      // 选中的目标书架ID（单选）
-    val isLoadingMoveToBookshelf: Boolean = false,
-    val isMovingToBookshelf: Boolean = false,
-    
-    // 从所有书架移除确认对话框状态
-    val showRemoveFromAllDialog: Boolean = false,
-    val removeFromAllBook: BookWithProgress? = null,
-    val isRemovingFromAll: Boolean = false,
+    // 子状态
+    val loading: BookshelfLoadingState = BookshelfLoadingState(),
+    val manageDialog: BookshelfManageDialogState = BookshelfManageDialogState(),
+    val addToBookshelvesDialog: AddToBookshelvesDialogState = AddToBookshelvesDialogState(),
+    val moveToBookshelfDialog: MoveToBookshelfDialogState = MoveToBookshelfDialogState(),
+    val removeFromAllDialog: RemoveFromAllDialogState = RemoveFromAllDialogState(),
     
     // 错误状态
     val error: String? = null
 ) {
+    // ==================== 向后兼容属性 ====================
+    // 这些属性保持与之前相同的访问方式，避免大量修改调用点
+    
+    val isLoadingBookshelves: Boolean get() = loading.isLoadingBookshelves
+    val isRefreshing: Boolean get() = loading.isRefreshing
+    val loadingBooksForBookshelf: Int? get() = loading.loadingBooksForBookshelf
+    val loadingMoreForBookshelf: Int? get() = loading.loadingMoreForBookshelf
+    
+    val showCreateDialog: Boolean get() = manageDialog.showCreateDialog
+    val showEditDialog: Boolean get() = manageDialog.showEditDialog
+    val showDeleteDialog: Boolean get() = manageDialog.showDeleteDialog
+    val editingBookshelf: Bookshelf? get() = manageDialog.editingBookshelf
+    val isDialogLoading: Boolean get() = manageDialog.isDialogLoading
+    
+    val showAddToBookshelvesDialog: Boolean get() = addToBookshelvesDialog.isVisible
+    val addToBookshelvesBook: BookWithProgress? get() = addToBookshelvesDialog.book
+    val addToBookshelvesAvailable: List<Bookshelf> get() = addToBookshelvesDialog.availableBookshelves
+    val addToBookshelvesSelected: Set<Int> get() = addToBookshelvesDialog.selectedBookshelfIds
+    val isLoadingAddToBookshelves: Boolean get() = addToBookshelvesDialog.isLoading
+    val isAddingToBookshelves: Boolean get() = addToBookshelvesDialog.isSubmitting
+    
+    val showMoveToBookshelfDialog: Boolean get() = moveToBookshelfDialog.isVisible
+    val moveToBookshelfBook: BookWithProgress? get() = moveToBookshelfDialog.book
+    val moveToBookshelfAvailable: List<Bookshelf> get() = moveToBookshelfDialog.availableBookshelves
+    val moveToBookshelfSelected: Int? get() = moveToBookshelfDialog.selectedBookshelfId
+    val isLoadingMoveToBookshelf: Boolean get() = moveToBookshelfDialog.isLoading
+    val isMovingToBookshelf: Boolean get() = moveToBookshelfDialog.isSubmitting
+    
+    val showRemoveFromAllDialog: Boolean get() = removeFromAllDialog.isVisible
+    val removeFromAllBook: BookWithProgress? get() = removeFromAllDialog.book
+    val isRemovingFromAll: Boolean get() = removeFromAllDialog.isSubmitting
+    
+    // ==================== 计算属性 ====================
     /**
      * 是否为列表模式
      */
@@ -353,7 +417,12 @@ class BookshelfViewModel(
         if (_state.value.isLoadingBookshelves) return
         
         scope.launch {
-            _state.update { it.copy(isLoadingBookshelves = true, error = null) }
+            _state.update { 
+                it.copy(
+                    loading = it.loading.copy(isLoadingBookshelves = true),
+                    error = null
+                )
+            }
             
             bookshelfRepository.getBookshelves().fold(
                 onSuccess = { bookshelves ->
@@ -369,7 +438,7 @@ class BookshelfViewModel(
                         it.copy(
                             bookshelves = bookshelves,
                             selectedBookshelfId = selectedBookshelf?.id,
-                            isLoadingBookshelves = false,
+                            loading = it.loading.copy(isLoadingBookshelves = false),
                             error = null
                         )
                     }
@@ -383,7 +452,7 @@ class BookshelfViewModel(
                 onFailure = { e ->
                     _state.update { 
                         it.copy(
-                            isLoadingBookshelves = false,
+                            loading = it.loading.copy(isLoadingBookshelves = false),
                             error = e.message
                         )
                     }
@@ -396,7 +465,12 @@ class BookshelfViewModel(
     private fun refresh(showRefreshingUI: Boolean = true) {
         scope.launch {
             if (showRefreshingUI) {
-                _state.update { it.copy(isRefreshing = true, error = null) }
+                _state.update { 
+                    it.copy(
+                        loading = it.loading.copy(isRefreshing = true),
+                        error = null
+                    )
+                }
             }
             
             bookshelfRepository.getBookshelves(forceRefresh = true).fold(
@@ -412,7 +486,7 @@ class BookshelfViewModel(
                         it.copy(
                             bookshelves = bookshelves,
                             selectedBookshelfId = newSelected,
-                            isRefreshing = false,
+                            loading = it.loading.copy(isRefreshing = false),
                             error = null
                         )
                     }
@@ -423,7 +497,7 @@ class BookshelfViewModel(
                 onFailure = { e ->
                     _state.update { 
                         it.copy(
-                            isRefreshing = false,
+                            loading = it.loading.copy(isRefreshing = false),
                             error = e.message
                         )
                     }
@@ -475,7 +549,9 @@ class BookshelfViewModel(
             // 如果没有缓存数据，显示 loading
             val hasCachedData = _state.value.booksByBookshelf[bookshelfId] != null
             if (!hasCachedData) {
-                _state.update { it.copy(loadingBooksForBookshelf = bookshelfId) }
+                _state.update { 
+                    it.copy(loading = it.loading.copy(loadingBooksForBookshelf = bookshelfId))
+                }
             }
             
             bookshelfRepository.getBooksInBookshelf(bookshelfId, offset = 0, forceRefresh = true).fold(
@@ -485,14 +561,21 @@ class BookshelfViewModel(
                             booksByBookshelf = state.booksByBookshelf + (bookshelfId to response.books),
                             totalByBookshelf = state.totalByBookshelf + (bookshelfId to response.total),
                             hasMoreByBookshelf = state.hasMoreByBookshelf + (bookshelfId to response.hasMore),
-                            loadingBooksForBookshelf = if (state.loadingBooksForBookshelf == bookshelfId) null else state.loadingBooksForBookshelf
+                            loading = state.loading.copy(
+                                loadingBooksForBookshelf = if (state.loadingBooksForBookshelf == bookshelfId) null else state.loadingBooksForBookshelf
+                            )
                         )
                     }
                 },
                 onFailure = { e ->
                     // 静默刷新失败不影响用户体验（如果有缓存数据的话）
                     if (!hasCachedData) {
-                        _state.update { it.copy(loadingBooksForBookshelf = null, error = e.message) }
+                        _state.update { 
+                            it.copy(
+                                loading = it.loading.copy(loadingBooksForBookshelf = null),
+                                error = e.message
+                            )
+                        }
                         throw e
                     }
                     // 有缓存数据时静默失败，不抛出异常
@@ -505,7 +588,9 @@ class BookshelfViewModel(
         if (_state.value.loadingBooksForBookshelf == bookshelfId) return
         
         scope.launch {
-            _state.update { it.copy(loadingBooksForBookshelf = bookshelfId) }
+            _state.update { 
+                it.copy(loading = it.loading.copy(loadingBooksForBookshelf = bookshelfId))
+            }
             
             bookshelfRepository.getBooksInBookshelf(bookshelfId, offset = 0, forceRefresh = forceRefresh).fold(
                 onSuccess = { response ->
@@ -514,12 +599,17 @@ class BookshelfViewModel(
                             booksByBookshelf = state.booksByBookshelf + (bookshelfId to response.books),
                             totalByBookshelf = state.totalByBookshelf + (bookshelfId to response.total),
                             hasMoreByBookshelf = state.hasMoreByBookshelf + (bookshelfId to response.hasMore),
-                            loadingBooksForBookshelf = null
+                            loading = state.loading.copy(loadingBooksForBookshelf = null)
                         )
                     }
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(loadingBooksForBookshelf = null, error = e.message) }
+                    _state.update { 
+                        it.copy(
+                            loading = it.loading.copy(loadingBooksForBookshelf = null),
+                            error = e.message
+                        )
+                    }
                     throw e
                 }
             )
@@ -535,7 +625,9 @@ class BookshelfViewModel(
         val offset = currentBooks.size.toLong()
         
         scope.launch {
-            _state.update { it.copy(loadingMoreForBookshelf = bookshelfId) }
+            _state.update { 
+                it.copy(loading = it.loading.copy(loadingMoreForBookshelf = bookshelfId))
+            }
             
             bookshelfRepository.loadMoreBooks(bookshelfId, offset).fold(
                 onSuccess = { response ->
@@ -545,12 +637,17 @@ class BookshelfViewModel(
                             booksByBookshelf = state.booksByBookshelf + (bookshelfId to existingBooks + response.books),
                             totalByBookshelf = state.totalByBookshelf + (bookshelfId to response.total),
                             hasMoreByBookshelf = state.hasMoreByBookshelf + (bookshelfId to response.hasMore),
-                            loadingMoreForBookshelf = null
+                            loading = state.loading.copy(loadingMoreForBookshelf = null)
                         )
                     }
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(loadingMoreForBookshelf = null, error = e.message) }
+                    _state.update { 
+                        it.copy(
+                            loading = it.loading.copy(loadingMoreForBookshelf = null),
+                            error = e.message
+                        )
+                    }
                     throw e
                 }
             )
@@ -578,30 +675,40 @@ class BookshelfViewModel(
     // ==================== 书架管理 ====================
     
     private fun showCreateDialog() {
-        _state.update { it.copy(showCreateDialog = true) }
+        _state.update { 
+            it.copy(manageDialog = it.manageDialog.copy(showCreateDialog = true))
+        }
     }
     
     private fun hideCreateDialog() {
-        _state.update { it.copy(showCreateDialog = false) }
+        _state.update { 
+            it.copy(manageDialog = it.manageDialog.copy(showCreateDialog = false))
+        }
     }
     
     private fun createBookshelf(name: String, description: String?) {
         scope.launch {
-            _state.update { it.copy(isDialogLoading = true) }
+            _state.update { 
+                it.copy(manageDialog = it.manageDialog.copy(isDialogLoading = true))
+            }
             
             bookshelfRepository.createBookshelf(name, description).fold(
                 onSuccess = { newBookshelf ->
                     _state.update { state ->
                         state.copy(
                             bookshelves = state.bookshelves + newBookshelf,
-                            showCreateDialog = false,
-                            isDialogLoading = false
+                            manageDialog = state.manageDialog.copy(
+                                showCreateDialog = false,
+                                isDialogLoading = false
+                            )
                         )
                     }
                     _effect.emit(BookshelfEffect.BookshelfCreated)
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(isDialogLoading = false) }
+                    _state.update { 
+                        it.copy(manageDialog = it.manageDialog.copy(isDialogLoading = false))
+                    }
                     throw e
                 }
             )
@@ -609,16 +716,28 @@ class BookshelfViewModel(
     }
     
     private fun showEditDialog(bookshelf: Bookshelf) {
-        _state.update { it.copy(showEditDialog = true, editingBookshelf = bookshelf) }
+        _state.update { 
+            it.copy(manageDialog = it.manageDialog.copy(
+                showEditDialog = true, 
+                editingBookshelf = bookshelf
+            ))
+        }
     }
     
     private fun hideEditDialog() {
-        _state.update { it.copy(showEditDialog = false, editingBookshelf = null) }
+        _state.update { 
+            it.copy(manageDialog = it.manageDialog.copy(
+                showEditDialog = false, 
+                editingBookshelf = null
+            ))
+        }
     }
     
     private fun updateBookshelf(id: Int, name: String?, description: String?) {
         scope.launch {
-            _state.update { it.copy(isDialogLoading = true) }
+            _state.update { 
+                it.copy(manageDialog = it.manageDialog.copy(isDialogLoading = true))
+            }
             
             bookshelfRepository.updateBookshelf(id, name, description).fold(
                 onSuccess = { updatedBookshelf ->
@@ -627,15 +746,19 @@ class BookshelfViewModel(
                             bookshelves = state.bookshelves.map { 
                                 if (it.id == id) updatedBookshelf else it 
                             },
-                            showEditDialog = false,
-                            editingBookshelf = null,
-                            isDialogLoading = false
+                            manageDialog = state.manageDialog.copy(
+                                showEditDialog = false,
+                                editingBookshelf = null,
+                                isDialogLoading = false
+                            )
                         )
                     }
                     _effect.emit(BookshelfEffect.BookshelfUpdated)
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(isDialogLoading = false) }
+                    _state.update { 
+                        it.copy(manageDialog = it.manageDialog.copy(isDialogLoading = false))
+                    }
                     throw e
                 }
             )
@@ -643,16 +766,28 @@ class BookshelfViewModel(
     }
     
     private fun showDeleteDialog(bookshelf: Bookshelf) {
-        _state.update { it.copy(showDeleteDialog = true, editingBookshelf = bookshelf) }
+        _state.update { 
+            it.copy(manageDialog = it.manageDialog.copy(
+                showDeleteDialog = true, 
+                editingBookshelf = bookshelf
+            ))
+        }
     }
     
     private fun hideDeleteDialog() {
-        _state.update { it.copy(showDeleteDialog = false, editingBookshelf = null) }
+        _state.update { 
+            it.copy(manageDialog = it.manageDialog.copy(
+                showDeleteDialog = false, 
+                editingBookshelf = null
+            ))
+        }
     }
     
     private fun deleteBookshelf(id: Int) {
         scope.launch {
-            _state.update { it.copy(isDialogLoading = true) }
+            _state.update { 
+                it.copy(manageDialog = it.manageDialog.copy(isDialogLoading = true))
+            }
             
             bookshelfRepository.deleteBookshelf(id).fold(
                 onSuccess = {
@@ -670,15 +805,19 @@ class BookshelfViewModel(
                             booksByBookshelf = state.booksByBookshelf - id,
                             totalByBookshelf = state.totalByBookshelf - id,
                             hasMoreByBookshelf = state.hasMoreByBookshelf - id,
-                            showDeleteDialog = false,
-                            editingBookshelf = null,
-                            isDialogLoading = false
+                            manageDialog = state.manageDialog.copy(
+                                showDeleteDialog = false,
+                                editingBookshelf = null,
+                                isDialogLoading = false
+                            )
                         )
                     }
                     _effect.emit(BookshelfEffect.BookshelfDeleted)
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(isDialogLoading = false) }
+                    _state.update { 
+                        it.copy(manageDialog = it.manageDialog.copy(isDialogLoading = false))
+                    }
                     throw e
                 }
             )
@@ -739,11 +878,11 @@ class BookshelfViewModel(
         scope.launch {
             _state.update { 
                 it.copy(
-                    showAddToBookshelvesDialog = true,
-                    addToBookshelvesBook = book,
-                    addToBookshelvesAvailable = emptyList(),
-                    addToBookshelvesSelected = emptySet(),
-                    isLoadingAddToBookshelves = true
+                    addToBookshelvesDialog = AddToBookshelvesDialogState(
+                        isVisible = true,
+                        book = book,
+                        isLoading = true
+                    )
                 )
             }
             
@@ -757,13 +896,19 @@ class BookshelfViewModel(
                     }
                     _state.update { 
                         it.copy(
-                            addToBookshelvesAvailable = availableBookshelves,
-                            isLoadingAddToBookshelves = false
+                            addToBookshelvesDialog = it.addToBookshelvesDialog.copy(
+                                availableBookshelves = availableBookshelves,
+                                isLoading = false
+                            )
                         )
                     }
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(isLoadingAddToBookshelves = false) }
+                    _state.update { 
+                        it.copy(
+                            addToBookshelvesDialog = it.addToBookshelvesDialog.copy(isLoading = false)
+                        )
+                    }
                     throw e
                 }
             )
@@ -772,30 +917,28 @@ class BookshelfViewModel(
     
     private fun hideAddToBookshelvesDialog() {
         _state.update { 
-            it.copy(
-                showAddToBookshelvesDialog = false,
-                addToBookshelvesBook = null,
-                addToBookshelvesAvailable = emptyList(),
-                addToBookshelvesSelected = emptySet(),
-                isLoadingAddToBookshelves = false,
-                isAddingToBookshelves = false
-            )
+            it.copy(addToBookshelvesDialog = AddToBookshelvesDialogState())
         }
     }
     
     private fun toggleAddToBookshelfSelection(bookshelfId: Int) {
         _state.update { state ->
-            val newSelected = if (bookshelfId in state.addToBookshelvesSelected) {
-                state.addToBookshelvesSelected - bookshelfId
+            val currentSelected = state.addToBookshelvesDialog.selectedBookshelfIds
+            val newSelected = if (bookshelfId in currentSelected) {
+                currentSelected - bookshelfId
             } else {
-                state.addToBookshelvesSelected + bookshelfId
+                currentSelected + bookshelfId
             }
-            state.copy(addToBookshelvesSelected = newSelected)
+            state.copy(
+                addToBookshelvesDialog = state.addToBookshelvesDialog.copy(
+                    selectedBookshelfIds = newSelected
+                )
+            )
         }
     }
     
     private fun confirmAddToBookshelves(bookId: Int) {
-        val selectedIds = _state.value.addToBookshelvesSelected.toList()
+        val selectedIds = _state.value.addToBookshelvesDialog.selectedBookshelfIds.toList()
         
         if (selectedIds.isEmpty()) {
             hideAddToBookshelvesDialog()
@@ -803,7 +946,11 @@ class BookshelfViewModel(
         }
         
         scope.launch {
-            _state.update { it.copy(isAddingToBookshelves = true) }
+            _state.update { 
+                it.copy(
+                    addToBookshelvesDialog = it.addToBookshelvesDialog.copy(isSubmitting = true)
+                )
+            }
             
             bookshelfRepository.addBookToBookshelves(bookId, selectedIds).fold(
                 onSuccess = {
@@ -819,7 +966,11 @@ class BookshelfViewModel(
                     _effect.emit(BookshelfEffect.BookAddedToBookshelves)
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(isAddingToBookshelves = false) }
+                    _state.update { 
+                        it.copy(
+                            addToBookshelvesDialog = it.addToBookshelvesDialog.copy(isSubmitting = false)
+                        )
+                    }
                     throw e
                 }
             )
@@ -834,11 +985,11 @@ class BookshelfViewModel(
         scope.launch {
             _state.update { 
                 it.copy(
-                    showMoveToBookshelfDialog = true,
-                    moveToBookshelfBook = book,
-                    moveToBookshelfAvailable = emptyList(),
-                    moveToBookshelfSelected = null,
-                    isLoadingMoveToBookshelf = true
+                    moveToBookshelfDialog = MoveToBookshelfDialogState(
+                        isVisible = true,
+                        book = book,
+                        isLoading = true
+                    )
                 )
             }
             
@@ -849,8 +1000,10 @@ class BookshelfViewModel(
             
             _state.update { 
                 it.copy(
-                    moveToBookshelfAvailable = availableBookshelves,
-                    isLoadingMoveToBookshelf = false
+                    moveToBookshelfDialog = it.moveToBookshelfDialog.copy(
+                        availableBookshelves = availableBookshelves,
+                        isLoading = false
+                    )
                 )
             }
         }
@@ -858,74 +1011,75 @@ class BookshelfViewModel(
     
     private fun hideMoveToBookshelfDialog() {
         _state.update { 
-            it.copy(
-                showMoveToBookshelfDialog = false,
-                moveToBookshelfBook = null,
-                moveToBookshelfAvailable = emptyList(),
-                moveToBookshelfSelected = null,
-                isLoadingMoveToBookshelf = false,
-                isMovingToBookshelf = false
-            )
+            it.copy(moveToBookshelfDialog = MoveToBookshelfDialogState())
         }
     }
     
     private fun selectMoveToBookshelf(bookshelfId: Int) {
         _state.update { state ->
             // 单选：如果已选中则取消，否则选中
-            val newSelected = if (state.moveToBookshelfSelected == bookshelfId) null else bookshelfId
-            state.copy(moveToBookshelfSelected = newSelected)
+            val currentSelected = state.moveToBookshelfDialog.selectedBookshelfId
+            val newSelected = if (currentSelected == bookshelfId) null else bookshelfId
+            state.copy(
+                moveToBookshelfDialog = state.moveToBookshelfDialog.copy(
+                    selectedBookshelfId = newSelected
+                )
+            )
         }
     }
     
     private fun confirmMoveToBookshelf(bookId: Int) {
         val currentBookshelfId = _state.value.selectedBookshelfId ?: return
-        val targetBookshelfId = _state.value.moveToBookshelfSelected ?: run {
+        val targetBookshelfId = _state.value.moveToBookshelfDialog.selectedBookshelfId ?: run {
             hideMoveToBookshelfDialog()
             return
         }
         
         scope.launch {
-            _state.update { it.copy(isMovingToBookshelf = true) }
+            _state.update { 
+                it.copy(
+                    moveToBookshelfDialog = it.moveToBookshelfDialog.copy(isSubmitting = true)
+                )
+            }
             
-            // 先从当前书架移除
-            bookshelfRepository.removeBookFromBookshelf(currentBookshelfId, bookId).fold(
+            // 使用原子操作移动书籍（先添加后移除，失败时自动回滚）
+            bookshelfRepository.moveBookToBookshelf(
+                bookId = bookId,
+                fromBookshelfId = currentBookshelfId,
+                toBookshelfId = targetBookshelfId
+            ).fold(
                 onSuccess = {
-                    // 再添加到目标书架
-                    bookshelfRepository.addBookToBookshelf(targetBookshelfId, bookId).fold(
-                        onSuccess = {
-                            // 从当前书架的本地状态移除书籍
-                            _state.update { state ->
-                                val currentBooks = state.booksByBookshelf[currentBookshelfId] ?: emptyList()
-                                val newBooks = currentBooks.filter { it.book.id != bookId }
-                                val currentTotal = state.totalByBookshelf[currentBookshelfId] ?: 0
-                                
-                                // 更新书架的 bookCount
-                                val updatedBookshelves = state.bookshelves.map { bookshelf ->
-                                    when (bookshelf.id) {
-                                        currentBookshelfId -> bookshelf.copy(bookCount = (bookshelf.bookCount - 1).coerceAtLeast(0))
-                                        targetBookshelfId -> bookshelf.copy(bookCount = bookshelf.bookCount + 1)
-                                        else -> bookshelf
-                                    }
-                                }
-                                
-                                state.copy(
-                                    bookshelves = updatedBookshelves,
-                                    booksByBookshelf = state.booksByBookshelf + (currentBookshelfId to newBooks),
-                                    totalByBookshelf = state.totalByBookshelf + (currentBookshelfId to (currentTotal - 1).coerceAtLeast(0))
-                                )
+                    // 从当前书架的本地状态移除书籍
+                    _state.update { state ->
+                        val currentBooks = state.booksByBookshelf[currentBookshelfId] ?: emptyList()
+                        val newBooks = currentBooks.filter { it.book.id != bookId }
+                        val currentTotal = state.totalByBookshelf[currentBookshelfId] ?: 0
+                        
+                        // 更新书架的 bookCount
+                        val updatedBookshelves = state.bookshelves.map { bookshelf ->
+                            when (bookshelf.id) {
+                                currentBookshelfId -> bookshelf.copy(bookCount = (bookshelf.bookCount - 1).coerceAtLeast(0))
+                                targetBookshelfId -> bookshelf.copy(bookCount = bookshelf.bookCount + 1)
+                                else -> bookshelf
                             }
-                            
-                            hideMoveToBookshelfDialog()
-                            _effect.emit(BookshelfEffect.BookMovedToBookshelf)
-                        },
-                        onFailure = { e ->
-                            _state.update { it.copy(isMovingToBookshelf = false) }
-                            throw e
                         }
-                    )
+                        
+                        state.copy(
+                            bookshelves = updatedBookshelves,
+                            booksByBookshelf = state.booksByBookshelf + (currentBookshelfId to newBooks),
+                            totalByBookshelf = state.totalByBookshelf + (currentBookshelfId to (currentTotal - 1).coerceAtLeast(0))
+                        )
+                    }
+                    
+                    hideMoveToBookshelfDialog()
+                    _effect.emit(BookshelfEffect.BookMovedToBookshelf)
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(isMovingToBookshelf = false) }
+                    _state.update { 
+                        it.copy(
+                            moveToBookshelfDialog = it.moveToBookshelfDialog.copy(isSubmitting = false)
+                        )
+                    }
                     throw e
                 }
             )
@@ -937,25 +1091,27 @@ class BookshelfViewModel(
     private fun showRemoveFromAllDialog(book: BookWithProgress) {
         _state.update { 
             it.copy(
-                showRemoveFromAllDialog = true,
-                removeFromAllBook = book
+                removeFromAllDialog = RemoveFromAllDialogState(
+                    isVisible = true,
+                    book = book
+                )
             )
         }
     }
     
     private fun hideRemoveFromAllDialog() {
         _state.update { 
-            it.copy(
-                showRemoveFromAllDialog = false,
-                removeFromAllBook = null,
-                isRemovingFromAll = false
-            )
+            it.copy(removeFromAllDialog = RemoveFromAllDialogState())
         }
     }
     
     private fun confirmRemoveFromAll(bookId: Int) {
         scope.launch {
-            _state.update { it.copy(isRemovingFromAll = true) }
+            _state.update { 
+                it.copy(
+                    removeFromAllDialog = it.removeFromAllDialog.copy(isSubmitting = true)
+                )
+            }
             
             // 获取书籍当前所属的所有书架
             bookshelfRepository.getBookshelvesForBook(bookId).fold(
@@ -1006,13 +1162,21 @@ class BookshelfViewModel(
                             _effect.emit(BookshelfEffect.BookRemovedFromAll)
                         },
                         onFailure = { e ->
-                            _state.update { it.copy(isRemovingFromAll = false) }
+                            _state.update { 
+                                it.copy(
+                                    removeFromAllDialog = it.removeFromAllDialog.copy(isSubmitting = false)
+                                )
+                            }
                             throw e
                         }
                     )
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(isRemovingFromAll = false) }
+                    _state.update { 
+                        it.copy(
+                            removeFromAllDialog = it.removeFromAllDialog.copy(isSubmitting = false)
+                        )
+                    }
                     throw e
                 }
             )

@@ -1,11 +1,13 @@
 package com.bookd.app.screen.bookshelf.component
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -47,6 +49,146 @@ import app.composeapp.generated.resources.remove_from_all_title
 import com.bookd.app.data.model.Bookshelf
 import com.bookd.app.data.model.BookWithProgress
 import org.jetbrains.compose.resources.stringResource
+
+// ============================================================================
+// 通用组件
+// ============================================================================
+
+/**
+ * 书架选择列表的选择模式
+ */
+enum class BookshelfSelectionMode {
+    /** 多选模式（使用 Checkbox） */
+    MULTIPLE,
+    /** 单选模式（使用 RadioButton） */
+    SINGLE
+}
+
+/**
+ * 通用书架选择列表组件
+ * 
+ * 支持加载状态、空状态、多选和单选两种模式
+ * 
+ * @param bookshelves 可选的书架列表
+ * @param isLoading 是否正在加载
+ * @param isDisabled 是否禁用交互（如正在更新时）
+ * @param emptyMessage 空状态提示文本
+ * @param selectionMode 选择模式（多选/单选）
+ * @param isSelected 判断书架是否被选中的函数
+ * @param onSelect 选择书架的回调
+ */
+@Composable
+fun BookshelfSelectionList(
+    bookshelves: List<Bookshelf>,
+    isLoading: Boolean,
+    isDisabled: Boolean,
+    emptyMessage: String,
+    selectionMode: BookshelfSelectionMode,
+    isSelected: (Bookshelf) -> Boolean,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when {
+        isLoading -> {
+            Box(
+                modifier = modifier.fillMaxWidth().heightIn(min = 100.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        bookshelves.isEmpty() -> {
+            Text(
+                text = emptyMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = modifier
+            )
+        }
+        else -> {
+            LazyColumn(modifier = modifier) {
+                items(
+                    items = bookshelves,
+                    key = { it.id },
+                    contentType = { "bookshelf_selection_item" }
+                ) { bookshelf ->
+                    BookshelfSelectionItem(
+                        bookshelf = bookshelf,
+                        isSelected = isSelected(bookshelf),
+                        selectionMode = selectionMode,
+                        enabled = !isDisabled,
+                        onSelect = { onSelect(bookshelf.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 书架选择项
+ * 
+ * @param bookshelf 书架信息
+ * @param isSelected 是否被选中
+ * @param selectionMode 选择模式
+ * @param enabled 是否可交互
+ * @param onSelect 选择回调
+ */
+@Composable
+private fun BookshelfSelectionItem(
+    bookshelf: Bookshelf,
+    isSelected: Boolean,
+    selectionMode: BookshelfSelectionMode,
+    enabled: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onSelect)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 选择控件
+        when (selectionMode) {
+            BookshelfSelectionMode.MULTIPLE -> {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onSelect() },
+                    enabled = enabled
+                )
+            }
+            BookshelfSelectionMode.SINGLE -> {
+                RadioButton(
+                    selected = isSelected,
+                    onClick = onSelect,
+                    enabled = enabled
+                )
+            }
+        }
+        
+        // 书架信息
+        Column(
+            modifier = Modifier.weight(1f).padding(start = 8.dp)
+        ) {
+            Text(
+                text = bookshelf.name,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            bookshelf.description?.let { desc ->
+                Text(
+                    text = desc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// 书架管理对话框
+// ============================================================================
 
 /**
  * 创建书架对话框
@@ -271,6 +413,10 @@ fun DeleteBookshelfDialog(
     )
 }
 
+// ============================================================================
+// 书籍操作对话框
+// ============================================================================
+
 /**
  * 添加到书架对话框
  * 
@@ -293,59 +439,15 @@ fun AddToBookshelvesDialog(
             Text(stringResource(Res.string.add_to_bookshelves_title))
         },
         text = {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-                availableBookshelves.isEmpty() -> {
-                    Text(
-                        text = stringResource(Res.string.no_available_bookshelves),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                else -> {
-                    LazyColumn {
-                        items(
-                            items = availableBookshelves,
-                            key = { it.id }
-                        ) { bookshelf ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(enabled = !isUpdating) { 
-                                        onToggleBookshelf(bookshelf.id) 
-                                    }
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = bookshelf.id in selectedBookshelves,
-                                    onCheckedChange = { onToggleBookshelf(bookshelf.id) },
-                                    enabled = !isUpdating
-                                )
-                                Column(
-                                    modifier = Modifier.weight(1f).padding(start = 8.dp)
-                                ) {
-                                    Text(
-                                        text = bookshelf.name,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    bookshelf.description?.let { desc ->
-                                        Text(
-                                            text = desc,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            BookshelfSelectionList(
+                bookshelves = availableBookshelves,
+                isLoading = isLoading,
+                isDisabled = isUpdating,
+                emptyMessage = stringResource(Res.string.no_available_bookshelves),
+                selectionMode = BookshelfSelectionMode.MULTIPLE,
+                isSelected = { it.id in selectedBookshelves },
+                onSelect = onToggleBookshelf
+            )
         },
         confirmButton = {
             if (isUpdating) {
@@ -404,59 +506,15 @@ fun MoveToBookshelfDialog(
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                when {
-                    isLoading -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-                    availableBookshelves.isEmpty() -> {
-                        Text(
-                            text = stringResource(Res.string.no_other_bookshelves),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    else -> {
-                        LazyColumn {
-                            items(
-                                items = availableBookshelves,
-                                key = { it.id }
-                            ) { bookshelf ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable(enabled = !isUpdating) { 
-                                            onSelectBookshelf(bookshelf.id) 
-                                        }
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = bookshelf.id == selectedBookshelf,
-                                        onClick = { onSelectBookshelf(bookshelf.id) },
-                                        enabled = !isUpdating
-                                    )
-                                    Column(
-                                        modifier = Modifier.weight(1f).padding(start = 8.dp)
-                                    ) {
-                                        Text(
-                                            text = bookshelf.name,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
-                                        bookshelf.description?.let { desc ->
-                                            Text(
-                                                text = desc,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                BookshelfSelectionList(
+                    bookshelves = availableBookshelves,
+                    isLoading = isLoading,
+                    isDisabled = isUpdating,
+                    emptyMessage = stringResource(Res.string.no_other_bookshelves),
+                    selectionMode = BookshelfSelectionMode.SINGLE,
+                    isSelected = { it.id == selectedBookshelf },
+                    onSelect = onSelectBookshelf
+                )
             }
         },
         confirmButton = {

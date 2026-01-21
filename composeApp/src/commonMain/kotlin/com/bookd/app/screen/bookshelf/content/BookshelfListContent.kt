@@ -176,7 +176,8 @@ private fun ListContent(
     ) {
         items(
             items = books,
-            key = { it.book.id }
+            key = { it.book.id },
+            contentType = { "bookshelf_book_list_item" }
         ) { book ->
             BookshelfBookListItem(
                 bookWithProgress = book,
@@ -247,7 +248,8 @@ private fun GridContent(
     ) {
         items(
             items = books,
-            key = { it.book.id }
+            key = { it.book.id },
+            contentType = { "bookshelf_book_grid_item" }
         ) { book ->
             BookshelfBookGridItem(
                 bookWithProgress = book,

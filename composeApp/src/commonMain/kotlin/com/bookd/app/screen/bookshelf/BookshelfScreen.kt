@@ -306,75 +306,85 @@ private fun BookshelfContent(
     }
     
     // 编辑书架对话框
-    if (state.showEditDialog && state.editingBookshelf != null) {
-        EditBookshelfDialog(
-            bookshelf = state.editingBookshelf,
-            isLoading = state.isDialogLoading,
-            onDismiss = { onIntent(BookshelfIntent.HideEditDialog) },
-            onConfirm = { id, name, description ->
-                onIntent(BookshelfIntent.UpdateBookshelf(id, name, description))
-            }
-        )
+    state.manageDialog.editingBookshelf?.let { bookshelf ->
+        if (state.showEditDialog) {
+            EditBookshelfDialog(
+                bookshelf = bookshelf,
+                isLoading = state.isDialogLoading,
+                onDismiss = { onIntent(BookshelfIntent.HideEditDialog) },
+                onConfirm = { id, name, description ->
+                    onIntent(BookshelfIntent.UpdateBookshelf(id, name, description))
+                }
+            )
+        }
     }
     
     // 删除书架确认对话框
-    if (state.showDeleteDialog && state.editingBookshelf != null) {
-        DeleteBookshelfDialog(
-            bookshelf = state.editingBookshelf,
-            isLoading = state.isDialogLoading,
-            onDismiss = { onIntent(BookshelfIntent.HideDeleteDialog) },
-            onConfirm = { id ->
-                onIntent(BookshelfIntent.DeleteBookshelf(id))
-            }
-        )
+    state.manageDialog.editingBookshelf?.let { bookshelf ->
+        if (state.showDeleteDialog) {
+            DeleteBookshelfDialog(
+                bookshelf = bookshelf,
+                isLoading = state.isDialogLoading,
+                onDismiss = { onIntent(BookshelfIntent.HideDeleteDialog) },
+                onConfirm = { id ->
+                    onIntent(BookshelfIntent.DeleteBookshelf(id))
+                }
+            )
+        }
     }
     
     // 添加到书架对话框
-    if (state.showAddToBookshelvesDialog && state.addToBookshelvesBook != null) {
-        AddToBookshelvesDialog(
-            book = state.addToBookshelvesBook,
-            availableBookshelves = state.addToBookshelvesAvailable,
-            selectedBookshelves = state.addToBookshelvesSelected,
-            isLoading = state.isLoadingAddToBookshelves,
-            isUpdating = state.isAddingToBookshelves,
-            onToggleBookshelf = { bookshelfId ->
-                onIntent(BookshelfIntent.ToggleAddToBookshelfSelection(bookshelfId))
-            },
-            onDismiss = { onIntent(BookshelfIntent.HideAddToBookshelvesDialog) },
-            onConfirm = { bookId ->
-                onIntent(BookshelfIntent.ConfirmAddToBookshelves(bookId))
-            }
-        )
+    state.addToBookshelvesDialog.book?.let { book ->
+        if (state.showAddToBookshelvesDialog) {
+            AddToBookshelvesDialog(
+                book = book,
+                availableBookshelves = state.addToBookshelvesAvailable,
+                selectedBookshelves = state.addToBookshelvesSelected,
+                isLoading = state.isLoadingAddToBookshelves,
+                isUpdating = state.isAddingToBookshelves,
+                onToggleBookshelf = { bookshelfId ->
+                    onIntent(BookshelfIntent.ToggleAddToBookshelfSelection(bookshelfId))
+                },
+                onDismiss = { onIntent(BookshelfIntent.HideAddToBookshelvesDialog) },
+                onConfirm = { bookId ->
+                    onIntent(BookshelfIntent.ConfirmAddToBookshelves(bookId))
+                }
+            )
+        }
     }
     
     // 移动到书架对话框
-    if (state.showMoveToBookshelfDialog && state.moveToBookshelfBook != null) {
-        MoveToBookshelfDialog(
-            book = state.moveToBookshelfBook,
-            availableBookshelves = state.moveToBookshelfAvailable,
-            selectedBookshelf = state.moveToBookshelfSelected,
-            isLoading = state.isLoadingMoveToBookshelf,
-            isUpdating = state.isMovingToBookshelf,
-            onSelectBookshelf = { bookshelfId ->
-                onIntent(BookshelfIntent.SelectMoveToBookshelf(bookshelfId))
-            },
-            onDismiss = { onIntent(BookshelfIntent.HideMoveToBookshelfDialog) },
-            onConfirm = { bookId ->
-                onIntent(BookshelfIntent.ConfirmMoveToBookshelf(bookId))
-            }
-        )
+    state.moveToBookshelfDialog.book?.let { book ->
+        if (state.showMoveToBookshelfDialog) {
+            MoveToBookshelfDialog(
+                book = book,
+                availableBookshelves = state.moveToBookshelfAvailable,
+                selectedBookshelf = state.moveToBookshelfSelected,
+                isLoading = state.isLoadingMoveToBookshelf,
+                isUpdating = state.isMovingToBookshelf,
+                onSelectBookshelf = { bookshelfId ->
+                    onIntent(BookshelfIntent.SelectMoveToBookshelf(bookshelfId))
+                },
+                onDismiss = { onIntent(BookshelfIntent.HideMoveToBookshelfDialog) },
+                onConfirm = { bookId ->
+                    onIntent(BookshelfIntent.ConfirmMoveToBookshelf(bookId))
+                }
+            )
+        }
     }
     
     // 从所有书架移除确认对话框
-    if (state.showRemoveFromAllDialog && state.removeFromAllBook != null) {
-        RemoveFromAllDialog(
-            book = state.removeFromAllBook,
-            isRemoving = state.isRemovingFromAll,
-            onDismiss = { onIntent(BookshelfIntent.HideRemoveFromAllDialog) },
-            onConfirm = { bookId ->
-                onIntent(BookshelfIntent.ConfirmRemoveFromAll(bookId))
-            }
-        )
+    state.removeFromAllDialog.book?.let { book ->
+        if (state.showRemoveFromAllDialog) {
+            RemoveFromAllDialog(
+                book = book,
+                isRemoving = state.isRemovingFromAll,
+                onDismiss = { onIntent(BookshelfIntent.HideRemoveFromAllDialog) },
+                onConfirm = { bookId ->
+                    onIntent(BookshelfIntent.ConfirmRemoveFromAll(bookId))
+                }
+            )
+        }
     }
 }
 

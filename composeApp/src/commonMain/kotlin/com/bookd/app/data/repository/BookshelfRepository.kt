@@ -438,6 +438,54 @@ class BookshelfRepository(
     }
     
     /**
+     * 移动书籍到另一个书架（原子操作）
+     * 
+     * 采用"先添加后移除"策略，确保数据一致性：
+     * - 如果添加失败，原数据不变
+     * - 如果移除失败，尝试回滚（从目标书架移除）
+     */
+    suspend fun moveBookToBookshelf(
+        bookId: Int,
+        fromBookshelfId: Int,
+        toBookshelfId: Int
+    ): Result<Unit> {
+        if (!apiProvider.isConfigured) {
+            return Result.failure(NoNetworkConfigException())
+        }
+        
+        val api = apiProvider.getBookshelfApiOrNull()
+            ?: return Result.failure(NoNetworkConfigException())
+        
+        return try {
+            // 第一步：添加到目标书架
+            // 如果失败，原数据不变，直接返回错误
+            api.addBookToBookshelf(toBookshelfId, AddBookToBookshelfRequest(bookId))
+            
+            // 第二步：从原书架移除
+            try {
+                api.removeBookFromBookshelf(fromBookshelfId, bookId)
+            } catch (removeError: Exception) {
+                // 移除失败，尝试回滚：从目标书架移除
+                try {
+                    api.removeBookFromBookshelf(toBookshelfId, bookId)
+                } catch (_: Exception) {
+                    // 回滚失败，记录但不覆盖原始错误
+                }
+                return Result.failure(removeError)
+            }
+            
+            // 同步本地缓存
+            syncBooksInBookshelf(fromBookshelfId)
+            syncBooksInBookshelf(toBookshelfId)
+            syncBookshelves()
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
      * 获取书籍所在的书架列表
      */
     suspend fun getBookshelvesForBook(bookId: Int): Result<List<Bookshelf>> {
