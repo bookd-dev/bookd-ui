@@ -52,15 +52,16 @@ import kotlinx.coroutines.launch
  * 
  * @param chapters 相邻章节内容 {章节索引 -> 章节内容}
  * @param currentChapterIndex 当前章节索引
- * @param isExplicitChapterJump 是否是主动跳转（从目录、书签等）
+ * @param pagerSlideDirection 滑动方向：1=向前，-1=向后，0=无
  * @param settings 阅读器设置
- * @param onChapterChanged 当滑动到新章节时的回调
+ * @param onChapterChanged 当滑动到新章节时的回调 (chapterIndex, direction)
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PageModeContent(
     chapters: Map<Int, ChapterContent>,
     currentChapterIndex: Int,
+    pagerSlideDirection: Int,
     settings: ReaderSettings,
     onToggleMenu: () -> Unit,
     onImageClick: (url: String, alt: String?) -> Unit,
@@ -68,7 +69,7 @@ fun PageModeContent(
     onLinkClick: (url: String) -> Unit,
     onParagraphLongClick: (paragraphIndex: Int) -> Unit,
     onPageChanged: (pageIndex: Int) -> Unit,
-    onChapterChanged: (chapterIndex: Int) -> Unit,
+    onChapterChanged: (chapterIndex: Int, direction: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 如果没有章节内容，显示空状态
@@ -104,9 +105,7 @@ fun PageModeContent(
     // 当前章节在 pages 中的起始页索引
     var currentChapterStartPageIndex by remember { mutableIntStateOf(0) }
     
-    SubcomposeLayout(
-        modifier = modifier.fillMaxSize()
-    ) { constraints ->
+    SubcomposeLayout(modifier.fillMaxSize()) { constraints ->
         val availableWidth = constraints.maxWidth - (settings.marginHorizontal * 2).dp.roundToPx()
         val availableHeight = constraints.maxHeight - (settings.marginVertical * 2).dp.roundToPx()
         val paragraphSpacingPx = settings.paragraphSpacing.dp.roundToPx()
@@ -290,6 +289,7 @@ fun PageModeContent(
                 pages = pages,
                 initialPageIndex = currentChapterStartPageIndex,
                 currentChapterIndex = currentChapterIndex,
+                pagerSlideDirection = pagerSlideDirection,
                 settings = settings,
                 footnotes = allFootnotes,
                 onToggleMenu = onToggleMenu,
@@ -366,6 +366,7 @@ private fun MultiChapterPagerContent(
     pages: List<ReaderPage>,
     initialPageIndex: Int,
     currentChapterIndex: Int,
+    pagerSlideDirection: Int,
     settings: ReaderSettings,
     footnotes: Map<String, ContentElement.Footnote>,
     onToggleMenu: () -> Unit,
@@ -373,7 +374,7 @@ private fun MultiChapterPagerContent(
     onFootnoteClick: (ContentElement.Footnote) -> Unit,
     onLinkClick: (url: String) -> Unit,
     onPageChanged: (pageIndex: Int) -> Unit,
-    onChapterChanged: (chapterIndex: Int) -> Unit
+    onChapterChanged: (chapterIndex: Int, direction: Int) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     
@@ -394,15 +395,23 @@ private fun MultiChapterPagerContent(
             
             // 检测章节切换（仅当用户滑动导致的切换）
             if (currentPage.chapterIndex != lastReportedChapterIndex) {
+                val direction = if (currentPage.chapterIndex > lastReportedChapterIndex) 1 else -1
                 lastReportedChapterIndex = currentPage.chapterIndex
-                onChapterChanged(currentPage.chapterIndex)
+                onChapterChanged(currentPage.chapterIndex, direction)
             }
         }
     }
     
-    // 当 currentChapterIndex 变化时（如从目录跳转），跳转到对应章节的第一页
-    LaunchedEffect(currentChapterIndex) {
-        val targetPageIndex = pages.indexOfFirst { it.chapterIndex == currentChapterIndex }
+    // 当 currentChapterIndex 变化时（adjacentChapters 重新加载后），根据滑动方向跳转到对应位置
+    // pagerSlideDirection: 1=向前（下一章，跳第一页），-1=向后（上一章，跳最后一页），0=目录跳转（跳第一页）
+    LaunchedEffect(currentChapterIndex, pagerSlideDirection) {
+        val targetPageIndex = if (pagerSlideDirection == -1) {
+            // 向后滑动（从章节3到章节2），跳到章节2的最后一页
+            pages.indexOfLast { it.chapterIndex == currentChapterIndex }
+        } else {
+            // 向前滑动或目录跳转，跳到章节第一页
+            pages.indexOfFirst { it.chapterIndex == currentChapterIndex }
+        }
         if (targetPageIndex >= 0 && targetPageIndex != pagerState.currentPage) {
             pagerState.scrollToPage(targetPageIndex)
         }

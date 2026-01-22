@@ -63,6 +63,9 @@ kotlin {
             implementation(libs.material3.adaptive)
             implementation(libs.material3.adaptive.layout)
 
+            //time
+            implementation(libs.kotlinx.datetime)
+
             // network
 //            implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.contentNegotiation)

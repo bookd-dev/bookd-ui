@@ -15,6 +15,7 @@ composeMultiplatform = "1.9.3"
 junit = "4.13.2"
 kotlin = "2.3.0"
 kotlinx-coroutines = "1.10.2"
+kotlinx-datetime = "0.7.1"
 ktor = "3.3.3"
 ksp = "2.3.4"
 nav3-multiplatform-ui = "1.0.0-alpha06"
@@ -42,6 +43,8 @@ androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecyc
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+#time
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 # datastore
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidx-datastore" }

@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.bookd.app.basic.extension.format
 import com.bookd.app.data.model.PageAnimationType
 import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.model.ReaderSettings
@@ -79,7 +80,7 @@ fun ReaderSettingsSheet(
                 label = "行间距",
                 value = settings.lineHeight.toFloat(),
                 valueRange = 1.0f..2.5f,
-                valueText = String.format("%.1f", settings.lineHeight),
+                valueText = "%.1f".format(settings.lineHeight),
                 onValueChange = { onLineHeightChange(it.toDouble()) }
             )
             

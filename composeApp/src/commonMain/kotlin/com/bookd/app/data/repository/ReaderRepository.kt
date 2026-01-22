@@ -1,19 +1,13 @@
 package com.bookd.app.data.repository
 
 import com.bookd.app.Database
+import com.bookd.app.LocalReadingProgressEntity
+import com.bookd.app.basic.extension.format
 import com.bookd.app.data.api.ApiProvider
 import com.bookd.app.data.api.NoNetworkConfigException
-import com.bookd.app.data.model.BookManifest
-import com.bookd.app.data.model.BookmarkDTO
-import com.bookd.app.data.model.BookmarkResponse
-import com.bookd.app.data.model.ChapterContent
-import com.bookd.app.data.model.LocalReadingProgress
-import com.bookd.app.data.model.ReaderSettings
-import com.bookd.app.data.model.ReaderSettingsDTO
-import com.bookd.app.data.model.ReadingProgressDTO
-import com.bookd.app.data.model.ReadingProgressResponse
-import kotlinx.serialization.encodeToString
+import com.bookd.app.data.model.*
 import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 /**
  * 阅读器仓库
@@ -129,7 +123,7 @@ class ReaderRepository(
                 bookId = bookId.toLong(),
                 chapterIndex = chapterIndex.toLong(),
                 content = contentJson,
-                cachedAt = System.currentTimeMillis()
+                cachedAt = Clock.System.now().toEpochMilliseconds()
             )
             
             Result.success(content)
@@ -407,7 +401,7 @@ data class CacheStats(
         return when {
             totalSizeBytes < 1024 -> "${totalSizeBytes}B"
             totalSizeBytes < 1024 * 1024 -> "${totalSizeBytes / 1024}KB"
-            else -> String.format("%.1fMB", totalSizeBytes / 1024.0 / 1024.0)
+            else -> "%.1fMB".format(totalSizeBytes / 1024.0 / 1024.0)
         }
     }
 }
@@ -415,7 +409,7 @@ data class CacheStats(
 /**
  * 将 SQLDelight 实体转换为数据模型
  */
-private fun com.bookd.app.LocalReadingProgressEntity.toLocalProgress(): LocalReadingProgress {
+private fun LocalReadingProgressEntity.toLocalProgress(): LocalReadingProgress {
     return LocalReadingProgress(
         bookId = bookId.toInt(),
         chapterIndex = chapterIndex.toInt(),

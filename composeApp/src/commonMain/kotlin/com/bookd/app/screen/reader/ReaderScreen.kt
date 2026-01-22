@@ -105,7 +105,7 @@ fun ReaderScreen(
         onPreviousChapter = { viewModel.onIntent(ReaderIntent.PreviousChapter) },
         onNextChapter = { viewModel.onIntent(ReaderIntent.NextChapter) },
         onChapterSeek = { index -> viewModel.onIntent(ReaderIntent.JumpToChapter(index)) },
-        onPagerChapterChanged = { index -> viewModel.onIntent(ReaderIntent.OnPagerChapterChanged(index)) },
+        onPagerChapterChanged = { index, direction -> viewModel.onIntent(ReaderIntent.OnPagerChapterChanged(index, direction)) },
         onScrollPositionChanged = { paragraphIndex, scrollOffset -> 
             viewModel.onIntent(ReaderIntent.UpdateScrollPosition(paragraphIndex, scrollOffset))
         },

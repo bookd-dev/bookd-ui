@@ -54,11 +54,7 @@ fun ReaderImagePreview(
         var offset by remember { mutableStateOf(Offset.Zero) }
         
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .statusBarsPadding()
-                .navigationBarsPadding()
+            modifier = Modifier.fillMaxSize().background(Color.Black)
         ) {
             // 图片
             AsyncImage(

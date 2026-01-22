@@ -8,11 +8,20 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -59,7 +68,7 @@ fun ReaderContent(
     onPreviousChapter: () -> Unit,
     onNextChapter: () -> Unit,
     onChapterSeek: (Int) -> Unit,
-    onPagerChapterChanged: (Int) -> Unit,
+    onPagerChapterChanged: (Int, Int) -> Unit,
     onScrollPositionChanged: (Int, Int) -> Unit,
     onPagePositionChanged: (Int) -> Unit,
     onImageClick: (String, String?) -> Unit,
@@ -81,153 +90,159 @@ fun ReaderContent(
     onProgressConflictDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+
+    Scaffold(
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .consumeWindowInsets(WindowInsets.statusBars)
+            .consumeWindowInsets(WindowInsets.navigationBars),
     ) {
-        // 主内容区域
-        when {
-            state.isLoading -> {
-                // 加载中
-                LoadingContent()
+        Box(modifier = Modifier.fillMaxSize()) {
+            // 主内容区域
+            when {
+                state.isLoading -> {
+                    // 加载中
+                    LoadingContent()
+                }
+                state.error != null -> {
+                    // 错误
+                    ErrorContent(error = state.error)
+                }
+                state.currentChapter != null -> {
+                    // 阅读内容
+                    ReadingContent(
+                        chapter = state.currentChapter,
+                        adjacentChapters = state.adjacentChapters,
+                        currentChapterIndex = state.currentChapterIndex,
+                        pagerSlideDirection = state.pagerSlideDirection,
+                        settings = state.readerSettings,
+                        showMenu = state.showMenu,
+                        listState = listState,
+                        onToggleMenu = onToggleMenu,
+                        onScrollPositionChanged = onScrollPositionChanged,
+                        onPagePositionChanged = onPagePositionChanged,
+                        onImageClick = onImageClick,
+                        onFootnoteClick = onFootnoteClick,
+                        onLinkClick = onLinkClick,
+                        onParagraphLongClick = onParagraphLongClick,
+                        onChapterChanged = onPagerChapterChanged,
+                        onPreviousChapter = onPreviousChapter,
+                        onNextChapter = onNextChapter
+                    )
+                }
             }
-            state.error != null -> {
-                // 错误
-                ErrorContent(error = state.error)
-            }
-            state.currentChapter != null -> {
-                // 阅读内容
-                ReadingContent(
-                    chapter = state.currentChapter,
-                    adjacentChapters = state.adjacentChapters,
-                    currentChapterIndex = state.currentChapterIndex,
-                    settings = state.readerSettings,
-                    showMenu = state.showMenu,
-                    listState = listState,
-                    onToggleMenu = onToggleMenu,
-                    onScrollPositionChanged = onScrollPositionChanged,
-                    onPagePositionChanged = onPagePositionChanged,
-                    onImageClick = onImageClick,
-                    onFootnoteClick = onFootnoteClick,
-                    onLinkClick = onLinkClick,
-                    onParagraphLongClick = onParagraphLongClick,
-                    onChapterChanged = onPagerChapterChanged,
-                    onPreviousChapter = onPreviousChapter,
-                    onNextChapter = onNextChapter
+
+            // 顶部栏（菜单显示时）
+            AnimatedVisibility(
+                visible = state.showMenu,
+                enter = slideInVertically { -it } + fadeIn(),
+                exit = slideOutVertically { -it } + fadeOut(),
+                modifier = Modifier.align(Alignment.TopCenter)
+            ) {
+                ReaderTopBar(
+                    chapterTitle = state.currentChapterTitle ?: "加载中...",
+                    currentChapter = state.currentChapterIndex,
+                    totalChapters = state.totalChapters,
+                    showMenu = state.showTopMenu,
+                    onBackClick = onBackClick,
+                    onMenuClick = onTopMenuClick,
+                    onMenuDismiss = onTopMenuDismiss,
+                    onViewBookDetail = onViewBookDetail
                 )
             }
-        }
-        
-        // 顶部栏（菜单显示时）
-        AnimatedVisibility(
-            visible = state.showMenu,
-            enter = slideInVertically { -it } + fadeIn(),
-            exit = slideOutVertically { -it } + fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter)
-        ) {
-            ReaderTopBar(
-                chapterTitle = state.currentChapterTitle ?: "加载中...",
-                currentChapter = state.currentChapterIndex,
-                totalChapters = state.totalChapters,
-                showMenu = state.showTopMenu,
-                onBackClick = onBackClick,
-                onMenuClick = onTopMenuClick,
-                onMenuDismiss = onTopMenuDismiss,
-                onViewBookDetail = onViewBookDetail
-            )
-        }
-        
-        // 底部菜单栏（菜单显示时）
-        AnimatedVisibility(
-            visible = state.showMenu,
-            enter = slideInVertically { it } + fadeIn(),
-            exit = slideOutVertically { it } + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            ReaderMenuBar(
-                currentChapter = state.currentChapterIndex,
-                totalChapters = state.totalChapters,
-                hasPreviousChapter = state.hasPreviousChapter,
-                hasNextChapter = state.hasNextChapter,
-                onPreviousChapter = onPreviousChapter,
-                onNextChapter = onNextChapter,
-                onChapterSeek = onChapterSeek,
-                onTocClick = onTocClick,
-                onSettingsClick = onSettingsClick
-            )
-        }
-        
-        // 底部状态栏（菜单隐藏时）
-        AnimatedVisibility(
-            visible = !state.showMenu && state.currentChapter != null,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            ReaderStatusBar(
-                currentPage = state.currentParagraphIndex,
-                totalPages = state.currentChapter?.elements?.size ?: 0
-            )
-        }
-        
-        // 目录/书签面板
-        if (state.showTocSheet) {
-            ReaderTocSheet(
-                toc = state.sortedToc,
-                bookmarks = state.bookmarks,
-                currentChapterIndex = state.currentChapterIndex,
-                sortOrder = state.tocSortOrder,
-                onDismiss = onTocDismiss,
-                onTocItemClick = onTocItemClick,
-                onBookmarkClick = onBookmarkClick,
-                onBookmarkDelete = onBookmarkDelete,
-                onSortOrderToggle = onTocSortToggle
-            )
-        }
-        
-        // 设置面板
-        if (state.showSettingsSheet) {
-            ReaderSettingsSheet(
-                settings = state.readerSettings,
-                onDismiss = onSettingsDismiss,
-                onFontSizeChange = onFontSizeChange,
-                onLineHeightChange = onLineHeightChange,
-                onParagraphSpacingChange = onParagraphSpacingChange,
-                onMarginHorizontalChange = onMarginHorizontalChange,
-                onMarginVerticalChange = onMarginVerticalChange,
-                onPageModeChange = onPageModeChange,
-                onPageAnimationTypeChange = onPageAnimationTypeChange,
-                onFirstLineIndentChange = onFirstLineIndentChange
-            )
-        }
-        
-        // 图片预览
-        if (state.showImagePreview && state.previewImageUrl != null) {
-            ReaderImagePreview(
-                imageUrl = state.previewImageUrl,
-                imageAlt = state.previewImageAlt,
-                onDismiss = onImageDismiss
-            )
-        }
-        
-        // 脚注弹窗
-        if (state.showFootnoteDialog && state.currentFootnote != null) {
-            ReaderFootnoteDialog(
-                footnote = state.currentFootnote,
-                onDismiss = onFootnoteDismiss
-            )
-        }
-        
-        // 进度冲突对话框
-        if (state.showProgressConflictDialog) {
-            ReaderProgressConflictDialog(
-                localProgress = state.localProgress,
-                remoteProgress = state.remoteProgress,
-                onUseLocal = onProgressConflictUseLocal,
-                onUseRemote = onProgressConflictUseRemote,
-                onDismiss = onProgressConflictDismiss
-            )
+
+            // 底部菜单栏（菜单显示时）
+            AnimatedVisibility(
+                visible = state.showMenu,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                ReaderMenuBar(
+                    currentChapter = state.currentChapterIndex,
+                    totalChapters = state.totalChapters,
+                    hasPreviousChapter = state.hasPreviousChapter,
+                    hasNextChapter = state.hasNextChapter,
+                    onPreviousChapter = onPreviousChapter,
+                    onNextChapter = onNextChapter,
+                    onChapterSeek = onChapterSeek,
+                    onTocClick = onTocClick,
+                    onSettingsClick = onSettingsClick
+                )
+            }
+
+            // 底部状态栏（菜单隐藏时）
+            AnimatedVisibility(
+                visible = !state.showMenu && state.currentChapter != null,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                ReaderStatusBar(
+                    currentPage = state.currentParagraphIndex,
+                    totalPages = state.currentChapter?.elements?.size ?: 0
+                )
+            }
+
+            // 目录/书签面板
+            if (state.showTocSheet) {
+                ReaderTocSheet(
+                    toc = state.sortedToc,
+                    bookmarks = state.bookmarks,
+                    currentChapterIndex = state.currentChapterIndex,
+                    sortOrder = state.tocSortOrder,
+                    onDismiss = onTocDismiss,
+                    onTocItemClick = onTocItemClick,
+                    onBookmarkClick = onBookmarkClick,
+                    onBookmarkDelete = onBookmarkDelete,
+                    onSortOrderToggle = onTocSortToggle
+                )
+            }
+
+            // 设置面板
+            if (state.showSettingsSheet) {
+                ReaderSettingsSheet(
+                    settings = state.readerSettings,
+                    onDismiss = onSettingsDismiss,
+                    onFontSizeChange = onFontSizeChange,
+                    onLineHeightChange = onLineHeightChange,
+                    onParagraphSpacingChange = onParagraphSpacingChange,
+                    onMarginHorizontalChange = onMarginHorizontalChange,
+                    onMarginVerticalChange = onMarginVerticalChange,
+                    onPageModeChange = onPageModeChange,
+                    onPageAnimationTypeChange = onPageAnimationTypeChange,
+                    onFirstLineIndentChange = onFirstLineIndentChange
+                )
+            }
+
+            // 图片预览
+            if (state.showImagePreview && state.previewImageUrl != null) {
+                ReaderImagePreview(
+                    imageUrl = state.previewImageUrl,
+                    imageAlt = state.previewImageAlt,
+                    onDismiss = onImageDismiss
+                )
+            }
+
+            // 脚注弹窗
+            if (state.showFootnoteDialog && state.currentFootnote != null) {
+                ReaderFootnoteDialog(
+                    footnote = state.currentFootnote,
+                    onDismiss = onFootnoteDismiss
+                )
+            }
+
+            // 进度冲突对话框
+            if (state.showProgressConflictDialog) {
+                ReaderProgressConflictDialog(
+                    localProgress = state.localProgress,
+                    remoteProgress = state.remoteProgress,
+                    onUseLocal = onProgressConflictUseLocal,
+                    onUseRemote = onProgressConflictUseRemote,
+                    onDismiss = onProgressConflictDismiss
+                )
+            }
         }
     }
 }
@@ -240,6 +255,7 @@ private fun ReadingContent(
     chapter: ChapterContent,
     adjacentChapters: Map<Int, ChapterContent>,
     currentChapterIndex: Int,
+    pagerSlideDirection: Int,
     settings: ReaderSettings,
     showMenu: Boolean,
     listState: LazyListState,
@@ -250,7 +266,7 @@ private fun ReadingContent(
     onFootnoteClick: (ContentElement.Footnote) -> Unit,
     onLinkClick: (String) -> Unit,
     onParagraphLongClick: (Int) -> Unit,
-    onChapterChanged: (Int) -> Unit,
+    onChapterChanged: (Int, Int) -> Unit,
     onPreviousChapter: () -> Unit,
     onNextChapter: () -> Unit
 ) {
@@ -279,6 +295,7 @@ private fun ReadingContent(
                 PageModeContent(
                     chapters = adjacentChapters,
                     currentChapterIndex = currentChapterIndex,
+                    pagerSlideDirection = pagerSlideDirection,
                     settings = settings,
                     onToggleMenu = onToggleMenu,
                     onImageClick = onImageClick,

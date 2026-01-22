@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 // ============= MVI State =============
 
@@ -54,6 +55,12 @@ data class ReaderState(
     // Key: 章节索引, Value: 章节内容
     // 例如当前在第5章时: {4 -> Chapter4, 5 -> Chapter5, 6 -> Chapter6}
     val adjacentChapters: Map<Int, ChapterContent> = emptyMap(),
+    
+    // 滑动切换章节的方向（用于决定跳转到章节的第一页还是最后一页）
+    // 1: 向前滑动（从章节3到章节4），应跳转到新章节第一页
+    // -1: 向后滑动（从章节3到章节2），应跳转到新章节最后一页
+    // 0: 无方向（初始状态或目录跳转）
+    val pagerSlideDirection: Int = 0,
     
     // 进度（本地）
     val localProgress: LocalReadingProgress? = null,
@@ -194,7 +201,8 @@ sealed interface ReaderIntent {
     data class JumpToBookmark(val bookmark: BookmarkResponse) : ReaderIntent
     
     // Pager 章节切换（由 PageModeContent 触发，当用户滑动到新章节时）
-    data class OnPagerChapterChanged(val newChapterIndex: Int) : ReaderIntent
+    // direction: 1=向前（下一章），-1=向后（上一章）
+    data class OnPagerChapterChanged(val newChapterIndex: Int, val direction: Int) : ReaderIntent
     
     // 设置
     data class UpdateSettings(val settings: ReaderSettings) : ReaderIntent
@@ -315,7 +323,7 @@ class ReaderViewModel(
             is ReaderIntent.PreviousChapter -> previousChapter()
             is ReaderIntent.JumpToChapter -> jumpToChapter(intent.index)
             is ReaderIntent.JumpToBookmark -> jumpToBookmark(intent.bookmark)
-            is ReaderIntent.OnPagerChapterChanged -> onPagerChapterChanged(intent.newChapterIndex)
+            is ReaderIntent.OnPagerChapterChanged -> onPagerChapterChanged(intent.newChapterIndex, intent.direction)
             
             // 设置
             is ReaderIntent.UpdateSettings -> updateSettings(intent.settings)
@@ -560,7 +568,7 @@ class ReaderViewModel(
             scrollOffset = state.scrollOffset,
             pageIndex = state.currentPageIndex,
             progress = progress,
-            lastReadAt = System.currentTimeMillis()
+            lastReadAt = Clock.System.now().toEpochMilliseconds()
         )
         
         scope.launch {
@@ -858,20 +866,22 @@ class ReaderViewModel(
     /**
      * 处理 Pager 章节切换（由 PageModeContent 触发）
      * 当用户通过滑动进入新章节时调用
+     * @param direction 滑动方向：1=向前（下一章），-1=向后（上一章）
      */
-    private fun onPagerChapterChanged(newChapterIndex: Int) {
+    private fun onPagerChapterChanged(newChapterIndex: Int, direction: Int) {
         val currentIndex = _state.value.currentChapterIndex
         if (newChapterIndex == currentIndex) return
         
         val totalChapters = _state.value.totalChapters
         if (newChapterIndex < 0 || newChapterIndex >= totalChapters) return
         
-        // 更新当前章节索引和内容
+        // 更新当前章节索引和内容，同时保存滑动方向
         _state.update { state ->
             state.copy(
                 currentChapterIndex = newChapterIndex,
                 currentChapter = state.adjacentChapters[newChapterIndex],
-                currentPageIndex = 0  // 重置页码
+                currentPageIndex = 0,  // 重置页码
+                pagerSlideDirection = direction  // 保存滑动方向
             )
         }
         
