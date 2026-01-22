@@ -122,8 +122,8 @@
     <string name="word_count_label">Word Count</string>
     <string name="image_count_label">Images</string>
     <string name="word_count_value">%1$d words</string>
-    <string name="word_count_wan">%1$.1f0k words</string>
-    <string name="word_count_yi">%1$.1f00M words</string>
+    <string name="word_count_wan">%1$s0k words</string>
+    <string name="word_count_yi">%1$s00M words</string>
     <string name="chapters_value">%1$d chapters</string>
     <string name="images_value">%1$d images</string>
 
@@ -139,6 +139,26 @@
     <string name="removed_from_default_bookshelf">Removed from default bookshelf</string>
     <string name="file_size_bytes">%1$d B</string>
     <string name="file_size_kb">%1$d KB</string>
-    <string name="file_size_mb">%1$.1f MB</string>
-    <string name="file_size_gb">%1$.1f GB</string>
+    <string name="file_size_mb">%1$s MB</string>
+    <string name="file_size_gb">%1$s GB</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_network">Network Settings</string>
+    <string name="settings_cache">Cache Management</string>
+    <string name="settings_logout">Logout</string>
+    <string name="settings_about">About</string>
+
+    <!-- Cache -->
+    <string name="cache_calculating">Calculating...</string>
+    <string name="cache_clear_confirm_title">Clear Cache?</string>
+    <string name="cache_clear_confirm_message">This will delete all cached images. Continue?</string>
+    <string name="cache_cleared">Cache cleared successfully</string>
+
+    <!-- Logout -->
+    <string name="logout_confirm_title">Logout?</string>
+    <string name="logout_confirm_message">Are you sure you want to logout?</string>
+    <string name="logout_success">Logged out successfully</string>
+
+    <!-- Version -->
+    <string name="app_version">Version %1$s</string>
 </resources>

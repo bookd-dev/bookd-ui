@@ -1,50 +1,58 @@
 package com.bookd.app.screen.settings
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import com.bookd.app.ui.AppPreview
-import com.bookd.app.ui.AppPreviewContent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import app.composeapp.generated.resources.*
+import com.bookd.app.data.vm.SettingsEffect
+import com.bookd.app.data.vm.SettingsViewModel
+import com.bookd.app.screen.RouteNetworkConfig
+import com.bookd.app.screen.RouteSignIn
+import com.bookd.app.screen.rememberScreenContext
+import kotlinx.coroutines.flow.collectLatest
+import org.jetbrains.compose.resources.stringResource
 
+/**
+ * 设置页面 Screen 层
+ * 
+ * 处理导航和副作用
+ */
 @Composable
 fun SettingsScreen() {
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-    ) {
-        AsyncImage(
-            model = "",
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(200.dp)
-                .clip(CircleShape)
-                .align(Alignment.CenterHorizontally),
-        )
+    val screenContext = rememberScreenContext<SettingsViewModel>()
+    val viewModel = screenContext.viewModel
+    val navigator = screenContext.navigator
+    val snackbarHostState = screenContext.snackbarHostState
+    
+    val state by viewModel.state.collectAsState()
+    
+    val cacheCleared = stringResource(Res.string.cache_cleared)
+    val logoutSuccess = stringResource(Res.string.logout_success)
+    
+    // 处理一次性效果
+    LaunchedEffect(Unit) {
+        viewModel.effect.collectLatest { effect ->
+            when (effect) {
+                is SettingsEffect.NavigateToNetworkConfig -> {
+                    navigator.navigateUnconditionally(RouteNetworkConfig)
+                }
+                is SettingsEffect.NavigateToLogin -> {
+                    navigator.navigateUnconditionally(RouteSignIn)
+                }
+                is SettingsEffect.ClearCacheSuccess -> {
+                    snackbarHostState.showSnackbar(cacheCleared)
+                }
+                is SettingsEffect.LogoutSuccess -> {
+                    snackbarHostState.showSnackbar(logoutSuccess)
+                }
+            }
+        }
     }
-}
-
-@Composable
-private fun SettingsButton() {
-
-}
-
-@AppPreview
-@Composable
-private fun SettingsContentPreview() {
-    AppPreviewContent {
-        SettingsScreen()
-    }
+    
+    SettingsContent(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onIntent = viewModel::onIntent,
+    )
 }

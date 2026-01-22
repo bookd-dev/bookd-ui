@@ -122,8 +122,8 @@
     <string name="word_count_label">总字数</string>
     <string name="image_count_label">图片数</string>
     <string name="word_count_value">%1$d 字</string>
-    <string name="word_count_wan">%1$.1f 万字</string>
-    <string name="word_count_yi">%1$.1f 亿字</string>
+    <string name="word_count_wan">%1$s 万字</string>
+    <string name="word_count_yi">%1$s 亿字</string>
     <string name="chapters_value">%1$d 章</string>
     <string name="images_value">%1$d 张</string>
 
@@ -139,6 +139,26 @@
     <string name="removed_from_default_bookshelf">已从默认书架移除</string>
     <string name="file_size_bytes">%1$d B</string>
     <string name="file_size_kb">%1$d KB</string>
-    <string name="file_size_mb">%1$.1f MB</string>
-    <string name="file_size_gb">%1$.1f GB</string>
+    <string name="file_size_mb">%1$s MB</string>
+    <string name="file_size_gb">%1$s GB</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_network">网络设置</string>
+    <string name="settings_cache">缓存管理</string>
+    <string name="settings_logout">退出登录</string>
+    <string name="settings_about">关于</string>
+
+    <!-- Cache -->
+    <string name="cache_calculating">计算中...</string>
+    <string name="cache_clear_confirm_title">清除缓存？</string>
+    <string name="cache_clear_confirm_message">这将删除所有缓存的图片，是否继续？</string>
+    <string name="cache_cleared">缓存已清除</string>
+
+    <!-- Logout -->
+    <string name="logout_confirm_title">退出登录？</string>
+    <string name="logout_confirm_message">确定要退出登录吗？</string>
+    <string name="logout_success">已退出登录</string>
+
+    <!-- Version -->
+    <string name="app_version">版本 %1$s</string>
 </resources>
