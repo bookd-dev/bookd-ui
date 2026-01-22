@@ -359,7 +359,20 @@ class ReaderViewModel(
     
     private fun loadBook(bookId: Int, startChapterIndex: Int?) {
         scope.launch {
-            _state.update { it.copy(bookId = bookId, isLoading = true, error = null) }
+            // 清理旧书籍的状态，避免使用旧缓存
+            _state.update { 
+                it.copy(
+                    bookId = bookId, 
+                    isLoading = true, 
+                    error = null,
+                    // 清理章节缓存和内容
+                    currentChapter = null,
+                    adjacentChapters = emptyMap(),
+                    preloadedChapters = emptyMap(),
+                    // 清理书签
+                    bookmarks = emptyList()
+                ) 
+            }
             
             try {
                 // 1. 加载阅读器设置

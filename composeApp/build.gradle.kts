@@ -1,6 +1,8 @@
+import app.cash.sqldelight.gradle.SqlDelightDatabase
 import de.jensklingenberg.ktorfit.gradle.ErrorCheckingMode
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import kotlin.reflect.KClass
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -145,10 +147,14 @@ ktorfit {
 
 sqldelight {
     databases {
-        create("Database") {
-            packageName.set("com.bookd.app")
-            generateAsync.set(true)
-        }
+        create("Database", object : Action<SqlDelightDatabase> {
+            override fun execute(database: SqlDelightDatabase?) {
+                database?.let {
+                    it.packageName.set("com.bookd.app")
+                    it.generateAsync.set(true)
+                }
+            }
+        })
     }
 }
 
