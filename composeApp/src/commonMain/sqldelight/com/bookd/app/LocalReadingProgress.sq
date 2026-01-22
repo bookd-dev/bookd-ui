@@ -1,0 +1,36 @@
+-- LocalReadingProgress 表：本地阅读进度（用于离线和精确恢复）
+CREATE TABLE LocalReadingProgressEntity (
+    bookId INTEGER NOT NULL PRIMARY KEY,
+    chapterIndex INTEGER NOT NULL,
+    paragraphIndex INTEGER NOT NULL DEFAULT 0,
+    scrollOffset INTEGER NOT NULL DEFAULT 0,
+    pageIndex INTEGER NOT NULL DEFAULT 0,
+    progress REAL NOT NULL DEFAULT 0.0,
+    lastReadAt INTEGER NOT NULL  -- 时间戳（毫秒）
+);
+
+-- 获取指定书籍的本地进度
+selectByBookId:
+SELECT * FROM LocalReadingProgressEntity WHERE bookId = ?;
+
+-- 获取所有本地进度（按最近阅读时间排序）
+selectAll:
+SELECT * FROM LocalReadingProgressEntity ORDER BY lastReadAt DESC;
+
+-- 插入或替换本地进度
+insertOrReplace:
+INSERT OR REPLACE INTO LocalReadingProgressEntity (
+    bookId, chapterIndex, paragraphIndex, scrollOffset, pageIndex, progress, lastReadAt
+) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- 删除指定书籍的本地进度
+deleteByBookId:
+DELETE FROM LocalReadingProgressEntity WHERE bookId = ?;
+
+-- 删除所有本地进度
+deleteAll:
+DELETE FROM LocalReadingProgressEntity;
+
+-- 获取最近阅读的书籍 ID 列表
+selectRecentBookIds:
+SELECT bookId FROM LocalReadingProgressEntity ORDER BY lastReadAt DESC LIMIT ?;

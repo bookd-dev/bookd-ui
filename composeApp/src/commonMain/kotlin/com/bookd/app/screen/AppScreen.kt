@@ -31,6 +31,7 @@ import com.bookd.app.screen.RouteMain.Companion.ROUTE_BOOKSHELF
 import com.bookd.app.screen.RouteMain.Companion.RouteBookshelf
 import com.bookd.app.screen.bookshelf.SearchBookScreen
 import com.bookd.app.screen.bookdetail.BookDetailScreen
+import com.bookd.app.screen.reader.ReaderScreen
 import com.bookd.app.screen.settings.NetworkConfigScreen
 import com.bookd.app.screen.sign.SignInScreen
 import kotlinx.coroutines.launch
@@ -117,6 +118,13 @@ fun AppScreen() {
 
                     entry<RouteBookDetail> { key ->
                         BookDetailScreen(bookId = key.bookId)
+                    }
+
+                    entry<RouteReader> { key ->
+                        ReaderScreen(
+                            bookId = key.bookId,
+                            startChapterIndex = key.startChapterIndex
+                        )
                     }
 
                     entry<RouteNetworkConfig>(

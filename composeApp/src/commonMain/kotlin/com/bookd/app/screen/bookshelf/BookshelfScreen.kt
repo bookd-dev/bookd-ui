@@ -36,6 +36,7 @@ import com.bookd.app.data.vm.BookshelfState
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.screen.RouteBookDetail
 import com.bookd.app.screen.RouteNetworkConfig
+import com.bookd.app.screen.RouteReader
 import com.bookd.app.screen.bookshelf.component.AddToBookshelvesDialog
 import com.bookd.app.screen.bookshelf.component.BookMenuAction
 import com.bookd.app.screen.bookshelf.component.CreateBookshelfDialog
@@ -98,7 +99,7 @@ fun BookshelfScreen() {
                     screenContext.navigator.navigateTo(RouteBookDetail(bookId = effect.bookId))
                 }
                 is BookshelfEffect.NavigateToReader -> {
-                    // TODO: 导航到阅读器
+                    screenContext.navigator.navigateTo(RouteReader(effect.bookId))
                 }
                 is BookshelfEffect.BookshelfCreated -> {
                     screenContext.snackbarHostState.showSnackbar(bookshelfCreatedMsg)

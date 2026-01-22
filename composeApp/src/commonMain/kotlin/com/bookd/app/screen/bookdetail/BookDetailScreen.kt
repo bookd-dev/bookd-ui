@@ -48,6 +48,7 @@ import com.bookd.app.screen.bookdetail.content.BookDetailProgressSection
 import com.bookd.app.screen.bookdetail.content.BookDetailShelvesSection
 import com.bookd.app.screen.bookdetail.content.BookDetailTagsSection
 import com.bookd.app.screen.rememberScreenContext
+import com.bookd.app.screen.RouteReader
 import com.bookd.app.ui.AppPreviewContent
 import com.bookd.app.ui.AppVerticalZHPreview
 import kotlinx.coroutines.flow.collectLatest
@@ -92,7 +93,7 @@ fun BookDetailScreen(
                     snackbarHostState.showSnackbar(removedFromDefaultBookshelfMsg)
                 }
                 is BookDetailEffect.NavigateToReader -> {
-                    // TODO: Navigate to reader screen
+                    navigator.navigateTo(RouteReader(effect.bookId))
                 }
                 is BookDetailEffect.NavigateBack -> {
                     navigator.navigateBack()

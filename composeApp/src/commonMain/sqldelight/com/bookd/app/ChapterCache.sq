@@ -1,0 +1,50 @@
+-- ChapterCache 表：缓存章节内容
+CREATE TABLE ChapterCacheEntity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    bookId INTEGER NOT NULL,
+    chapterIndex INTEGER NOT NULL,
+    content TEXT NOT NULL,  -- JSON 序列化的 ChapterContent
+    cachedAt INTEGER NOT NULL,  -- 缓存时间戳（毫秒）
+    UNIQUE(bookId, chapterIndex)
+);
+
+-- 索引：按书籍查询
+CREATE INDEX chapter_cache_book_id_index ON ChapterCacheEntity(bookId);
+
+-- 获取指定章节缓存
+selectByBookAndChapter:
+SELECT * FROM ChapterCacheEntity 
+WHERE bookId = :bookId AND chapterIndex = :chapterIndex;
+
+-- 获取书籍的所有缓存章节
+selectByBookId:
+SELECT * FROM ChapterCacheEntity WHERE bookId = :bookId ORDER BY chapterIndex;
+
+-- 插入或替换章节缓存
+insertOrReplace:
+INSERT OR REPLACE INTO ChapterCacheEntity (bookId, chapterIndex, content, cachedAt)
+VALUES (?, ?, ?, ?);
+
+-- 删除指定书籍的所有章节缓存
+deleteByBookId:
+DELETE FROM ChapterCacheEntity WHERE bookId = ?;
+
+-- 删除指定章节缓存
+deleteByBookAndChapter:
+DELETE FROM ChapterCacheEntity WHERE bookId = ? AND chapterIndex = ?;
+
+-- 删除所有章节缓存
+deleteAll:
+DELETE FROM ChapterCacheEntity;
+
+-- 获取缓存统计：书籍数量
+countBooks:
+SELECT COUNT(DISTINCT bookId) FROM ChapterCacheEntity;
+
+-- 获取缓存统计：章节数量
+countChapters:
+SELECT COUNT(*) FROM ChapterCacheEntity;
+
+-- 获取缓存统计：总大小（字节，近似值）
+totalSize:
+SELECT SUM(LENGTH(content)) FROM ChapterCacheEntity;

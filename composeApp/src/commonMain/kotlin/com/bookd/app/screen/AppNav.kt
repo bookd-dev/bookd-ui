@@ -34,6 +34,9 @@ data object RouteSearchBook : NavKey
 @Serializable
 data class RouteBookDetail(val bookId: Int) : NavKey
 
+@Serializable
+data class RouteReader(val bookId: Int, val startChapterIndex: Int? = null) : NavKey
+
 val config = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
@@ -42,6 +45,7 @@ val config = SavedStateConfiguration {
             subclass(RouteNetworkConfig::class, RouteNetworkConfig.serializer())
             subclass(RouteSearchBook::class, RouteSearchBook.serializer())
             subclass(RouteBookDetail::class, RouteBookDetail.serializer())
+            subclass(RouteReader::class, RouteReader.serializer())
         }
     }
 }

@@ -11,12 +11,14 @@ import com.bookd.app.data.repository.BookSourceRepository
 import com.bookd.app.data.repository.LanguageRepository
 import com.bookd.app.data.repository.NetworkConfigRepository
 import com.bookd.app.data.repository.NetworkSwitcher
+import com.bookd.app.data.repository.ReaderRepository
 import com.bookd.app.data.repository.UserRepository
 import com.bookd.app.data.vm.AppViewModel
 import com.bookd.app.data.vm.BookDetailViewModel
 import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.data.vm.BookSourceViewModel
 import com.bookd.app.data.vm.SignInViewModel
+import com.bookd.app.data.vm.ReaderViewModel
 import com.bookd.app.data.vm.SettingsViewModel
 import com.bookd.app.settings
 import com.russhwolf.settings.Settings
@@ -99,6 +101,7 @@ val repositoryModule = module {
     single { BookRepository(get(), get()) }
     single { BookshelfRepository(get(), get()) }
     single { BookshelfPreferenceRepository(get()) }
+    single { ReaderRepository(get(), get()) }
 }
 
 /**
@@ -111,6 +114,7 @@ val viewModelModule = module {
     viewModel { BookDetailViewModel(get(), get()) }
     viewModel { SignInViewModel(get()) }
     viewModel { SettingsViewModel(get(), get()) }
+    viewModel { ReaderViewModel(get()) }
 }
 
 val appNavigation = module {

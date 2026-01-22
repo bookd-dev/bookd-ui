@@ -15,7 +15,11 @@ data class ReadingProgressResponse(
     val cfiLocation: String? = null,
     val documentId: String? = null,
     val deviceId: String? = null,
-    val lastReadAt: String
+    val lastReadAt: String,
+    // 章节详细进度
+    val chapterPageIndex: Int? = null,
+    val chapterTotalPages: Int? = null,
+    val chapterScrollPercent: Double? = null
 )
 
 /**

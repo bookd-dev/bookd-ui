@@ -161,4 +161,44 @@
 
     <!-- Version -->
     <string name="app_version">版本 %1$s</string>
+
+    <!-- Reader Screen -->
+    <string name="bookmark_added">书签已添加</string>
+    <string name="bookmark_deleted">书签已删除</string>
+    <string name="progress_saved">阅读进度已保存</string>
+    <string name="loading">加载中...</string>
+    <string name="load_failed">加载失败</string>
+    <string name="toc">目录</string>
+    <string name="bookmarks">书签</string>
+    <string name="reader_settings">设置</string>
+    <string name="view_book_detail">查看详情</string>
+    <string name="chapter_progress">第 %1$d/%2$d 章</string>
+    <string name="page_progress">第 %1$d/%2$d 页</string>
+    <string name="previous_chapter">上一章</string>
+    <string name="next_chapter">下一章</string>
+    <string name="font_size">字体大小</string>
+    <string name="line_height">行高</string>
+    <string name="paragraph_spacing">段落间距</string>
+    <string name="margin_horizontal">左右边距</string>
+    <string name="margin_vertical">上下边距</string>
+    <string name="first_line_indent">首行缩进</string>
+    <string name="page_mode">阅读模式</string>
+    <string name="page_mode_scroll">滚动模式</string>
+    <string name="page_mode_page">翻页模式</string>
+    <string name="page_animation">翻页动画</string>
+    <string name="page_animation_none">无动画</string>
+    <string name="page_animation_slide">滑动</string>
+    <string name="page_animation_realistic">仿真翻页</string>
+    <string name="page_animation_coming_soon">即将推出</string>
+    <string name="toc_sort_asc">排序：正序</string>
+    <string name="toc_sort_desc">排序：倒序</string>
+    <string name="no_bookmarks">暂无书签</string>
+    <string name="progress_conflict_title">阅读进度冲突</string>
+    <string name="progress_conflict_message">本地与云端阅读进度不一致，请选择使用哪个进度？</string>
+    <string name="use_local_progress">使用本地</string>
+    <string name="use_remote_progress">使用云端</string>
+    <string name="local_progress_info">第 %1$d 章，已读 %2$d%%</string>
+    <string name="remote_progress_info">第 %1$d 章，已读 %2$d%%</string>
+    <string name="footnote">注释</string>
+    <string name="close">关闭</string>
 </resources>
