@@ -77,7 +77,7 @@
     <string name="bookshelf_updated">Bookshelf updated</string>
     <string name="bookshelf_deleted">Bookshelf deleted</string>
     <string name="book_removed">Book removed from bookshelf</string>
-    <string name="reading_progress">%1$d%% read</string>
+    <string name="reading_progress">%1$d% read</string>
     <string name="list_view">List View</string>
     <string name="grid_view">Grid View</string>
     <string name="add_bookshelf">Add Bookshelf</string>

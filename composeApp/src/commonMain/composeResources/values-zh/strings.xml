@@ -77,7 +77,7 @@
     <string name="bookshelf_updated">书架更新成功</string>
     <string name="bookshelf_deleted">书架删除成功</string>
     <string name="book_removed">已从书架移除</string>
-    <string name="reading_progress">已读 %1$d%%</string>
+    <string name="reading_progress">已读 %1$d%</string>
     <string name="list_view">列表视图</string>
     <string name="grid_view">网格视图</string>
     <string name="add_bookshelf">添加书架</string>

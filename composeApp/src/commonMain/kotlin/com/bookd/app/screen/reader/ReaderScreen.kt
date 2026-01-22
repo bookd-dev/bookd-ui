@@ -34,7 +34,6 @@ fun ReaderScreen(
     val viewModel = screenContext.viewModel
     val navigator = screenContext.navigator
     val snackbarHostState = screenContext.snackbarHostState
-    val coroutineScope = rememberCoroutineScope()
     
     val state by viewModel.state.collectAsState()
     
@@ -75,7 +74,7 @@ fun ReaderScreen(
                 }
                 is ReaderEffect.ScrollToPosition -> {
                     // 滚动模式：滚动到指定段落位置
-                    coroutineScope.launch {
+                    screenContext.coroutineScope.launch {
                         listState.scrollToItem(effect.paragraphIndex, effect.offset)
                     }
                 }
