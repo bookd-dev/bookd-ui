@@ -63,7 +63,7 @@ fun ScrollModeContent(
 ) {
     // 收集章节中的所有脚注
     val footnotes = chapter.elements.filterIsInstance<ContentElement.Footnote>()
-        .associateBy { it.id }
+        .associateBy { it.footnoteId }
     
     // 容器尺寸
     var containerSize by remember { mutableStateOf(IntSize.Zero) }

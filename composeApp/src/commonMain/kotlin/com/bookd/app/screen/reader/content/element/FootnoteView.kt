@@ -32,7 +32,7 @@ fun FootnoteView(
         verticalAlignment = Alignment.Top
     ) {
         Text(
-            text = "[${footnote.id}]",
+            text = footnote.footnoteSpan?.text ?: "",
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = (settings.fontSize - 2).sp,
                 color = MaterialTheme.colorScheme.primary
@@ -42,7 +42,7 @@ fun FootnoteView(
         
         // 脚注内容
         Column(modifier = Modifier.weight(1f)) {
-            footnote.spans.forEach { span ->
+            footnote.contentSpans.forEach { span ->
                 Text(
                     text = span.text,
                     style = MaterialTheme.typography.bodySmall.copy(

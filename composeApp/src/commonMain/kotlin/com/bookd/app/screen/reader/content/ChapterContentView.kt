@@ -41,7 +41,7 @@ fun ChapterContentView(
 ) {
     // 收集章节中的所有脚注，用于通过 ID 查找
     val footnotes = chapter.elements.filterIsInstance<ContentElement.Footnote>()
-        .associateBy { it.id }
+        .associateBy { it.footnoteId }
     
     LazyColumn(
         modifier = modifier.fillMaxSize(),

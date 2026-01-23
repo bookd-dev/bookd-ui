@@ -4,6 +4,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.basic.reader.factory.ContentElementFactory
@@ -17,7 +18,7 @@ class ReaderEngine(
     val constraints: Constraints, // 屏幕实际宽高
     val settings: ReaderSettings,
 ){
-    private val styleFactory = ReaderStyleFactory(settings)
+    private val styleController = ReaderStyleController(settings)
 
     // 计算内容区域的有效宽高
     val contentWidth: Int = constraints.maxWidth - with(density) { (settings.marginHorizontal * 2).dp.roundToPx() }
@@ -63,9 +64,10 @@ class ReaderEngine(
             val startOffset = if (i == currentAnchor.elementIndex) currentAnchor.textOffset else 0
 
             val (measuredHeight, isSplit, nextOffset) = measureElement(
-                element,
-                startOffset,
-                 - currentY
+                elements = elements,
+                element = element,
+                startOffset = startOffset,
+                availableHeight = -currentY
             )
 
             // 3. 处理分页逻辑
@@ -84,18 +86,19 @@ class ReaderEngine(
     }
 
     private fun measureElement(
+        elements: List<ContentElement>,
         element: ContentElement,
         startOffset: Int,
         availableHeight: Int,
     ): MeasureResult {
         val factory = getMeasureElementFactory(element)
-        return factory.measure(element, startOffset, availableHeight)
+        return factory.measure(elements, element, startOffset, availableHeight)
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun getMeasureElementFactory(element: ContentElement): ContentElementFactory<ContentElement> {
         return when(element) {
-            is ContentElement.Paragraph -> ParagraphMeasureFactory(contentWidth, contentHeight, textMeasurer, styleFactory)
+            is ContentElement.Paragraph -> ParagraphMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
             is ContentElement.Code -> TODO()
             ContentElement.Divider -> TODO()
             is ContentElement.Footnote -> TODO()

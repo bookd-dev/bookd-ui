@@ -30,7 +30,7 @@ fun ReaderFootnoteDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("注释 [${footnote.id}]")
+            Text("注释 ${footnote.footnoteSpan?.text ?: ""}")
         },
         text = {
             Column(
@@ -40,7 +40,7 @@ fun ReaderFootnoteDialog(
             ) {
                 // 渲染脚注内容（支持富文本）
                 val annotatedString = buildAnnotatedString {
-                    footnote.spans.forEach { span ->
+                    footnote.contentSpans.forEach { span ->
                         val isBold = span.styles.contains(TextStyle.BOLD)
                         val isItalic = span.styles.contains(TextStyle.ITALIC)
                         val hasUnderline = span.styles.contains(TextStyle.UNDERLINE)

@@ -53,24 +53,19 @@ fun ParagraphView(
             
             // 应用文本样式
             withStyle(
-                style = buildSpanStyle(span, settings, onSurfaceColor, surfaceVariantColor)
+                style = buildSpanStyle(span, settings, onSurfaceColor, surfaceVariantColor, primaryColor)
             ) {
                 append(span.text)
             }
             
-            // 脚注标记（上标）
+            // 脚注标记：为包含 footnoteId 的文本添加可点击注解
             if (span.footnoteId != null) {
-                pushStringAnnotation(tag = "footnote", annotation = span.footnoteId)
-                withStyle(
-                    SpanStyle(
-                        baselineShift = BaselineShift.Superscript,
-                        fontSize = (settings.fontSize * 0.7).sp,
-                        color = primaryColor
-                    )
-                ) {
-                    append(span.footnoteImage ?: "[${span.footnoteId}]")
-                }
-                pop()
+                addStringAnnotation(
+                    tag = "footnote",
+                    annotation = span.footnoteId,
+                    start = startIndex,
+                    end = startIndex + span.text.length
+                )
             }
             
             // 链接注解
@@ -124,19 +119,21 @@ private fun buildSpanStyle(
     span: TextSpan,
     settings: ReaderSettings,
     textColor: Color,
-    codeBackgroundColor: Color
+    codeBackgroundColor: Color,
+    primaryColor: Color
 ): SpanStyle {
     val isBold = span.styles.contains(BookdTextStyle.BOLD)
     val isItalic = span.styles.contains(BookdTextStyle.ITALIC)
     val isCode = span.styles.contains(BookdTextStyle.CODE)
     val hasLink = span.link != null
+    val isFootnote = span.footnoteId != null
     
     return SpanStyle(
         fontSize = settings.fontSize.sp,
-        fontWeight = if (isBold) FontWeight.Bold else FontWeight(settings.fontWeight),
+        fontWeight = if (isBold || isFootnote) FontWeight.Bold else FontWeight(settings.fontWeight),
         fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
         textDecoration = buildTextDecoration(span.styles, hasLink),
-        color = if (hasLink) Color.Unspecified else textColor, // 链接颜色在别处处理
+        color = if (hasLink || isFootnote) primaryColor else textColor,
         letterSpacing = settings.letterSpacing.sp,
         fontFamily = if (isCode) FontFamily.Monospace else null,
         background = if (isCode) codeBackgroundColor else Color.Unspecified

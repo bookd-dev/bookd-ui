@@ -11,5 +11,5 @@ interface ContentElementFactory <in T : ContentElement> {
      * @param startOffset 从第几个字符开始
      * @param availableHeight 剩余可用高度
      */
-    fun measure(element: T, startOffset: Int, availableHeight: Int): MeasureResult
+    fun measure(elements: List<ContentElement>, element: T, startOffset: Int, availableHeight: Int): MeasureResult
 }

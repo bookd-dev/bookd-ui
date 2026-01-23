@@ -1,32 +1,29 @@
 package com.bookd.app.basic.reader.factory
 
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.sp
-import com.bookd.app.basic.reader.ReaderStyleFactory
+import androidx.compose.ui.unit.Density
+import com.bookd.app.basic.reader.controller.ParagraphInlineContentCollector
+import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.data.model.ContentElement
-import com.bookd.app.data.model.ReaderSettings
-import com.bookd.app.data.model.TextSpan
-import com.bookd.app.data.model.TextStyle
 
 class ParagraphMeasureFactory(
     private val contentWidth: Int,
     private val contentHeight: Int,
     private val textMeasurer: TextMeasurer,
-    private val styleFactory: ReaderStyleFactory,
+    private val styleController: ReaderStyleController,
+    private val density: Density,
 ) : ContentElementFactory<ContentElement.Paragraph> {
+
+    private val inlineContentCollector = ParagraphInlineContentCollector()
 
 
     override fun measure(
+        elements: List<ContentElement>,
         element: ContentElement.Paragraph,
         startOffset: Int,
         availableHeight: Int
@@ -36,7 +33,7 @@ class ParagraphMeasureFactory(
             // 应用段落样式（对齐、缩进）
             // 只有当这是段落的开头时，才应用缩进。如果是跨页的后半段，不应该缩进！
             val isParagraphStart = (startOffset == 0)
-            val pStyle = styleFactory.createParagraphStyle().let {
+            val pStyle = styleController.createParagraphStyle().let {
                 if (!isParagraphStart) it.copy(textIndent = TextIndent.None) else it
             }
 
@@ -44,9 +41,17 @@ class ParagraphMeasureFactory(
                 // 这里应该遍历 element.spans 来应用局部样式（如加粗）
                 // 简单起见，这里只 append 纯文本
                 element.spans.forEach { span ->
-                    withStyle(styleFactory.buildSpanStyle(span)) {
+                    withStyle(styleController.buildMeasureSpanStyle(span)) {
                         append(span.text)
                     }
+                    //会自动判定是否要添加脚注占位
+                    autoAppendFootnoteInlineContent(
+                        styleController = styleController,
+                        density = density,
+                        inlineCollector = inlineContentCollector,
+                        elements = elements,
+                        span = span
+                    )
                 }
             }
         }

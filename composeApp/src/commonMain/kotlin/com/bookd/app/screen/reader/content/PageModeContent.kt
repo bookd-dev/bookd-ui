@@ -91,7 +91,7 @@ fun PageModeContent(
     val allFootnotes = remember(chapters) {
         chapters.values.flatMap { chapter ->
             chapter.elements.filterIsInstance<ContentElement.Footnote>()
-        }.associateBy { it.id }
+        }.associateBy { it.footnoteId }
     }
     
     // 合并所有章节的元素（按章节索引排序）
