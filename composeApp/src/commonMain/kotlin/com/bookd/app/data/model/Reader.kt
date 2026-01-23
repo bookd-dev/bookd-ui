@@ -1,5 +1,6 @@
 package com.bookd.app.data.model
 
+import androidx.compose.ui.text.font.FontFamily
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -235,6 +236,14 @@ data class ReaderSettings(
         firstLineIndent = firstLineIndent,
         pageAnimationType = pageAnimationType.value
     )
+
+    fun getFontFamily(): FontFamily = when (fontFamily) {
+        FontFamily.SansSerif.name -> FontFamily.SansSerif
+        FontFamily.Serif.name -> FontFamily.Serif
+        FontFamily.Monospace.name -> FontFamily.Monospace
+        FontFamily.Cursive.name -> FontFamily.Cursive
+        else -> FontFamily.Default
+    }
     
     companion object {
         /**
