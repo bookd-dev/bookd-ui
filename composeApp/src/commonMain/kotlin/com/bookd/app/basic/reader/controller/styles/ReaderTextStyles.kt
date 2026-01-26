@@ -1,0 +1,59 @@
+package com.bookd.app.basic.reader.controller.styles
+
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.sp
+import com.bookd.app.data.model.ReaderSettings
+
+class ReaderTextStyles(private val settings: ReaderSettings) {
+
+    // 正文文本大小, 影响全局的测量
+    val bodyTextStyle: TextStyle = TextStyle(
+        fontFamily = settings.getFontFamily(),
+        fontSize = settings.fontSize.sp,
+        fontWeight = FontWeight(settings.fontWeight),
+        lineHeight = (settings.fontSize * settings.lineHeight).sp,
+        letterSpacing = settings.letterSpacing.sp,
+        textAlign = settings.getTextAlign(),
+        // 优化行高对齐，防止文字切头去尾
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.None
+        ),
+    )
+
+    val footnoteTextStyle: TextStyle = bodyTextStyle.copy(
+        fontSize = (settings.fontSize - 2).sp,
+        lineHeight = ((settings.fontWeight - 2) * settings.lineHeight).sp,
+    )
+
+    /**
+     * 获取 Heading 的 TextStyle
+     * @param level 标题级别 1-6
+     */
+    fun getHeaderTextStyle(level: Int): TextStyle {
+        val baseSize = settings.fontSize
+        val fontSize = when (level) {
+            1 -> (baseSize * 1.8).toInt()
+            2 -> (baseSize * 1.5).toInt()
+            3 -> (baseSize * 1.3).toInt()
+            4 -> (baseSize * 1.15).toInt()
+            5 -> (baseSize * 1.05).toInt()
+            else -> baseSize //level6或者高于与正文同大小
+        }.sp
+
+        val fontWeight = when (level) {
+            1, 2 -> FontWeight.Bold
+            3, 4 -> FontWeight.SemiBold
+            else -> FontWeight.Normal
+        }
+
+        return bodyTextStyle.copy(
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            lineHeight = (fontSize.value * 1.2).sp,
+        )
+    }
+}
+

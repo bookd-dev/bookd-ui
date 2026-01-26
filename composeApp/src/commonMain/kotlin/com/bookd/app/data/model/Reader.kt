@@ -1,6 +1,7 @@
 package com.bookd.app.data.model
 
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -248,6 +249,13 @@ data class ReaderSettings(
         FontFamily.Monospace.name -> FontFamily.Monospace
         FontFamily.Cursive.name -> FontFamily.Cursive
         else -> FontFamily.Default
+    }
+
+    fun getTextAlign(): TextAlign = when {
+        textAlign.equals("justify", true) -> TextAlign.Justify
+        textAlign.equals("center", true) -> TextAlign.Center
+        textAlign.equals("right", true) -> TextAlign.Right
+        else -> TextAlign.Left
     }
     
     companion object {

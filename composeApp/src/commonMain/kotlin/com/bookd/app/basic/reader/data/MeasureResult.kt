@@ -7,4 +7,8 @@ data class MeasureResult(
     val measuredHeight: Int,
     val isSplit: Boolean,
     val nextOffset: Int
-)
+) {
+    companion object {
+        val SKIP = MeasureResult(0, false, 0)
+    }
+}
