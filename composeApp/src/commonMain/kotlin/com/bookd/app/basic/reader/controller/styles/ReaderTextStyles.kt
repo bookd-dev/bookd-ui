@@ -2,8 +2,11 @@ package com.bookd.app.basic.reader.controller.styles
 
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.sp
 import com.bookd.app.data.model.ReaderSettings
 
@@ -41,6 +44,14 @@ class ReaderTextStyles(private val settings: ReaderSettings) {
         fontFamily = FontFamily.Monospace, //代码强制使用 monospace
         fontSize = (settings.fontSize - 2).sp,
         lineHeight = ((settings.fontWeight - 2) * settings.lineHeight).sp,
+    )
+
+    // 引用内容
+    val quoteTextStyle: TextStyle = bodyTextStyle.copy(
+        fontStyle = FontStyle.Italic, //引用强制斜体
+        textDecoration = TextDecoration.combine(
+            listOf(TextDecoration.Underline, TextDecoration.LineThrough),
+        ) //强制下划线
     )
 
     /**
