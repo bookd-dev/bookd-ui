@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.bookd.app.basic.reader.controller.styles.ReaderParagraphStyles
-import com.bookd.app.basic.reader.controller.styles.ReaderSpacingStyles
+import com.bookd.app.basic.reader.controller.styles.ReaderSizeStyles
 import com.bookd.app.basic.reader.controller.styles.ReaderTextStyles
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.data.model.TextSpan
@@ -30,7 +30,7 @@ class ReaderStyleController(
     /**
      * 阅读器所需的spacing集合
      */
-    val spacingStyles: ReaderSpacingStyles = ReaderSpacingStyles(settings)
+    val spacingStyles: ReaderSizeStyles = ReaderSizeStyles(settings)
 
     /**
      * 阅读器所需的paragraphStyle集合

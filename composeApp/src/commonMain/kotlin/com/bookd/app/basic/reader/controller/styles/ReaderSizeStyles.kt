@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.bookd.app.data.model.ReaderSettings
 
-class ReaderSpacingStyles(private val settings: ReaderSettings) {
+class ReaderSizeStyles(private val settings: ReaderSettings) {
 
     /**
      * Heading 的顶部间距
@@ -54,5 +54,12 @@ class ReaderSpacingStyles(private val settings: ReaderSettings) {
     fun getContentHeight(height: Int, density: Density): Int {
         val verticalSpacing = settings.marginVertical
         return height - with(density) { (verticalSpacing * 2).dp.roundToPx() }
+    }
+
+    /**
+     * 获取线框宽度
+     */
+    fun getBorderWidth(density: Density): Int {
+        return with(density) { 1.dp.roundToPx() }
     }
 }

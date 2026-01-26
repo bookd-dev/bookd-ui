@@ -1,6 +1,7 @@
 package com.bookd.app.basic.reader.controller.styles
 
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
@@ -23,16 +24,23 @@ class ReaderTextStyles(private val settings: ReaderSettings) {
         ),
     )
 
-    //脚注大小，只影响脚注
+    //脚注内容，只影响脚注
     val footnoteTextStyle: TextStyle = bodyTextStyle.copy(
         fontSize = (settings.fontSize - 2).sp,
         lineHeight = ((settings.fontWeight - 2) * settings.lineHeight).sp,
     )
 
-    //图片alt内容大小
+    //图片alt内容
     val imageAlternateTextStyle: TextStyle = bodyTextStyle.copy(
         fontSize = (settings.fontSize - 4).sp,
         lineHeight = ((settings.fontWeight - 4) * settings.lineHeight).sp,
+    )
+
+    //代码内容
+    val codeTextStyle: TextStyle = bodyTextStyle.copy(
+        fontFamily = FontFamily.Monospace, //代码强制使用 monospace
+        fontSize = (settings.fontSize - 2).sp,
+        lineHeight = ((settings.fontWeight - 2) * settings.lineHeight).sp,
     )
 
     /**
