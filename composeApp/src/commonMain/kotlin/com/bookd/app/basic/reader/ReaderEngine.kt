@@ -45,8 +45,10 @@ class ReaderEngine(
             val element = elements[i]
             val isStartOfElement = (i != currentAnchor.elementIndex || currentAnchor.textOffset == 0)
 
-            // 1. 如果是段落开头，且不是页面第一行，需要加上段间距
-            // (如果是页面第一行，通常不需要加段间距，否则很难看)
+            // 段间距逻辑：
+            // 1. 只在段落开头（isStartOfElement）添加
+            // 2. 页面第一行（currentY == 0）不添加（避免顶部间距）
+            // 3. 被分割段落的后半部分在新页面也不添加（段间距应在段落间）
             if (isStartOfElement && currentY > 0 && element is ContentElement.Paragraph) {
                 if (currentY + spacingPx > contentHeight) {
                     // 加上间距就超了，直接分页
@@ -67,7 +69,7 @@ class ReaderEngine(
                 elements = elements,
                 element = element,
                 startOffset = startOffset,
-                availableHeight = -currentY
+                availableHeight = contentHeight - currentY //剩余可用高度
             )
 
             // 3. 处理分页逻辑
