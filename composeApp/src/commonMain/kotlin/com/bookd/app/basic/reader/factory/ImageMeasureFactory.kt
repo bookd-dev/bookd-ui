@@ -4,6 +4,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.factory.internal.shouldAddTopSpacing
 import com.bookd.app.data.model.ContentElement
 
 
@@ -41,7 +42,7 @@ class ImageMeasureFactory(
 ) : IContentElementFactory<ContentElement.Image> {
 
     // 行间距
-    private val lineSpacing = styleController.spacingStyles.getLineSpacingPx(density)
+    private val lineSpacing = styleController.sizeStyles.getLineSpacingPx(density)
     
     // 图片和alt文本的间距，使用行间距的一半
     private val imageToAltSpacing = lineSpacing / 2
@@ -62,7 +63,7 @@ class ImageMeasureFactory(
         
         // 根据是否有已使用内容，选择不同的计算策略
         return if (usedHeight > 0) {
-            calculateForUsedHeight(element, altTextHeight, availableHeight)
+            calculateForUsedHeight(elements, element, altTextHeight, usedHeight, availableHeight)
         } else {
             calculateForEmptyPage(element, altTextHeight, availableHeight)
         }
@@ -72,12 +73,22 @@ class ImageMeasureFactory(
      * 处理页面已有内容的情况 (usedH > 0)
      */
     private fun calculateForUsedHeight(
+        elements: List<ContentElement>,
         element: ContentElement.Image, 
-        altTextHeight: Int, 
+        altTextHeight: Int,
+        usedHeight: Int,
         availableHeight: Int
     ): MeasureResult {
-        // 页面可用高度为 remainingH = availableH - lineSpacing - altMeasureH - altSpacing
-        val remainingHeight = availableHeight - lineSpacing - altTextHeight - imageToAltSpacing
+
+        // 页面可用高度为 remainingH = availableH - altMeasureH - altSpacing - lineSpacing
+        val remainingHeight = availableHeight -
+                altTextHeight -
+                imageToAltSpacing -
+                if (shouldAddTopSpacing(elements, element, usedHeight)) {
+                    lineSpacing
+                } else {
+                    0
+                }
         if (remainingHeight <= 0) {
             // 剩余空间不够，直接换页
             return MeasureResult.NEXT

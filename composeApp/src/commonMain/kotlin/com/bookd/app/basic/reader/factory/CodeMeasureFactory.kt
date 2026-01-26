@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.factory.internal.shouldAddTopSpacing
 import com.bookd.app.data.model.ContentElement
 
 /**
@@ -18,7 +19,7 @@ import com.bookd.app.data.model.ContentElement
  * ｜}                               ｜
  * ｜________________________________｜
  */
-class CodeMeasureFactor(
+class CodeMeasureFactory(
     private val contentWidth: Int,
     private val contentHeight: Int,
     private val textMeasurer: TextMeasurer,
@@ -26,9 +27,9 @@ class CodeMeasureFactor(
     private val density: Density,
 ) : IContentElementFactory<ContentElement.Code> {
 
-    private val spacing = styleController.spacingStyles.getLineSpacingPx(density) / 2
+    private val spacing = styleController.sizeStyles.getLineSpacingPx(density) / 2
 
-    private val borderWidth = styleController.spacingStyles.getBorderWidth(density)
+    private val borderWidth = styleController.sizeStyles.getBorderWidth(density)
 
     override fun measure(
         elements: List<ContentElement>,
@@ -43,8 +44,8 @@ class CodeMeasureFactor(
             return MeasureResult.NEXT
         }
 
-        val topSpacing = if (shouldAddTopSpacing(usedHeight)) {
-            styleController.spacingStyles.getLineSpacingPx(density)
+        val topSpacing = if (shouldAddTopSpacing(elements, element, usedHeight)) {
+            styleController.sizeStyles.getLineSpacingPx(density)
         } else {
             0
         }
@@ -72,10 +73,6 @@ class CodeMeasureFactor(
         } else {
             MeasureResult.NEXT
         }
-    }
-
-    private fun shouldAddTopSpacing(usedHeight: Int): Boolean {
-        return usedHeight > 0
     }
 
     private fun calculateLanguageHeight(language: String): Int {

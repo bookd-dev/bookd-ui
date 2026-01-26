@@ -40,7 +40,7 @@ class ParagraphMeasureFactory(
                 usedHeight = usedHeight
             ))
         {
-            styleController.spacingStyles.getLineSpacingPx(density)
+            styleController.sizeStyles.getLineSpacingPx(density)
         } else {
             0
         }

@@ -9,7 +9,6 @@ import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.basic.reader.factory.ContentElementFactory
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
-import io.ktor.client.plugins.logging.EMPTY
 
 class ReaderEngine(
     val textMeasurer: TextMeasurer,
@@ -20,13 +19,13 @@ class ReaderEngine(
     private val styleController = ReaderStyleController(settings)
 
     // 计算内容区域的有效宽高
-    private val contentWidth: Int = styleController.spacingStyles.getContentWidth(constraints.maxWidth, density)
-    private val contentHeight: Int = styleController.spacingStyles.getContentHeight(constraints.maxHeight, density)
+    private val contentWidth: Int = styleController.sizeStyles.getContentWidth(constraints.maxWidth, density)
+    private val contentHeight: Int = styleController.sizeStyles.getContentHeight(constraints.maxHeight, density)
 
     // 3. 辅助：计算段间距 (px)
     // 这是一个坑：TextMeasurer 不直接支持 paragraphSpacing。
     // 我们需要在 measure 循环中手动添加这部分高度。
-    private val spacingPx: Int = styleController.spacingStyles.getLineSpacingPx(density)
+    private val spacingPx: Int = styleController.sizeStyles.getLineSpacingPx(density)
 
     private val factory = ContentElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 

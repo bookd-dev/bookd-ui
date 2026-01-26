@@ -50,7 +50,12 @@ class ContentElementFactory(
     /**
      * 代码测量工厂
      */
-    val codeMeasureFactory = CodeMeasureFactor(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val codeMeasureFactory = CodeMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+
+    /**
+     * 分隔线测量工厂
+     */
+    val dividerMeasureFactory = DividerMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     @Suppress("UNCHECKED_CAST")
     fun getMeasureElementFactory(element: ContentElement): IContentElementFactory<ContentElement>? {
@@ -60,7 +65,7 @@ class ContentElementFactory(
             is ContentElement.Image -> imageMeasureFactory
             is ContentElement.Footnote -> null //不参与绘制测量，因为在段落内处理了
             is ContentElement.Code -> codeMeasureFactory
-            ContentElement.Divider -> TODO()
+            ContentElement.Divider -> dividerMeasureFactory
             is ContentElement.ListBlock -> TODO()
             is ContentElement.Quote -> TODO()
         } as IContentElementFactory<ContentElement>

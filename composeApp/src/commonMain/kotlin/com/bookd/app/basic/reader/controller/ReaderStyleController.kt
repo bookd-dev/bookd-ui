@@ -28,9 +28,9 @@ class ReaderStyleController(
     val textStyles: ReaderTextStyles = ReaderTextStyles(settings)
 
     /**
-     * 阅读器所需的spacing集合
+     * 阅读器所需的spacing/size集合
      */
-    val spacingStyles: ReaderSizeStyles = ReaderSizeStyles(settings)
+    val sizeStyles: ReaderSizeStyles = ReaderSizeStyles(settings)
 
     /**
      * 阅读器所需的paragraphStyle集合
