@@ -9,6 +9,7 @@ import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.basic.reader.factory.ContentElementFactory
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
+import io.ktor.client.plugins.logging.EMPTY
 
 class ReaderEngine(
     val textMeasurer: TextMeasurer,
@@ -43,32 +44,14 @@ class ReaderEngine(
 
         while (i < elements.size) {
             val element = elements[i]
-            val isStartOfElement = (i != currentAnchor.elementIndex || currentAnchor.textOffset == 0)
-
-            // 段间距逻辑：
-            // 1. 只在段落开头（isStartOfElement）添加
-            // 2. 页面第一行（currentY == 0）不添加（避免顶部间距）
-            // 3. 被分割段落的后半部分在新页面也不添加（段间距应在段落间）
-            if (isStartOfElement && currentY > 0 && element is ContentElement.Paragraph) {
-                if (currentY + spacingPx > contentHeight) {
-                    // 加上间距就超了，直接分页
-                    val nextAnchor = PageAnchor(i, 0, anchors.last().pageIndex + 1)
-                    anchors.add(nextAnchor)
-                    currentAnchor = nextAnchor
-                    currentY = 0
-                    continue // 重新处理这个元素
-                } else {
-                    currentY += spacingPx
-                }
-            }
-
-            // 2. 测量元素
             val startOffset = if (i == currentAnchor.elementIndex) currentAnchor.textOffset else 0
 
             val (measuredHeight, isSplit, nextOffset) = measureElement(
                 elements = elements,
                 element = element,
+                isStartElement = (i != currentAnchor.elementIndex || currentAnchor.textOffset == 0),
                 startOffset = startOffset,
+                usedHeight = currentY, //已经使用的高度
                 availableHeight = contentHeight - currentY //剩余可用高度
             )
 
@@ -82,7 +65,7 @@ class ReaderEngine(
                 continue
             }
 
-            // 3. 处理分页逻辑
+            // 处理分页逻辑
             if (isSplit) {
                 currentY = 0 // 新页高度重置
                 val nextAnchor = PageAnchor(i, nextOffset, anchors.last().pageIndex + 1)
@@ -100,10 +83,20 @@ class ReaderEngine(
     private fun measureElement(
         elements: List<ContentElement>,
         element: ContentElement,
+        isStartElement: Boolean,
         startOffset: Int,
+        usedHeight: Int,
         availableHeight: Int,
     ): MeasureResult {
-        val factory = factory.getMeasureElementFactory(element)
-        return factory?.measure(elements, element, startOffset, availableHeight) ?: MeasureResult.SKIP
+        val factory = factory.getMeasureElementFactory(element) ?: return MeasureResult.SKIP
+
+        return factory.measure(
+            elements = elements,
+            element = element,
+            isStartElement = isStartElement,
+            startOffset = startOffset,
+            usedHeight = usedHeight,
+            availableHeight = availableHeight
+        )
     }
 }

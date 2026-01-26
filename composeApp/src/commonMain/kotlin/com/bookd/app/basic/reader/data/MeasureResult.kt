@@ -10,5 +10,7 @@ data class MeasureResult(
 ) {
     companion object {
         val SKIP = MeasureResult(0, false, 0)
+
+        val NEXT = MeasureResult(0, true, 0)
     }
 }

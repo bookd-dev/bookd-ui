@@ -1,6 +1,5 @@
 package com.bookd.app.basic.reader.controller.styles
 
-import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
@@ -10,7 +9,7 @@ import com.bookd.app.data.model.ReaderSettings
 
 class ReaderParagraphStyles(private val settings: ReaderSettings) {
 
-    val headlineParagraphStyles: ParagraphStyle = getHeadlineParagraphStyle()
+    val headlineParagraphStyle: ParagraphStyle = getHeadlineParagraphStyle()
 
     val bodyParagraphStyle: ParagraphStyle = getBodyParagraphStyle()
 

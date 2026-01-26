@@ -46,7 +46,7 @@ class ReaderTextStyles(private val settings: ReaderSettings) {
         val fontWeight = when (level) {
             1, 2 -> FontWeight.Bold
             3, 4 -> FontWeight.SemiBold
-            else -> FontWeight.Normal
+            else -> FontWeight.Medium
         }
 
         return bodyTextStyle.copy(
