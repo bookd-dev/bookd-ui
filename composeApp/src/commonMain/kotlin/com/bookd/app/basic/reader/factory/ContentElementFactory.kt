@@ -42,16 +42,20 @@ class ContentElementFactory(
      */
     val paragraphMeasureFactory = ParagraphMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
+    /**
+     * 图片测量工厂
+     */
+    val imageMeasureFactory = ImageMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     @Suppress("UNCHECKED_CAST")
     fun getMeasureElementFactory(element: ContentElement): IContentElementFactory<ContentElement>? {
         return when(element) {
             is ContentElement.Heading -> headlineMeasureFactory
             is ContentElement.Paragraph -> paragraphMeasureFactory
+            is ContentElement.Image -> imageMeasureFactory
             is ContentElement.Footnote -> null //不参与绘制测量，因为在段落内处理了
             is ContentElement.Code -> TODO()
             ContentElement.Divider -> TODO()
-            is ContentElement.Image -> TODO()
             is ContentElement.ListBlock -> TODO()
             is ContentElement.Quote -> TODO()
         } as IContentElementFactory<ContentElement>

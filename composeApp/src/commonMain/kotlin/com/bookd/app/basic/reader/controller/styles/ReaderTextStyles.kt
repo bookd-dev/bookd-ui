@@ -23,9 +23,16 @@ class ReaderTextStyles(private val settings: ReaderSettings) {
         ),
     )
 
+    //脚注大小，只影响脚注
     val footnoteTextStyle: TextStyle = bodyTextStyle.copy(
         fontSize = (settings.fontSize - 2).sp,
         lineHeight = ((settings.fontWeight - 2) * settings.lineHeight).sp,
+    )
+
+    //图片alt内容大小
+    val imageAlternateTextStyle: TextStyle = bodyTextStyle.copy(
+        fontSize = (settings.fontSize - 4).sp,
+        lineHeight = ((settings.fontWeight - 4) * settings.lineHeight).sp,
     )
 
     /**

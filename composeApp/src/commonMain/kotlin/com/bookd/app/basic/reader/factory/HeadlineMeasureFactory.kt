@@ -65,7 +65,7 @@ class HeadlineMeasureFactory(
     }
 
     private fun shouldAddTopSpacing(usedHeight: Int): Boolean {
-        // 1. 页面的第一回，不添加顶部间距
-        return usedHeight != 0
+        // 1. 页面的第一行，不添加顶部间距
+        return usedHeight > 0
     }
 }
