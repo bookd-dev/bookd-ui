@@ -1,4 +1,4 @@
-package com.bookd.app.basic.reader.factory
+package com.bookd.app.basic.reader.factory.internal
 
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
@@ -14,7 +14,7 @@ import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.TextSpan
 
 /**
- * 脚注渲染，比较特殊不会继承 [ContentElementFactory]
+ * 脚注渲染，比较特殊不会继承 [com.bookd.app.basic.reader.factory.ContentElementFactory]
  */
 fun AnnotatedString.Builder.autoAppendFootnoteInlineContent(
     styleController: ReaderStyleController,
@@ -95,7 +95,7 @@ private fun AnnotatedString.Builder.appendFootnoteTextContent(
     withStyle(
         style = styleController.buildMeasureSpanStyle(
             span = footnote.footnoteSpan,
-            style = styleController.styles.footnoteTextStyle
+            style = styleController.textStyles.footnoteTextStyle
         )
     ) {
         append(textSpan.text)
@@ -109,7 +109,7 @@ private fun buildFootnotePlaceholder(
 ): Placeholder {
 
     val lineHeightPx = with(density) {
-        styleController.styles.footnoteTextStyle.lineHeight.toPx()
+        styleController.textStyles.footnoteTextStyle.lineHeight.toPx()
     }
 
     val (widthPx: Float, heightPx: Float) = when {

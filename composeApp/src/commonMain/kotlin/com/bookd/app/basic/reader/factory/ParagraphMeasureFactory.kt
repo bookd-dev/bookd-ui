@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ParagraphInlineContentCollector
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.factory.internal.autoAppendFootnoteInlineContent
 import com.bookd.app.data.model.ContentElement
 
 class ParagraphMeasureFactory(
@@ -17,7 +18,7 @@ class ParagraphMeasureFactory(
     private val textMeasurer: TextMeasurer,
     private val styleController: ReaderStyleController,
     private val density: Density,
-) : ContentElementFactory<ContentElement.Paragraph> {
+) : IContentElementFactory<ContentElement.Paragraph> {
 
     private val inlineContentCollector = ParagraphInlineContentCollector()
 
@@ -33,7 +34,7 @@ class ParagraphMeasureFactory(
             // 应用段落样式（对齐、缩进）
             // 只有当这是段落的开头时，才应用缩进。如果是跨页的后半段，不应该缩进！
             val isParagraphStart = (startOffset == 0)
-            val pStyle = styleController.createParagraphStyle().let {
+            val pStyle = styleController.paragraphStyles.bodyParagraphStyle.let {
                 if (!isParagraphStart) it.copy(textIndent = TextIndent.None) else it
             }
 
