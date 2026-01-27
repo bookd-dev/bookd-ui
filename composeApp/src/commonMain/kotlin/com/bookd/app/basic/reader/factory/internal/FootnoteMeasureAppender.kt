@@ -72,16 +72,16 @@ private fun AnnotatedString.Builder.appendFootnoteImageInlineContent(
             styleController = styleController
         )
 
-        //当前没插入占位时的文本长度就是start
+        // 当前没插入占位时的文本长度就是start
         val start = length
 
-        //插入inlineContent占位，为什么不使用直接add是为了方便到时候替换成我需要的脚注
+        // 插入inlineContent占位，为什么不使用直接add是为了方便到时候替换成我需要的脚注
         // 真正插入文本占位
         appendInlineContent(
             id = inlineId,
             alternateText = "\uFFFC" // Object Replacement Character
         )
-        //文本插入后，再获取
+        // 文本插入后，再获取
         val end = start + length
         inlineCollector[inlineId, start, end] = placeholder
     }

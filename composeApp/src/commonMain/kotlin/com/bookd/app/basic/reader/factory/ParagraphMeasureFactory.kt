@@ -33,6 +33,9 @@ class ParagraphMeasureFactory(
         usedHeight: Int,
         availableHeight: Int,
     ): MeasureResult {
+        // 每次测量前确保每个段落的数据都是干净的, 不每次 new ParagraphInlineContentCollector 减少对象创建
+        inlineContentCollector.clear()
+
         // 1. 计算段落间间距（只在段落开头添加）
         val paragraphSpacing = if (
             shouldAddParagraphSpacing(
@@ -69,7 +72,7 @@ class ParagraphMeasureFactory(
                     withStyle(styleController.buildMeasureSpanStyle(span)) {
                         append(span.text)
                     }
-                    //会自动判定是否要添加脚注占位
+                    // 会自动判定是否要添加脚注占位
                     autoAppendFootnoteInlineContent(
                         styleController = styleController,
                         density = density,

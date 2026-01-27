@@ -35,6 +35,10 @@ class ParagraphInlineContentCollector {
         inlineContentPlaceholders[inlineId] = range
     }
 
+    fun clear() {
+        inlineContentPlaceholders.clear()
+    }
+
     fun getAdjustPlaceholder(text: AnnotatedString, startOffset: Int): List<AnnotatedString.Range<Placeholder>> {
         val placeholders = inlineContentPlaceholders.values.toList()
         if (placeholders.isEmpty()) return emptyList()
