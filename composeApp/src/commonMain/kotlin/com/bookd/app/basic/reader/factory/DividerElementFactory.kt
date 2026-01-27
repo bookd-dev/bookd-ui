@@ -4,16 +4,17 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.factory.internal.shouldAddTopSpacing
 import com.bookd.app.data.model.ContentElement
 
-class DividerMeasureFactory(
+class DividerElementFactory(
     private val contentWidth: Int,
     private val contentHeight: Int,
     private val textMeasurer: TextMeasurer,
     private val styleController: ReaderStyleController,
     private val density: Density
-) : IContentElementFactory<ContentElement.Divider> {
+) : IContentMeasureFactory<ContentElement.Divider, RenderCommand.Divider> {
 
     private val spacing = styleController.sizeStyles.getLineSpacingPx(density)
 

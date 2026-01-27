@@ -1,9 +1,11 @@
 package com.bookd.app.basic.reader.factory
 
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.factory.internal.shouldAddTopSpacing
 import com.bookd.app.data.model.ContentElement
 
@@ -33,13 +35,13 @@ import com.bookd.app.data.model.ContentElement
  *    - 如果新的 imageW <= contentW, 页面满足图片需求
  *    - 如果新的 imageW > contentW, 用 contentW + imageAspectRatio 重新计算出新的 imageH, 用 contentW + 新imageH 作为图片占用大小
  */
-class ImageMeasureFactory(
+class ImageElementFactory(
     private val contentWidth: Int,
     private val contentHeight: Int,
     private val textMeasurer: TextMeasurer,
     private val styleController: ReaderStyleController,
     private val density: Density
-) : IContentElementFactory<ContentElement.Image> {
+) : IContentMeasureFactory<ContentElement.Image, RenderCommand.Image> {
 
     // 行间距
     private val lineSpacing = styleController.sizeStyles.getLineSpacingPx(density)
@@ -172,7 +174,7 @@ class ImageMeasureFactory(
         val textLayoutResult = textMeasurer.measure(
             text = alt,
             style = styleController.textStyles.imageAlternateTextStyle,
-            constraints = androidx.compose.ui.unit.Constraints(
+            constraints = Constraints(
                 maxWidth = contentWidth
             )
         )

@@ -12,7 +12,7 @@ import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.TextSpan
 
 /**
- * 脚注渲染，比较特殊不会继承 [com.bookd.app.basic.reader.factory.IContentElementFactory]
+ * 脚注渲染，比较特殊不会继承 [com.bookd.app.basic.reader.factory.IContentMeasureFactory]
  */
 internal fun AnnotatedString.Builder.autoAppendFootnoteInlineContent(
     styleController: ReaderStyleController,

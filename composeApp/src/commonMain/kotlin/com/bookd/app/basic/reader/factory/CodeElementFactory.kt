@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.factory.internal.shouldAddTopSpacing
 import com.bookd.app.data.model.ContentElement
 
@@ -19,13 +20,13 @@ import com.bookd.app.data.model.ContentElement
  * ｜}                               ｜
  * ｜________________________________｜
  */
-class CodeMeasureFactory(
+class CodeElementFactory(
     private val contentWidth: Int,
     private val contentHeight: Int,
     private val textMeasurer: TextMeasurer,
     private val styleController: ReaderStyleController,
     private val density: Density,
-) : IContentElementFactory<ContentElement.Code> {
+) : IContentMeasureFactory<ContentElement.Code, RenderCommand.Code> {
 
     private val spacing = styleController.sizeStyles.getLineSpacingPx(density) / 2
 

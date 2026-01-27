@@ -1,9 +1,10 @@
 package com.bookd.app.basic.reader.factory
 
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
@@ -11,16 +12,17 @@ import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ParagraphInlineContentCollector
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.factory.internal.autoAppendFootnoteInlineContent
 import com.bookd.app.data.model.ContentElement
 
-class ParagraphMeasureFactory(
+class ParagraphElementFactory(
     private val contentWidth: Int,
     private val contentHeight: Int,
     private val textMeasurer: TextMeasurer,
     private val styleController: ReaderStyleController,
     private val density: Density,
-) : IContentElementFactory<ContentElement.Paragraph> {
+) : IContentMeasureFactory<ContentElement.Paragraph, RenderCommand.Text> {
 
     override fun measure(
         elements: List<ContentElement>,
@@ -119,6 +121,14 @@ class ParagraphMeasureFactory(
                 nextOffset = startOffset + splitOffsetSub
             )
         }
+    }
+
+
+    override fun draw(drawScope: DrawScope, command: RenderCommand.Text) {
+        drawScope.drawText(
+            textLayoutResult = command.textLayout,
+            topLeft = Offset(0f, command.y.toFloat()),
+        )
     }
 
     /**

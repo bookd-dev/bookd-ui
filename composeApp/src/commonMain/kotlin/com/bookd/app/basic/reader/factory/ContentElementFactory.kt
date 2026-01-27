@@ -1,15 +1,18 @@
 package com.bookd.app.basic.reader.factory
 
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
+import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.data.model.ContentElement
 
-interface IContentElementFactory <in T : ContentElement> {
+interface IContentMeasureFactory <in T : ContentElement, R : RenderCommand> {
 
 
     /**
+     * 测量
      * @param element
      * @param startOffset 从第几个字符开始
      * @param usedHeight 已经使用的高度
@@ -23,6 +26,30 @@ interface IContentElementFactory <in T : ContentElement> {
         usedHeight: Int,
         availableHeight: Int,
     ): MeasureResult
+
+    /**
+     * 定位
+     *
+     * @param element
+     * @param index 渲染的index
+     * @param startOffset
+     */
+    fun layout(
+        elements: List<ContentElement>,
+        element: ContentElement,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): R
+
+    /**
+     * 绘制
+     */
+    fun draw(
+        drawScope: DrawScope,
+        command: R,
+    )
 }
 
 class ContentElementFactory(
@@ -35,49 +62,78 @@ class ContentElementFactory(
     /**
      * 标题测量工厂
      */
-    val headlineMeasureFactory = HeadlineMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val headlineElementFactory = HeadlineElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     /**
      * 段落测量工厂
      */
-    val paragraphMeasureFactory = ParagraphMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val paragraphElementFactory = ParagraphElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     /**
      * 图片测量工厂
      */
-    val imageMeasureFactory = ImageMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val imageElementFactory = ImageElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     /**
      * 代码测量工厂
      */
-    val codeMeasureFactory = CodeMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val codeElementFactory = CodeElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     /**
      * 分隔线测量工厂
      */
-    val dividerMeasureFactory = DividerMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val dividerElementFactory = DividerElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     /**
      * 列表块工厂
      */
-    val listDividerMeasureFactory = ListBlockMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val listBlockElementFactory = ListBlockElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     /**
      * 引用工厂
      */
-    val quoteMeasureFactory = QuoteMeasureFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val quoteElementFactory = QuoteElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     @Suppress("UNCHECKED_CAST")
-    fun getMeasureElementFactory(element: ContentElement): IContentElementFactory<ContentElement>? {
+    fun getMeasureElementFactory(element: ContentElement): IContentMeasureFactory<ContentElement, RenderCommand>? {
         return when(element) {
-            is ContentElement.Heading -> headlineMeasureFactory
-            is ContentElement.Paragraph -> paragraphMeasureFactory
-            is ContentElement.Image -> imageMeasureFactory
+            is ContentElement.Heading -> headlineElementFactory
+            is ContentElement.Paragraph -> paragraphElementFactory
+            is ContentElement.Image -> imageElementFactory
             is ContentElement.Footnote -> null //不参与绘制测量，因为在段落内处理了
-            is ContentElement.Code -> codeMeasureFactory
-            ContentElement.Divider -> dividerMeasureFactory
-            is ContentElement.ListBlock -> listDividerMeasureFactory
-            is ContentElement.Quote -> quoteMeasureFactory
-        } as? IContentElementFactory<ContentElement>
+            is ContentElement.Code -> codeElementFactory
+            ContentElement.Divider -> dividerElementFactory
+            is ContentElement.ListBlock -> listBlockElementFactory
+            is ContentElement.Quote -> quoteElementFactory
+        } as? IContentMeasureFactory<ContentElement, RenderCommand>
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun getLayoutElementFactory(element: ContentElement): IContentMeasureFactory<ContentElement, RenderCommand>? {
+        return when(element) {
+            is ContentElement.Heading -> headlineElementFactory
+            is ContentElement.Paragraph -> paragraphElementFactory
+            is ContentElement.Image -> imageElementFactory
+            is ContentElement.Footnote -> null //不参与绘制测量，因为在段落内处理了
+            is ContentElement.Code -> codeElementFactory
+            ContentElement.Divider -> dividerElementFactory
+            is ContentElement.ListBlock -> listBlockElementFactory
+            is ContentElement.Quote -> quoteElementFactory
+        } as? IContentMeasureFactory<ContentElement, RenderCommand>
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun getDrawElementFactory(command: RenderCommand): IContentMeasureFactory<ContentElement, RenderCommand>? {
+        return when(command) {
+            is RenderCommand.Heading -> headlineElementFactory
+            is RenderCommand.Text -> paragraphElementFactory
+            is RenderCommand.Image -> imageElementFactory
+            is RenderCommand.Footnote -> null //不参与绘制测量，因为在段落内处理了
+            is RenderCommand.Code -> codeElementFactory
+            is RenderCommand.Divider -> dividerElementFactory
+            is RenderCommand.ListItem -> listBlockElementFactory
+            is RenderCommand.ListBlock -> listBlockElementFactory
+            is RenderCommand.Quote -> quoteElementFactory
+        } as? IContentMeasureFactory<ContentElement, RenderCommand>
     }
 }

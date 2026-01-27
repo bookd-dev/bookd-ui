@@ -1,11 +1,15 @@
 package com.bookd.app.basic.reader
 
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.PageAnchor
+import com.bookd.app.basic.reader.data.RenderCommand
+import com.bookd.app.basic.reader.extension.getCommandHeight
 import com.bookd.app.basic.reader.factory.ContentElementFactory
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
@@ -16,7 +20,7 @@ class ReaderEngine(
     val constraints: Constraints, // 屏幕实际宽高
     val settings: ReaderSettings,
 ){
-    private val styleController = ReaderStyleController(settings)
+    val styleController: ReaderStyleController = ReaderStyleController(settings)
 
     // 计算内容区域的有效宽高
     private val contentWidth: Int = styleController.sizeStyles.getContentWidth(constraints.maxWidth, density)
@@ -28,7 +32,6 @@ class ReaderEngine(
     private val spacingPx: Int = styleController.sizeStyles.getLineSpacingPx(density)
 
     private val factory = ContentElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
-
 
     /**
      * 计算分页锚点
@@ -79,6 +82,56 @@ class ReaderEngine(
         return anchors
     }
 
+    /**
+     * 准备当前页的渲染指令列表（测量阶段）
+     *
+     * @param startAnchor 当前页的起始锚点
+     * @param endAnchor 下一页的起始锚点（可选，用于确定当前页的结束位置）
+     * @param elements 完整的章节元素列表
+     * @return 渲染指令列表（已测量，可直接用于绘制）
+     */
+    fun prepareRenderCommands(
+        startAnchor: PageAnchor,
+        endAnchor: PageAnchor?,
+        elements: List<ContentElement>
+    ): List<RenderCommand> {
+        val commands = mutableListOf<RenderCommand>()
+        var currentY = 0
+
+        // 计算遍历范围
+        val endIndex = endAnchor?.elementIndex ?: elements.lastIndex
+        val iterateEnd = if (endAnchor != null && endAnchor.textOffset == 0) {
+            endIndex - 1
+        } else {
+            endIndex
+        }
+
+        // 遍历当前页的所有元素
+        for (i in startAnchor.elementIndex..iterateEnd) {
+            val element = elements[i]
+            val command = renderElementCommand(
+                elements = elements,
+                element = element,
+                index = i,
+                startOffset = if (i == startAnchor.elementIndex) startAnchor.textOffset else 0,
+                endOffset = if (endAnchor != null && i == endAnchor.elementIndex) endAnchor.textOffset else null,
+                currentY = currentY
+            )
+
+            if (command != null) {
+                commands.add(command)
+                currentY += getCommandHeight(command)
+            }
+        }
+
+        return commands
+    }
+
+    fun draw(drawScope: DrawScope, renderCommand: RenderCommand) {
+        val factory = factory.getDrawElementFactory(renderCommand)
+        factory?.draw(drawScope, renderCommand)
+    }
+
     private fun measureElement(
         elements: List<ContentElement>,
         element: ContentElement,
@@ -88,7 +141,6 @@ class ReaderEngine(
         availableHeight: Int,
     ): MeasureResult {
         val factory = factory.getMeasureElementFactory(element) ?: return MeasureResult.SKIP
-
         return factory.measure(
             elements = elements,
             element = element,
@@ -96,6 +148,28 @@ class ReaderEngine(
             startOffset = startOffset,
             usedHeight = usedHeight,
             availableHeight = availableHeight
+        )
+    }
+
+    /**
+     * 为单个 ContentElement 创建渲染指令
+     */
+    private fun renderElementCommand(
+        elements: List<ContentElement>,
+        element: ContentElement,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): RenderCommand? {
+        val factory = factory.getLayoutElementFactory(element)
+        return factory?.layout(
+            elements = elements,
+            element = element,
+            index = index,
+            startOffset = startOffset,
+            endOffset = endOffset,
+            currentY = currentY
         )
     }
 }

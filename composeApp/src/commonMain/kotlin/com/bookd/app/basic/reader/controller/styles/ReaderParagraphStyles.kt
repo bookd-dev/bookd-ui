@@ -9,14 +9,14 @@ import com.bookd.app.data.model.ReaderSettings
 
 class ReaderParagraphStyles(private val settings: ReaderSettings) {
 
-    val headlineParagraphStyle: ParagraphStyle = getHeadlineParagraphStyle()
+    val headlineParagraphStyle: ParagraphStyle = initHeadlineParagraphStyle()
 
-    val bodyParagraphStyle: ParagraphStyle = getBodyParagraphStyle()
+    val bodyParagraphStyle: ParagraphStyle = initBodyParagraphStyle()
 
     /**
      * 正文段落样式 (影响排版布局)
      */
-    private fun getBodyParagraphStyle(): ParagraphStyle {
+    private fun initBodyParagraphStyle(): ParagraphStyle {
         // 首行缩进逻辑：通常中文缩进两个字符宽度
         val indentAmount = if (settings.firstLineIndent) {
             (settings.fontSize * 2).sp
@@ -33,7 +33,7 @@ class ReaderParagraphStyles(private val settings: ReaderSettings) {
         )
     }
 
-    private fun getHeadlineParagraphStyle(): ParagraphStyle {
+    private fun initHeadlineParagraphStyle(): ParagraphStyle {
         return ParagraphStyle(
             textAlign = if (settings.getTextAlign() == TextAlign.Center) TextAlign.Center else TextAlign.Left,
             textIndent = TextIndent.None, //标题不需要缩紧
