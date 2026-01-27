@@ -22,9 +22,6 @@ class ParagraphMeasureFactory(
     private val density: Density,
 ) : IContentElementFactory<ContentElement.Paragraph> {
 
-    private val inlineContentCollector = ParagraphInlineContentCollector()
-
-
     override fun measure(
         elements: List<ContentElement>,
         element: ContentElement.Paragraph,
@@ -33,8 +30,9 @@ class ParagraphMeasureFactory(
         usedHeight: Int,
         availableHeight: Int,
     ): MeasureResult {
-        // 每次测量前确保每个段落的数据都是干净的, 不每次 new ParagraphInlineContentCollector 减少对象创建
-        inlineContentCollector.clear()
+        // 每次测量创建对象
+        // 虽然会有对象创建开销，但是避免了这儿共享 [inlineContentPlaceholders] 可能导致的潜在线程安全问题
+        val inlineContentCollector = ParagraphInlineContentCollector()
 
         // 1. 计算段落间间距（只在段落开头添加）
         val paragraphSpacing = if (
