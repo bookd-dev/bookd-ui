@@ -1,6 +1,5 @@
 package com.bookd.app.basic.reader.factory.internal
 
-import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -9,7 +8,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ParagraphInlineContentCollector
 import com.bookd.app.basic.reader.controller.ReaderStyleController
-import com.bookd.app.basic.reader.ui.FootnoteImage
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.TextSpan
 
@@ -66,7 +64,7 @@ private fun AnnotatedString.Builder.appendFootnoteImageInlineContent(
     val inlineId = "footnote:${footnote.footnoteId}:${index}"
 
     // 避免重复注册（同一页多次引用）
-    if (!inlineCollector.inlineContents.containsKey(inlineId)) {
+    if (!inlineCollector.contains(inlineId)) {
 
         val placeholder = buildFootnotePlaceholder(
             footnote = footnote,
@@ -74,16 +72,19 @@ private fun AnnotatedString.Builder.appendFootnoteImageInlineContent(
             styleController = styleController
         )
 
-        inlineCollector.inlineContents[inlineId] = InlineTextContent(placeholder) {
-            FootnoteImage(footnote = footnote)
-        }
-    }
+        //当前没插入占位时的文本长度就是start
+        val start = length
 
-    // 真正插入文本占位
-    appendInlineContent(
-        id = inlineId,
-        alternateText = "\uFFFC" // Object Replacement Character
-    )
+        //插入inlineContent占位，为什么不使用直接add是为了方便到时候替换成我需要的脚注
+        // 真正插入文本占位
+        appendInlineContent(
+            id = inlineId,
+            alternateText = "\uFFFC" // Object Replacement Character
+        )
+        //文本插入后，再获取
+        val end = start + length
+        inlineCollector[inlineId, start, end] = placeholder
+    }
 }
 
 private fun AnnotatedString.Builder.appendFootnoteTextContent(

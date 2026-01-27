@@ -1,5 +1,7 @@
 package com.bookd.app.basic.reader.factory
 
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextIndent
@@ -84,7 +86,8 @@ class ParagraphMeasureFactory(
 
         val result = textMeasurer.measure(
             text = textToMeasure,
-            constraints = Constraints(maxWidth = contentWidth) // 使用计算好的 contentWidth
+            constraints = Constraints(maxWidth = contentWidth), // 使用计算好的 contentWidth
+            placeholders = inlineContentCollector.getAdjustPlaceholder(text, startOffset)
         )
 
         // 5. 计算可用高度（已扣除段间距）
