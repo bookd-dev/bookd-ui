@@ -1,8 +1,16 @@
 package com.bookd.app.basic.reader.factory
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -40,7 +48,7 @@ class ImageElementFactory(
     private val contentHeight: Int,
     private val textMeasurer: TextMeasurer,
     private val styleController: ReaderStyleController,
-    private val density: Density
+    private val density: Density,
 ) : IContentMeasureFactory<ContentElement.Image, RenderCommand.Image> {
 
     // 行间距
@@ -70,7 +78,29 @@ class ImageElementFactory(
             calculateForEmptyPage(element, altTextHeight, availableHeight)
         }
     }
-    
+
+    override fun draw(drawScope: DrawScope, command: RenderCommand.Image) {
+        var y = command.y.toFloat()
+
+        // 绘制图片
+        if (command.imageBitmap != null) {
+            drawScope.drawImage(
+                image = command.imageBitmap,
+                dstOffset = IntOffset(0, command.y),
+                dstSize = IntSize(command.width, command.height)
+            )
+            y += command.height.toFloat()
+        }
+
+        // 绘制 alt 文本
+        if (command.altTextLayout != null) {
+            drawScope.drawText(
+                textLayoutResult = command.altTextLayout,
+                topLeft = Offset(0f, y + imageToAltSpacing),
+            )
+        }
+    }
+
     /**
      * 处理页面已有内容的情况 (usedH > 0)
      */

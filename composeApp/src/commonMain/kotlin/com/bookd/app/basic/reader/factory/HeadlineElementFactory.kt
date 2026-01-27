@@ -1,7 +1,11 @@
 package com.bookd.app.basic.reader.factory
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -64,5 +68,12 @@ class HeadlineElementFactory(
             // 返回 0 高度，让 ReaderEngine 知道需要新页面
             MeasureResult.NEXT
         }
+    }
+
+    override fun draw(drawScope: DrawScope, command: RenderCommand.Heading) {
+        drawScope.drawText(
+            textLayoutResult = command.textLayout,
+            topLeft = Offset(0f, command.y.toFloat()),
+        )
     }
 }

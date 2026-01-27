@@ -72,7 +72,7 @@ class ContentElementFactory(
     /**
      * 图片测量工厂
      */
-    val imageElementFactory = ImageElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
+    val imageElementFactory = ImageElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density,)
 
     /**
      * 代码测量工厂
