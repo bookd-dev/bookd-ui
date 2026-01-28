@@ -1,7 +1,10 @@
 package com.bookd.app.basic.reader.factory
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
@@ -9,11 +12,14 @@ import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ParagraphInlineContentCollector
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
+import com.bookd.app.basic.reader.data.RenderInlineContentInfo
 import com.bookd.app.basic.reader.factory.internal.autoAppendFootnoteInlineContent
+import com.bookd.app.basic.reader.factory.internal.shouldAddTopSpacing
 import com.bookd.app.data.model.ContentElement
 
 class ParagraphElementFactory(
@@ -23,6 +29,8 @@ class ParagraphElementFactory(
     private val styleController: ReaderStyleController,
     private val density: Density,
 ) : IContentMeasureFactory<ContentElement.Paragraph, RenderCommand.Text> {
+
+    private val lineSpacing = styleController.sizeStyles.getLineSpacingPx(density)
 
     override fun measure(
         elements: List<ContentElement>,
@@ -37,18 +45,7 @@ class ParagraphElementFactory(
         val inlineContentCollector = ParagraphInlineContentCollector()
 
         // 1. 计算段落间间距（只在段落开头添加）
-        val paragraphSpacing = if (
-            shouldAddParagraphSpacing(
-                elements = elements,
-                elementIndex = elements.indexOf(element),
-                isStartOfElement = isStartElement,
-                usedHeight = usedHeight
-            ))
-        {
-            styleController.sizeStyles.getLineSpacingPx(density)
-        } else {
-            0
-        }
+        val paragraphSpacing = if (shouldAddTopSpacing(elements, element, usedHeight)) lineSpacing else 0
 
         // 2. 检查是否有足够空间
         if (paragraphSpacing > availableHeight) {
@@ -57,32 +54,7 @@ class ParagraphElementFactory(
         }
 
         // 3. 构建带样式的 AnnotatedString
-        val text = buildAnnotatedString {
-            // 应用段落样式（对齐、缩进）
-            // 只有当这是段落的开头时，才应用缩进。如果是跨页的后半段，不应该缩进！
-            val isParagraphStart = (startOffset == 0)
-            val pStyle = styleController.paragraphStyles.bodyParagraphStyle.let {
-                if (!isParagraphStart) it.copy(textIndent = TextIndent.None) else it
-            }
-
-            withStyle(pStyle) {
-                // 这里应该遍历 element.spans 来应用局部样式（如加粗）
-                // 简单起见，这里只 append 纯文本
-                element.spans.forEach { span ->
-                    withStyle(styleController.buildMeasureSpanStyle(span)) {
-                        append(span.text)
-                    }
-                    // 会自动判定是否要添加脚注占位
-                    autoAppendFootnoteInlineContent(
-                        styleController = styleController,
-                        density = density,
-                        inlineCollector = inlineContentCollector,
-                        elements = elements,
-                        span = span
-                    )
-                }
-            }
-        }
+        val text = element.toAnnotatedString(elements, startOffset, inlineContentCollector)
 
         // 4. 截取需要测量的部分
         val textToMeasure = if (startOffset > 0) text.subSequence(startOffset, text.length) else text
@@ -101,7 +73,7 @@ class ParagraphElementFactory(
             return MeasureResult(
                 measuredHeight = textHeight + paragraphSpacing,
                 isSplit = false,
-                nextOffset = 0
+                nextOffset = 0,
             )
         } else {
             // 切割逻辑 (同之前)
@@ -124,41 +96,116 @@ class ParagraphElementFactory(
     }
 
 
-    override fun draw(drawScope: DrawScope, command: RenderCommand.Text) {
+    override fun prerender(
+        elements: List<ContentElement>,
+        element: ContentElement.Paragraph,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): RenderCommand.Text {
+        var y = currentY
+        val inlineContentCollector = ParagraphInlineContentCollector()
+
+        if (shouldAddTopSpacing(elements, element, y)) {
+            y += lineSpacing
+        }
+
+        // 开始预渲染
+
+        val text = element.toAnnotatedString(elements, startOffset, inlineContentCollector)
+        // 截取需要测量的部分
+        val end = endOffset ?: text.lastIndex
+        val textToRender = text.subSequence(startOffset, end)
+
+        val textLayoutResult = textMeasurer.measure(
+            text = textToRender,
+            constraints = Constraints(maxWidth = contentWidth),
+            placeholders = inlineContentCollector.getAdjustPlaceholder(text, startOffset)
+        )
+
+        return RenderCommand.Text(
+            y = y,
+            textLayout = textLayoutResult,
+            inlineContent = inlineContentCollector.getAllInlineContent()
+        )
+    }
+
+    override fun draw(drawScope: DrawScope, imagePainters: Map<String, AsyncImagePainter>, command: RenderCommand.Text) {
+        // 1. 绘制文本（包括脚注占位符 \uFFFC）
         drawScope.drawText(
             textLayoutResult = command.textLayout,
             topLeft = Offset(0f, command.y.toFloat()),
         )
+        // 2. 绘制脚注图片占位符（如果有）
+        command.inlineContent?.forEach { (_, inlineInfo) ->
+            drawFootnoteInlineContent(
+                drawScope = drawScope,
+                imagePainters = imagePainters,
+                command = command,
+                info = inlineInfo
+            )
+        }
     }
 
     /**
-     * 是否应该添加段落间隔
+     * 绘制单个脚注占位符（图片）
      */
-    private fun shouldAddParagraphSpacing(
+    private fun drawFootnoteInlineContent(
+        drawScope: DrawScope,
+        imagePainters: Map<String, AsyncImagePainter>,
+        command: RenderCommand.Text,
+        info: RenderInlineContentInfo
+    ) {
+        // 获取占位符的位置和大小
+        val placeholder = command.textLayout.placeholderRects.getOrNull(info.index) ?: return
+
+        // 实际绘制脚注图片的逻辑
+        val painter = imagePainters[info.src]
+
+        if (painter != null) {
+            drawScope.withTransform({
+                translate(placeholder.left, placeholder.top)
+            }) {
+                // 利用 Painter 绘制，它内部处理了所有的 Crossfade 和状态
+                with(painter) {
+                    draw(Size(placeholder.width, placeholder.height))
+                }
+            }
+        }
+    }
+
+
+    private fun ContentElement.Paragraph.toAnnotatedString(
         elements: List<ContentElement>,
-        elementIndex: Int,
-        isStartOfElement: Boolean,
-        usedHeight: Int
-    ): Boolean {
-        val element = elements[elementIndex]
+        startOffset: Int,
+        inlineContentCollector: ParagraphInlineContentCollector
+    ): AnnotatedString {
+        return buildAnnotatedString {
+            // 应用段落样式（对齐、缩进）
+            // 只有当这是段落的开头时，才应用缩进。如果是跨页的后半段，不应该缩进！
+            val isParagraphStart = (startOffset == 0)
+            val pStyle = styleController.paragraphStyles.bodyParagraphStyle.let {
+                if (!isParagraphStart) it.copy(textIndent = TextIndent.None) else it
+            }
 
-        // 1. 只在段落开头添加
-        if (!isStartOfElement || element !is ContentElement.Paragraph) return false
-
-        // 2. 页面第一行（currentY == 0）不添加（避免顶部间距）
-        if (usedHeight == 0) return false
-
-        // 3. 标题后面跟段落时，通常不需要额外的段间距
-        if (elementIndex > 0 && elements[elementIndex - 1] is ContentElement.Heading) {
-            return false
+            withStyle(pStyle) {
+                // 这里应该遍历 element.spans 来应用局部样式（如加粗）
+                // 简单起见，这里只 append 纯文本
+                spans.forEach { span ->
+                    withStyle(styleController.buildMeasureSpanStyle(span)) {
+                        append(span.text)
+                    }
+                    // 会自动判定是否要添加脚注占位
+                    autoAppendFootnoteInlineContent(
+                        styleController = styleController,
+                        density = density,
+                        inlineCollector = inlineContentCollector,
+                        elements = elements,
+                        span = span
+                    )
+                }
+            }
         }
-
-        // 4. 被分割段落的后半部分在新页面也不添加
-        if (elementIndex > 0 && elements[elementIndex - 1] is ContentElement.Paragraph) {
-            // 简化判断：如果前一个元素是段落，则当前段落应该有间距
-            return true
-        }
-
-        return true
     }
 }

@@ -7,9 +7,14 @@ import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import com.bookd.app.basic.reader.controller.ParagraphInlineContentCollector
+import com.bookd.app.basic.reader.controller.ParagraphInlineContentInfo
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.TextSpan
+
+internal const val FOOTNOTE_ID_KEY = 1
+internal const val FOOTNOTE_SRC_KEY = 2
+internal const val FOOTNOTE_INDEX_KEY = 3
 
 /**
  * 脚注渲染，比较特殊不会继承 [com.bookd.app.basic.reader.factory.IContentMeasureFactory]
@@ -61,7 +66,7 @@ private fun AnnotatedString.Builder.appendFootnoteImageInlineContent(
 ) {
 
     // InlineContent 的唯一 key（必须稳定）
-    val inlineId = "footnote:${footnote.footnoteId}:${index}"
+    val inlineId = "footnote:${footnote.footnoteId}:${footnote.footnoteImage}:${index}"
 
     // 避免重复注册（同一页多次引用）
     if (!inlineCollector.contains(inlineId)) {
@@ -83,7 +88,16 @@ private fun AnnotatedString.Builder.appendFootnoteImageInlineContent(
         )
         // 文本插入后，再获取
         val end = start + length
-        inlineCollector[inlineId, start, end] = placeholder
+        inlineCollector[inlineId] = ParagraphInlineContentInfo(
+            id = inlineId,
+            src = footnote.footnoteImage,
+            index = index,
+            range = AnnotatedString.Range(
+                start = start,
+                end = end,
+                item = placeholder
+            )
+        )
     }
 }
 

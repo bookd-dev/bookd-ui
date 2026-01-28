@@ -3,6 +3,7 @@ package com.bookd.app.basic.reader.factory
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -28,15 +29,15 @@ interface IContentMeasureFactory <in T : ContentElement, R : RenderCommand> {
     ): MeasureResult
 
     /**
-     * 定位
+     * 预渲染
      *
      * @param element
      * @param index 渲染的index
      * @param startOffset
      */
-    fun layout(
+    fun prerender(
         elements: List<ContentElement>,
-        element: ContentElement,
+        element: T,
         index: Int,
         startOffset: Int,
         endOffset: Int?,
@@ -48,6 +49,7 @@ interface IContentMeasureFactory <in T : ContentElement, R : RenderCommand> {
      */
     fun draw(
         drawScope: DrawScope,
+        imagePainters: Map<String, AsyncImagePainter>,
         command: R,
     )
 }
@@ -109,7 +111,7 @@ class ContentElementFactory(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun getLayoutElementFactory(element: ContentElement): IContentMeasureFactory<ContentElement, RenderCommand>? {
+    fun getPrerenderElementFactory(element: ContentElement): IContentMeasureFactory<ContentElement, RenderCommand>? {
         return when(element) {
             is ContentElement.Heading -> headlineElementFactory
             is ContentElement.Paragraph -> paragraphElementFactory

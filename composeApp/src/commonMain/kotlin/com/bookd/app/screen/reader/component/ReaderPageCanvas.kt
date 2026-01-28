@@ -4,21 +4,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import com.bookd.app.basic.reader.ReaderEngine
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.basic.reader.data.RenderCommand
-import com.bookd.app.basic.reader.extension.getCommandHeight
+import com.bookd.app.basic.reader.extension.rememberImagePainterMap
 import com.bookd.app.data.model.ContentElement
 
 
@@ -31,6 +22,7 @@ import com.bookd.app.data.model.ContentElement
  */
 @Composable
 fun ReaderPageCanvas(
+    renderCommands: List<RenderCommand>,
     pageAnchor: PageAnchor,
     nextPageAnchor: PageAnchor?,
     elements: List<ContentElement>,
@@ -40,11 +32,8 @@ fun ReaderPageCanvas(
     onImageClick: (String, String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 1. 准备绘制指令（测量阶段）
-    // 使用 remember 缓存，只在 pageAnchor 变化时重新计算
-    val renderCommands = remember(pageAnchor, nextPageAnchor, elements) {
-        readerEngine.prepareRenderCommands(pageAnchor, nextPageAnchor, elements)
-    }
+    // 在 Composable 层预创建 Painter (这只是引用，不产生大对象)
+    val imagePainters = elements.rememberImagePainterMap()
 
     // 2. 绘制阶段（使用 Canvas）
     Canvas(
@@ -60,6 +49,7 @@ fun ReaderPageCanvas(
                 readerEngine.draw(
                     drawScope = this,
                     renderCommand = command,
+                    imagePainters = imagePainters
                 )
             }
         }

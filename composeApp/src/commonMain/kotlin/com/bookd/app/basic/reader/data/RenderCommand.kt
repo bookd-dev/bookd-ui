@@ -27,7 +27,6 @@ sealed class RenderCommand {
     data class Text(
         override val y: Int,
         val textLayout: TextLayoutResult, // 已测量的文本布局
-        val spanStyles: List<RenderSpanStyleInfo>? = null, // 可选：用于链接/脚注点击
         val inlineContent: Map<String, RenderInlineContentInfo>? = null // 脚注占位符
     ) : RenderCommand()
 
@@ -115,5 +114,7 @@ data class RenderSpanStyleInfo(
 data class RenderInlineContentInfo(
     val id: String,
     val placeholder: Placeholder,
-    val size: IntSize
+    val size: IntSize,
+    val index: Int,
+    val src: String? = null,
 )

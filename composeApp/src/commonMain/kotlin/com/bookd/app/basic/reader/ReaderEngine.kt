@@ -1,10 +1,10 @@
 package com.bookd.app.basic.reader
 
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.PageAnchor
@@ -15,21 +15,16 @@ import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
 
 class ReaderEngine(
-    val textMeasurer: TextMeasurer,
-    val density: Density,
-    val constraints: Constraints, // 屏幕实际宽高
-    val settings: ReaderSettings,
+    private val textMeasurer: TextMeasurer,
+    private val density: Density,
+    private val constraints: Constraints, // 屏幕实际宽高
+    private val settings: ReaderSettings,
 ){
     val styleController: ReaderStyleController = ReaderStyleController(settings)
 
     // 计算内容区域的有效宽高
     private val contentWidth: Int = styleController.sizeStyles.getContentWidth(constraints.maxWidth, density)
     private val contentHeight: Int = styleController.sizeStyles.getContentHeight(constraints.maxHeight, density)
-
-    // 3. 辅助：计算段间距 (px)
-    // 这是一个坑：TextMeasurer 不直接支持 paragraphSpacing。
-    // 我们需要在 measure 循环中手动添加这部分高度。
-    private val spacingPx: Int = styleController.sizeStyles.getLineSpacingPx(density)
 
     private val factory = ContentElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
@@ -82,6 +77,7 @@ class ReaderEngine(
         return anchors
     }
 
+
     /**
      * 准备当前页的渲染指令列表（测量阶段）
      *
@@ -127,9 +123,10 @@ class ReaderEngine(
         return commands
     }
 
-    fun draw(drawScope: DrawScope, renderCommand: RenderCommand) {
+
+    fun draw(drawScope: DrawScope, imagePainters: Map<String, AsyncImagePainter>, renderCommand: RenderCommand) {
         val factory = factory.getDrawElementFactory(renderCommand)
-        factory?.draw(drawScope, renderCommand)
+        factory?.draw(drawScope, imagePainters, renderCommand)
     }
 
     private fun measureElement(
@@ -162,8 +159,8 @@ class ReaderEngine(
         endOffset: Int?,
         currentY: Int
     ): RenderCommand? {
-        val factory = factory.getLayoutElementFactory(element)
-        return factory?.layout(
+        val factory = factory.getPrerenderElementFactory(element)
+        return factory?.prerender(
             elements = elements,
             element = element,
             index = index,
