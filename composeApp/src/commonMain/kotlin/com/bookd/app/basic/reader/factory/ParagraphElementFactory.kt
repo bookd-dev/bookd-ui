@@ -115,7 +115,7 @@ class ParagraphElementFactory(
 
         val text = element.toAnnotatedString(elements, startOffset, inlineContentCollector)
         // 截取需要测量的部分
-        val end = endOffset ?: text.lastIndex
+        val end = endOffset ?: text.length
         val textToRender = text.subSequence(startOffset, end)
 
         val textLayoutResult = textMeasurer.measure(

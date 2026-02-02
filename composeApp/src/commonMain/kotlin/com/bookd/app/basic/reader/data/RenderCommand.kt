@@ -114,7 +114,6 @@ data class RenderSpanStyleInfo(
 data class RenderInlineContentInfo(
     val id: String,
     val placeholder: Placeholder,
-    val size: IntSize,
     val index: Int,
     val src: String? = null,
 )

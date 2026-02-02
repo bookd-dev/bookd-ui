@@ -66,7 +66,6 @@ class ParagraphInlineContentCollector {
             RenderInlineContentInfo(
                 id = key,
                 placeholder = value.range.item,
-                size = IntSize(value.range.start, value.range.end),
                 src = value.src,
                 index = value.index
             )
