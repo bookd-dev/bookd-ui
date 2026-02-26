@@ -91,10 +91,12 @@ class CodeElementFactory(
         currentY: Int
     ): RenderCommand.Code {
         var y = currentY
-
-        if (shouldAddTopSpacing(elements, element, y)) {
-            y += styleController.sizeStyles.getLineSpacingPx(density)
+        val topSpacing = if (shouldAddTopSpacing(elements, element, y)) {
+            styleController.sizeStyles.getLineSpacingPx(density)
+        } else {
+            0
         }
+        y += topSpacing
 
         val languageLayout = if (!element.language.isNullOrEmpty()) {
             textMeasurer.measure(
@@ -114,7 +116,7 @@ class CodeElementFactory(
 
         val languageSpacing = if (languageLayout != null) spacing else 0
         val verticalPadding = spacing * 2
-        val totalHeight = borderWidth + verticalPadding +
+        val totalHeight = topSpacing + borderWidth + verticalPadding +
             (languageLayout?.size?.height ?: 0) + languageSpacing +
             codeTextLayout.size.height
 
