@@ -1,10 +1,14 @@
 package com.bookd.app.basic.reader.factory
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -96,5 +100,64 @@ class QuoteElementFactory(
                 )
             }
         }
+    }
+
+    override fun prerender(
+        elements: List<ContentElement>,
+        element: ContentElement.Quote,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): RenderCommand.Quote {
+        var y = currentY
+        val topSpacing = if (shouldAddTopSpacing(elements, element, y)) quoteVerticalPadding else 0
+        y += topSpacing
+
+        val text = buildAnnotatedString {
+            withStyle(styleController.paragraphStyles.bodyParagraphStyle) {
+                element.spans.forEach { span ->
+                    withStyle(styleController.buildMeasureSpanStyle(span, styleController.textStyles.quoteTextStyle)) {
+                        append(span.text)
+                    }
+                }
+            }
+        }
+
+        val start = startOffset
+        val end = endOffset ?: text.length
+        val textToRender = text.subSequence(start, end)
+
+        val result = textMeasurer.measure(
+            text = textToRender,
+            constraints = Constraints(maxWidth = contentWidth - quoteLeftBarWidth - quoteLeftBarSpacing)
+        )
+
+        val totalHeight = topSpacing + result.size.height + quoteVerticalPadding
+
+        return RenderCommand.Quote(
+            y = y,
+            textLayout = result,
+            height = totalHeight
+        )
+    }
+
+    override fun draw(
+        drawScope: DrawScope,
+        imagePainters: Map<String, AsyncImagePainter>,
+        command: RenderCommand.Quote
+    ) {
+        val barTop = command.y.toFloat()
+        val barHeight = command.textLayout.size.height + quoteVerticalPadding
+        drawScope.drawRect(
+            color = styleController.colorStyles.quoteBar,
+            topLeft = Offset(0f, barTop),
+            size = Size(quoteLeftBarWidth.toFloat(), barHeight.toFloat())
+        )
+
+        drawScope.drawText(
+            textLayoutResult = command.textLayout,
+            topLeft = Offset((quoteLeftBarWidth + quoteLeftBarSpacing).toFloat(), command.y.toFloat())
+        )
     }
 }

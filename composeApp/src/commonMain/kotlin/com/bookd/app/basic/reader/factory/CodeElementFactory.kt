@@ -1,8 +1,14 @@
 package com.bookd.app.basic.reader.factory
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -59,7 +65,7 @@ class CodeElementFactory(
 
         val codeTextHeight = calculateCodeTextHeight(element.text)
 
-        val borderWidth = 2
+        val borderWidth = borderWidth
         val languageSpacing = if (!element.language.isNullOrEmpty()) spacing else 0
         val verticalPadding = spacing * 2
 
@@ -76,13 +82,89 @@ class CodeElementFactory(
         }
     }
 
+    override fun prerender(
+        elements: List<ContentElement>,
+        element: ContentElement.Code,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): RenderCommand.Code {
+        var y = currentY
+
+        if (shouldAddTopSpacing(elements, element, y)) {
+            y += styleController.sizeStyles.getLineSpacingPx(density)
+        }
+
+        val languageLayout = if (!element.language.isNullOrEmpty()) {
+            textMeasurer.measure(
+                text = element.language.uppercase(),
+                style = styleController.textStyles.codeTextStyle,
+                constraints = Constraints(maxWidth = contentWidth - spacing * 2)
+            )
+        } else {
+            null
+        }
+
+        val codeTextLayout = textMeasurer.measure(
+            text = element.text,
+            style = styleController.textStyles.codeTextStyle,
+            constraints = Constraints(maxWidth = contentWidth - spacing * 2)
+        )
+
+        val languageSpacing = if (languageLayout != null) spacing else 0
+        val verticalPadding = spacing * 2
+        val totalHeight = borderWidth + verticalPadding +
+            (languageLayout?.size?.height ?: 0) + languageSpacing +
+            codeTextLayout.size.height
+
+        return RenderCommand.Code(
+            y = y,
+            textLayout = codeTextLayout,
+            languageLayout = languageLayout,
+            height = totalHeight
+        )
+    }
+
+    override fun draw(
+        drawScope: DrawScope,
+        imagePainters: Map<String, AsyncImagePainter>,
+        command: RenderCommand.Code
+    ) {
+        val containerTop = command.y.toFloat()
+
+        drawScope.drawRect(
+            color = styleController.colorStyles.codeBlockBackground,
+            topLeft = Offset(0f, containerTop),
+            size = Size(contentWidth.toFloat(), command.height.toFloat())
+        )
+        drawScope.drawRect(
+            color = styleController.colorStyles.codeBlockBorder,
+            topLeft = Offset(0f, containerTop),
+            size = Size(contentWidth.toFloat(), command.height.toFloat()),
+            style = Stroke(width = borderWidth.toFloat())
+        )
+
+        var textTop = containerTop + spacing
+        if (command.languageLayout != null) {
+            drawScope.drawText(
+                textLayoutResult = command.languageLayout,
+                topLeft = Offset(spacing.toFloat(), textTop)
+            )
+            textTop += command.languageLayout.size.height + spacing
+        }
+
+        drawScope.drawText(
+            textLayoutResult = command.textLayout,
+            topLeft = Offset(spacing.toFloat(), textTop)
+        )
+    }
+
     private fun calculateLanguageHeight(language: String): Int {
         val textLayoutResult = textMeasurer.measure(
             text = language,
             style = styleController.textStyles.codeTextStyle,
-            constraints = Constraints(
-                maxWidth = contentWidth
-            )
+            constraints = Constraints(maxWidth = contentWidth - spacing * 2)
         )
         return textLayoutResult.size.height
     }

@@ -1,7 +1,6 @@
 package com.bookd.app.basic.reader.factory
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
@@ -9,6 +8,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -70,7 +70,51 @@ class HeadlineElementFactory(
         }
     }
 
-    override fun draw(drawScope: DrawScope, command: RenderCommand.Heading) {
+    override fun prerender(
+        elements: List<ContentElement>,
+        element: ContentElement.Heading,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): RenderCommand.Heading {
+        var y = currentY
+        val topSpacing = if (shouldAddTopSpacing(elements, element, y)) {
+            styleController.sizeStyles.getHeadingTopSpacing(element.level)
+        } else {
+            0
+        }
+        val bottomSpacing = styleController.sizeStyles.getHeadingBottomSpacing(element.level)
+        y += topSpacing
+
+        val text = buildAnnotatedString {
+            withStyle(styleController.paragraphStyles.headlineParagraphStyle) {
+                withStyle(styleController.textStyles.getHeaderTextStyle(element.level).toSpanStyle()) {
+                    append(element.text)
+                }
+            }
+        }
+
+        val textResult = textMeasurer.measure(
+            text = text,
+            constraints = Constraints(maxWidth = contentWidth)
+        )
+
+        val totalHeight = topSpacing + textResult.size.height + bottomSpacing
+
+        return RenderCommand.Heading(
+            y = y,
+            level = element.level,
+            textLayout = textResult,
+            height = totalHeight
+        )
+    }
+
+    override fun draw(
+        drawScope: DrawScope,
+        imagePainters: Map<String, AsyncImagePainter>,
+        command: RenderCommand.Heading
+    ) {
         drawScope.drawText(
             textLayoutResult = command.textLayout,
             topLeft = Offset(0f, command.y.toFloat()),

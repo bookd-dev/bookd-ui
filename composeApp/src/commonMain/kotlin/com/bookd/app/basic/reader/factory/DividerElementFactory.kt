@@ -1,7 +1,10 @@
 package com.bookd.app.basic.reader.factory
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -39,5 +42,38 @@ class DividerElementFactory(
         } else {
             MeasureResult.NEXT
         }
+    }
+
+    override fun prerender(
+        elements: List<ContentElement>,
+        element: ContentElement.Divider,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): RenderCommand.Divider {
+        var y = currentY
+        val topSpacing = if (shouldAddTopSpacing(elements, element, y)) spacing else 0
+        y += topSpacing
+
+        val totalHeight = topSpacing + borderWidth
+        return RenderCommand.Divider(
+            y = y,
+            height = totalHeight
+        )
+    }
+
+    override fun draw(
+        drawScope: DrawScope,
+        imagePainters: Map<String, AsyncImagePainter>,
+        command: RenderCommand.Divider
+    ) {
+        val y = command.y.toFloat() + borderWidth / 2f
+        drawScope.drawLine(
+            color = styleController.colorStyles.dividerLine,
+            start = Offset(0f, y),
+            end = Offset(contentWidth.toFloat(), y),
+            strokeWidth = borderWidth.toFloat()
+        )
     }
 }

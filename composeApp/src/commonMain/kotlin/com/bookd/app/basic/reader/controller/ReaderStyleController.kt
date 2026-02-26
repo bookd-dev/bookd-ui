@@ -6,6 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.bookd.app.basic.reader.controller.styles.ReaderParagraphStyles
+import com.bookd.app.basic.reader.controller.styles.ReaderColorStyles
 import com.bookd.app.basic.reader.controller.styles.ReaderSizeStyles
 import com.bookd.app.basic.reader.controller.styles.ReaderTextStyles
 import com.bookd.app.data.model.ReaderSettings
@@ -36,6 +37,8 @@ class ReaderStyleController(
      * 阅读器所需的paragraphStyle集合
      */
     val paragraphStyles: ReaderParagraphStyles = ReaderParagraphStyles(settings)
+
+    val colorStyles: ReaderColorStyles = ReaderColorStyles()
 
     /**
      * 构建span样式文本

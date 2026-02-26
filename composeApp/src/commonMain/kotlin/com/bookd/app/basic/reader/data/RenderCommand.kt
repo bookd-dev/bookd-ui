@@ -18,7 +18,8 @@ sealed class RenderCommand {
     data class Heading(
         override val y: Int,
         val level: Int,
-        val textLayout: TextLayoutResult
+        val textLayout: TextLayoutResult,
+        val height: Int
     ) : RenderCommand()
 
     /**
@@ -48,7 +49,8 @@ sealed class RenderCommand {
      */
     data class Quote(
         override val y: Int,
-        val textLayout: TextLayoutResult
+        val textLayout: TextLayoutResult,
+        val height: Int
     ) : RenderCommand()
 
     /**
@@ -57,6 +59,8 @@ sealed class RenderCommand {
     data class Code(
         override val y: Int,
         val textLayout: TextLayoutResult,
+        val languageLayout: TextLayoutResult? = null,
+        val height: Int,
     ) : RenderCommand()
 
 
@@ -76,6 +80,7 @@ sealed class RenderCommand {
     data class ListBlock(
         override val y: Int,
         val items: List<ListItem>,
+        val height: Int,
     ) : RenderCommand()
 
 

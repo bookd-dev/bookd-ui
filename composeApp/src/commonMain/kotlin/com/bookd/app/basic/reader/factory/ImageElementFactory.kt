@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -79,7 +80,80 @@ class ImageElementFactory(
         }
     }
 
-    override fun draw(drawScope: DrawScope, command: RenderCommand.Image) {
+    override fun prerender(
+        elements: List<ContentElement>,
+        element: ContentElement.Image,
+        index: Int,
+        startOffset: Int,
+        endOffset: Int?,
+        currentY: Int
+    ): RenderCommand.Image {
+        var y = currentY
+
+        if (shouldAddTopSpacing(elements, element, y)) {
+            y += lineSpacing
+        }
+
+        val altTextLayout = if (!element.alt.isNullOrEmpty()) {
+            textMeasurer.measure(
+                text = element.alt,
+                style = styleController.textStyles.imageAlternateTextStyle,
+                constraints = Constraints(maxWidth = contentWidth)
+            )
+        } else {
+            null
+        }
+
+        val altTextHeight = altTextLayout?.size?.height ?: 0
+        val remainingHeight = contentHeight - y - altTextHeight - imageToAltSpacing
+        val availableHeight = if (remainingHeight > 0) remainingHeight else 1
+
+        val (imageWidth, imageHeight, aspectRatio) = getImageInfo(element, availableHeight)
+
+        val (finalWidth, finalHeight) = if (currentY > 0) {
+            if (imageHeight <= remainingHeight) {
+                imageWidth to imageHeight
+            } else {
+                val scaledWidth = (availableHeight * aspectRatio).toInt()
+                if (scaledWidth >= imageMinScaleWidth) {
+                    scaledWidth to availableHeight
+                } else {
+                    imageWidth to imageHeight
+                }
+            }
+        } else {
+            if (imageHeight <= remainingHeight) {
+                if (imageHeight <= contentWidth) {
+                    imageWidth to imageHeight
+                } else {
+                    contentWidth to (contentWidth / aspectRatio).toInt()
+                }
+            } else {
+                val scaledWidth = (availableHeight * aspectRatio).toInt()
+                if (scaledWidth <= contentWidth) {
+                    scaledWidth to availableHeight
+                } else {
+                    contentWidth to (contentWidth / aspectRatio).toInt()
+                }
+            }
+        }
+
+        return RenderCommand.Image(
+            y = y,
+            src = element.src,
+            width = finalWidth,
+            height = finalHeight,
+            imageBitmap = null,
+            altText = element.alt,
+            altTextLayout = altTextLayout
+        )
+    }
+
+    override fun draw(
+        drawScope: DrawScope,
+        imagePainters: Map<String, AsyncImagePainter>,
+        command: RenderCommand.Image
+    ) {
         var y = command.y.toFloat()
 
         // 绘制图片
