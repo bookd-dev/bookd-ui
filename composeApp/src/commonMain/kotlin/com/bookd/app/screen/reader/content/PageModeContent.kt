@@ -5,12 +5,10 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -27,35 +25,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.bookd.app.basic.reader.ReaderEngine
+import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
+import com.bookd.app.screen.reader.component.ReaderPageCanvas
 import kotlinx.coroutines.launch
 
-/**
- * 翻页模式内容组件（多章节版本）
- * 
- * 支持多章节无缝滑动，将相邻章节合并到同一个 HorizontalPager 中。
- * 
- * 特性：
- * - 预加载前后章节，实现无缝跨章节滑动
- * - 使用 SubcomposeLayout 实现智能分页
- * - 三区域点击：左(上一页)、中(菜单)、右(下一页)
- * 
- * @param chapters 相邻章节内容 {章节索引 -> 章节内容}
- * @param currentChapterIndex 当前章节索引
- * @param pagerSlideDirection 滑动方向：1=向前，-1=向后，0=无
- * @param settings 阅读器设置
- * @param onChapterChanged 当滑动到新章节时的回调 (chapterIndex, direction)
- */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PageModeContent(
@@ -72,7 +55,6 @@ fun PageModeContent(
     onChapterChanged: (chapterIndex: Int, direction: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 如果没有章节内容，显示空状态
     if (chapters.isEmpty()) {
         Box(
             modifier = modifier.fillMaxSize(),
@@ -86,453 +68,182 @@ fun PageModeContent(
         }
         return
     }
-    
-    // 收集所有章节中的脚注
-    val allFootnotes = remember(chapters) {
-        chapters.values.flatMap { chapter ->
-            chapter.elements.filterIsInstance<ContentElement.Footnote>()
-        }.associateBy { it.footnoteId }
-    }
-    
-    // 合并所有章节的元素（按章节索引排序）
+
     val sortedChapterIndices = remember(chapters.keys) { chapters.keys.sorted() }
-    
-    // 用于存储分页结果
-    var pages by remember(chapters.keys, currentChapterIndex) { 
-        mutableStateOf<List<ReaderPage>>(emptyList()) 
-    }
-    
-    // 当前章节在 pages 中的起始页索引
-    var currentChapterStartPageIndex by remember { mutableIntStateOf(0) }
-    
-    SubcomposeLayout(modifier.fillMaxSize()) { constraints ->
-        val availableWidth = constraints.maxWidth - (settings.marginHorizontal * 2).dp.roundToPx()
-        val availableHeight = constraints.maxHeight - (settings.marginVertical * 2).dp.roundToPx()
-        val paragraphSpacingPx = settings.paragraphSpacing.dp.roundToPx()
-        
-        // 合并所有章节的元素并测量高度
-        val allChapterElements = mutableListOf<ChapterElement>()
-        val chapterTitleHeights = mutableMapOf<Int, Int>()
-        
-        for (chapterIndex in sortedChapterIndices) {
-            val chapter = chapters[chapterIndex] ?: continue
-            
-            // 测量章节标题高度
-            if (chapter.title != null) {
-                val titlePlaceable = subcompose("title_$chapterIndex") {
-                    ChapterTitleView(title = chapter.title, settings = settings)
-                }.firstOrNull()?.measure(
-                    Constraints(
-                        minWidth = availableWidth,
-                        maxWidth = availableWidth,
-                        minHeight = 0,
-                        maxHeight = Constraints.Infinity
-                    )
-                )
-                chapterTitleHeights[chapterIndex] = (titlePlaceable?.height ?: 0) + paragraphSpacingPx
+
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val maxWidth = constraints.maxWidth
+        val maxHeight = constraints.maxHeight
+        val textMeasurer = rememberTextMeasurer()
+        val density = LocalDensity.current
+
+        val chapterPageDataList = sortedChapterIndices.mapNotNull { chapterIndex ->
+            val chapter = chapters[chapterIndex] ?: return@mapNotNull null
+            val elements = remember(chapterIndex, chapter, settings) {
+                buildList {
+                    chapter.title?.let { add(ContentElement.Heading(level = 1, text = it)) }
+                    addAll(chapter.elements)
+                }
             }
-            
-            // 测量每个元素的高度
-            chapter.elements.forEachIndexed { elementIndex, element ->
-                val placeable = subcompose("element_${chapterIndex}_$elementIndex") {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        ContentElementView(
-                            element = element,
-                            settings = settings,
-                            onImageClick = { _, _ -> },
-                            onFootnoteClick = { },
-                            onLinkClick = { }
-                        )
-                    }
-                }.firstOrNull()?.measure(
-                    Constraints(
-                        minWidth = availableWidth,
-                        maxWidth = availableWidth,
-                        minHeight = 0,
-                        maxHeight = Constraints.Infinity
-                    )
-                )
-                
-                allChapterElements.add(
-                    ChapterElement(
-                        chapterIndex = chapterIndex,
-                        elementIndex = elementIndex,
-                        element = element,
-                        height = placeable?.height ?: 0,
-                        isFirstOfChapter = elementIndex == 0,
-                        chapterTitle = if (elementIndex == 0) chapter.title else null
-                    )
-                )
+            val engine = remember(chapterIndex, elements, settings, maxWidth, maxHeight, density) {
+                ReaderEngine(textMeasurer, density, Constraints.fixed(maxWidth, maxHeight), settings)
+            }
+            val anchors = remember(engine, elements) {
+                val result = engine.calculatePageAnchors(elements)
+                println("[PageModeContent] chapter=$chapterIndex maxWidth=$maxWidth maxHeight=$maxHeight elements=${elements.size} pages=${result.size}")
+                result
+            }
+            ChapterPageData(
+                chapterIndex = chapterIndex,
+                elements = elements,
+                engine = engine,
+                anchors = anchors,
+                pageIndexInChapterOffset = 0
+            )
+        }
+
+        val chapterPageDataWithOffset = remember(chapterPageDataList) {
+            var offset = 0
+            chapterPageDataList.map { data ->
+                val updated = data.copy(pageIndexInChapterOffset = offset)
+                offset += data.anchors.size
+                updated
             }
         }
-        
-        // 分页算法：遍历所有元素，按页面高度分组
-        val calculatedPages = mutableListOf<ReaderPage>()
-        var currentPageElements = mutableListOf<ChapterElement>()
-        var currentPageHeight = 0
-        var currentPageChapterIndex = sortedChapterIndices.firstOrNull() ?: 0
-        var pageIndexInCurrentChapter = 0
-        var lastChapterIndex = currentPageChapterIndex
-        
-        // 记录每个章节的起始页索引
-        val chapterStartPages = mutableMapOf<Int, Int>()
-        
-        for (element in allChapterElements) {
-            // 检查是否进入新章节
-            if (element.chapterIndex != lastChapterIndex) {
-                // 保存当前页（如果有内容）
-                if (currentPageElements.isNotEmpty()) {
-                    val firstElement = currentPageElements.first()
-                    calculatedPages.add(
-                        ReaderPage(
-                            chapterIndex = currentPageChapterIndex,
-                            pageIndexInChapter = pageIndexInCurrentChapter,
-                            elements = currentPageElements.toList(),
-                            showChapterTitle = firstElement.isFirstOfChapter,
-                            chapterTitle = firstElement.chapterTitle
-                        )
+
+        val allPages = remember(chapterPageDataWithOffset) {
+            chapterPageDataWithOffset.flatMap { chapterData ->
+                chapterData.anchors.mapIndexed { index, anchor ->
+                    PageInfo(
+                        chapterIndex = chapterData.chapterIndex,
+                        pageIndexInChapter = index,
+                        anchor = anchor,
+                        nextAnchor = chapterData.anchors.getOrNull(index + 1),
+                        elements = chapterData.elements,
+                        engine = chapterData.engine
                     )
-                    currentPageElements = mutableListOf()
-                    pageIndexInCurrentChapter++
                 }
-                
-                // 重置为新章节
-                currentPageChapterIndex = element.chapterIndex
-                pageIndexInCurrentChapter = 0
-                lastChapterIndex = element.chapterIndex
-                
-                // 新章节第一页需要预留标题空间
-                currentPageHeight = chapterTitleHeights[element.chapterIndex] ?: 0
-                
-                // 记录章节起始页
-                chapterStartPages[element.chapterIndex] = calculatedPages.size
             }
-            
-            val elementHeight = element.height + paragraphSpacingPx
-            
-            if (currentPageElements.isEmpty()) {
-                // 记录章节起始页（如果还没记录）
-                if (!chapterStartPages.containsKey(element.chapterIndex)) {
-                    chapterStartPages[element.chapterIndex] = calculatedPages.size
+        }
+
+        val initialPageIndex = remember(chapterPageDataWithOffset, currentChapterIndex) {
+            chapterPageDataWithOffset.firstOrNull { it.chapterIndex == currentChapterIndex }?.pageIndexInChapterOffset ?: 0
+        }
+
+        val pagerState = rememberPagerState(
+            initialPage = initialPageIndex.coerceIn(0, (allPages.size - 1).coerceAtLeast(0))
+        ) { allPages.size }
+
+        val coroutineScope = rememberCoroutineScope()
+        var lastReportedChapterIndex by remember { mutableIntStateOf(currentChapterIndex) }
+
+        LaunchedEffect(pagerState.currentPage, allPages) {
+            val currentPage = allPages.getOrNull(pagerState.currentPage)
+            if (currentPage != null) {
+                onPageChanged(currentPage.pageIndexInChapter)
+                if (currentPage.chapterIndex != lastReportedChapterIndex) {
+                    val direction = if (currentPage.chapterIndex > lastReportedChapterIndex) 1 else -1
+                    lastReportedChapterIndex = currentPage.chapterIndex
+                    onChapterChanged(currentPage.chapterIndex, direction)
                 }
-                
-                // 第一个元素必须放入当前页
-                currentPageElements.add(element)
-                currentPageHeight += elementHeight
-                currentPageChapterIndex = element.chapterIndex
-            } else if (currentPageHeight + elementHeight <= availableHeight) {
-                // 可以放入当前页
-                currentPageElements.add(element)
-                currentPageHeight += elementHeight
+            }
+        }
+
+        LaunchedEffect(currentChapterIndex, pagerSlideDirection, allPages) {
+            val targetPageIndex = if (pagerSlideDirection == -1) {
+                allPages.indexOfLast { it.chapterIndex == currentChapterIndex }
             } else {
-                // 需要新建一页
-                val firstElement = currentPageElements.first()
-                calculatedPages.add(
-                    ReaderPage(
-                        chapterIndex = currentPageChapterIndex,
-                        pageIndexInChapter = pageIndexInCurrentChapter,
-                        elements = currentPageElements.toList(),
-                        showChapterTitle = firstElement.isFirstOfChapter,
-                        chapterTitle = firstElement.chapterTitle
-                    )
-                )
-                
-                // 检查新元素是否属于新章节
-                if (element.chapterIndex != currentPageChapterIndex) {
-                    currentPageChapterIndex = element.chapterIndex
-                    pageIndexInCurrentChapter = 0
-                    currentPageHeight = chapterTitleHeights[element.chapterIndex] ?: 0
-                    chapterStartPages[element.chapterIndex] = calculatedPages.size
-                } else {
-                    pageIndexInCurrentChapter++
-                    currentPageHeight = 0
-                }
-                
-                currentPageElements = mutableListOf(element)
-                currentPageHeight += elementHeight
+                allPages.indexOfFirst { it.chapterIndex == currentChapterIndex }
             }
-        }
-        
-        // 添加最后一页
-        if (currentPageElements.isNotEmpty()) {
-            val firstElement = currentPageElements.first()
-            calculatedPages.add(
-                ReaderPage(
-                    chapterIndex = currentPageChapterIndex,
-                    pageIndexInChapter = pageIndexInCurrentChapter,
-                    elements = currentPageElements.toList(),
-                    showChapterTitle = firstElement.isFirstOfChapter,
-                    chapterTitle = firstElement.chapterTitle
-                )
-            )
-        }
-        
-        // 确保至少有一页
-        if (calculatedPages.isEmpty()) {
-            calculatedPages.add(
-                ReaderPage(
-                    chapterIndex = currentChapterIndex,
-                    pageIndexInChapter = 0,
-                    elements = emptyList(),
-                    showChapterTitle = false,
-                    chapterTitle = null
-                )
-            )
-        }
-        
-        pages = calculatedPages
-        currentChapterStartPageIndex = chapterStartPages[currentChapterIndex] ?: 0
-        
-        // 渲染实际的 Pager
-        val pagerPlaceable = subcompose("pager") {
-            MultiChapterPagerContent(
-                pages = pages,
-                initialPageIndex = currentChapterStartPageIndex,
-                currentChapterIndex = currentChapterIndex,
-                pagerSlideDirection = pagerSlideDirection,
-                settings = settings,
-                footnotes = allFootnotes,
-                onToggleMenu = onToggleMenu,
-                onImageClick = onImageClick,
-                onFootnoteClick = onFootnoteClick,
-                onLinkClick = onLinkClick,
-                onPageChanged = onPageChanged,
-                onChapterChanged = onChapterChanged
-            )
-        }.firstOrNull()?.measure(constraints)
-        
-        layout(constraints.maxWidth, constraints.maxHeight) {
-            pagerPlaceable?.placeRelative(0, 0)
-        }
-    }
-}
-
-/**
- * 章节元素（用于分页计算）
- */
-private data class ChapterElement(
-    val chapterIndex: Int,
-    val elementIndex: Int,
-    val element: ContentElement,
-    val height: Int,
-    val isFirstOfChapter: Boolean,
-    val chapterTitle: String?
-)
-
-/**
- * 分页后的页面
- */
-private data class ReaderPage(
-    val chapterIndex: Int,
-    val pageIndexInChapter: Int,
-    val elements: List<ChapterElement>,
-    val showChapterTitle: Boolean,
-    val chapterTitle: String?
-)
-
-/**
- * 章节标题视图
- */
-@Composable
-private fun ChapterTitleView(
-    title: String,
-    settings: ReaderSettings
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = title,
-            modifier = Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontSize = (settings.fontSize + 6).sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = (settings.fontSize + 6).sp * settings.lineHeight
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Start
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-/**
- * 多章节 Pager 内容
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun MultiChapterPagerContent(
-    pages: List<ReaderPage>,
-    initialPageIndex: Int,
-    currentChapterIndex: Int,
-    pagerSlideDirection: Int,
-    settings: ReaderSettings,
-    footnotes: Map<String, ContentElement.Footnote>,
-    onToggleMenu: () -> Unit,
-    onImageClick: (url: String, alt: String?) -> Unit,
-    onFootnoteClick: (ContentElement.Footnote) -> Unit,
-    onLinkClick: (url: String) -> Unit,
-    onPageChanged: (pageIndex: Int) -> Unit,
-    onChapterChanged: (chapterIndex: Int, direction: Int) -> Unit
-) {
-    val coroutineScope = rememberCoroutineScope()
-    
-    // 创建 PagerState
-    val pagerState = rememberPagerState(
-        initialPage = initialPageIndex.coerceIn(0, (pages.size - 1).coerceAtLeast(0))
-    ) { pages.size }
-    
-    // 记录上一次报告的章节索引，避免重复触发
-    var lastReportedChapterIndex by remember { mutableIntStateOf(currentChapterIndex) }
-    
-    // 监听页面变化，检测章节切换
-    LaunchedEffect(pagerState.currentPage, pages) {
-        val currentPage = pages.getOrNull(pagerState.currentPage)
-        if (currentPage != null) {
-            // 报告页面变化（章节内页码）
-            onPageChanged(currentPage.pageIndexInChapter)
-            
-            // 检测章节切换（仅当用户滑动导致的切换）
-            if (currentPage.chapterIndex != lastReportedChapterIndex) {
-                val direction = if (currentPage.chapterIndex > lastReportedChapterIndex) 1 else -1
-                lastReportedChapterIndex = currentPage.chapterIndex
-                onChapterChanged(currentPage.chapterIndex, direction)
+            if (targetPageIndex >= 0 && targetPageIndex != pagerState.currentPage) {
+                pagerState.scrollToPage(targetPageIndex)
             }
+            lastReportedChapterIndex = currentChapterIndex
         }
-    }
-    
-    // 当 currentChapterIndex 变化时（adjacentChapters 重新加载后），根据滑动方向跳转到对应位置
-    // pagerSlideDirection: 1=向前（下一章，跳第一页），-1=向后（上一章，跳最后一页），0=目录跳转（跳第一页）
-    LaunchedEffect(currentChapterIndex, pagerSlideDirection) {
-        val targetPageIndex = if (pagerSlideDirection == -1) {
-            // 向后滑动（从章节3到章节2），跳到章节2的最后一页
-            pages.indexOfLast { it.chapterIndex == currentChapterIndex }
-        } else {
-            // 向前滑动或目录跳转，跳到章节第一页
-            pages.indexOfFirst { it.chapterIndex == currentChapterIndex }
-        }
-        if (targetPageIndex >= 0 && targetPageIndex != pagerState.currentPage) {
-            pagerState.scrollToPage(targetPageIndex)
-        }
-        lastReportedChapterIndex = currentChapterIndex
-    }
-    
-    // 记录容器尺寸用于计算点击区域
-    var containerSize by remember { mutableStateOf(IntSize.Zero) }
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .onSizeChanged { containerSize = it }
-            .pointerInput(pages.size) {
-                // 使用 awaitEachGesture 检测点击
-                // PointerEventPass.Final 确保事件先被内层处理
-                awaitEachGesture {
-                    val down = awaitFirstDown(pass = PointerEventPass.Final)
-                    val up = waitForUpOrCancellation(pass = PointerEventPass.Final)
-                    
-                    // 只有当 up 事件存在且未被消费时，才处理点击
-                    if (up != null && !up.isConsumed) {
-                        val tapPosition = up.position
-                        val width = containerSize.width.toFloat()
-                        val leftBoundary = width / 3f
-                        val rightBoundary = width * 2f / 3f
-                        
-                        when {
-                            tapPosition.x < leftBoundary -> {
-                                // 左侧 1/3：上一页
-                                coroutineScope.launch {
-                                    if (pagerState.currentPage > 0) {
-                                        pagerState.animateScrollToPage(pagerState.currentPage - 1)
+
+        var containerSize by remember { mutableStateOf(IntSize.Zero) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { containerSize = it }
+                .pointerInput(allPages.size) {
+                    awaitEachGesture {
+                        awaitFirstDown(pass = PointerEventPass.Final)
+                        val up = waitForUpOrCancellation(pass = PointerEventPass.Final)
+                        if (up != null && !up.isConsumed) {
+                            val tapPosition = up.position
+                            val width = containerSize.width.toFloat()
+                            val leftBoundary = width / 3f
+                            val rightBoundary = width * 2f / 3f
+                            when {
+                                tapPosition.x < leftBoundary -> {
+                                    coroutineScope.launch {
+                                        if (pagerState.currentPage > 0) {
+                                            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                        }
                                     }
-                                    // 如果已经是第一页，不做任何事（没有更早的章节了）
                                 }
-                            }
-                            tapPosition.x > rightBoundary -> {
-                                // 右侧 1/3：下一页
-                                coroutineScope.launch {
-                                    if (pagerState.currentPage < pages.size - 1) {
-                                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                tapPosition.x > rightBoundary -> {
+                                    coroutineScope.launch {
+                                        if (pagerState.currentPage < allPages.size - 1) {
+                                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                        }
                                     }
-                                    // 如果已经是最后一页，不做任何事（没有更多章节了）
                                 }
-                            }
-                            else -> {
-                                // 中间 1/3：切换菜单
-                                onToggleMenu()
+                                else -> onToggleMenu()
                             }
                         }
                     }
                 }
-            }
-    ) {
-        // HorizontalPager 支持滑动翻页
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            beyondViewportPageCount = 1
-        ) { pageIndex ->
-            val page = pages.getOrNull(pageIndex)
-            
-            if (page != null) {
-                PageContentView(
-                    page = page,
-                    settings = settings,
-                    footnotes = footnotes,
-                    onImageClick = onImageClick,
-                    onFootnoteClick = onFootnoteClick,
-                    onLinkClick = onLinkClick
-                )
-            }
-        }
-    }
-}
-
-/**
- * 单页内容视图
- */
-@Composable
-private fun PageContentView(
-    page: ReaderPage,
-    settings: ReaderSettings,
-    footnotes: Map<String, ContentElement.Footnote>,
-    onImageClick: (url: String, alt: String?) -> Unit,
-    onFootnoteClick: (ContentElement.Footnote) -> Unit,
-    onLinkClick: (url: String) -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                horizontal = settings.marginHorizontal.dp,
-                vertical = settings.marginVertical.dp
-            )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
         ) {
-            // 章节标题（仅章节第一页显示）
-            if (page.showChapterTitle && page.chapterTitle != null) {
-                ChapterTitleView(title = page.chapterTitle, settings = settings)
-            }
-            
-            // 内容元素
-            page.elements.forEachIndexed { idx, chapterElement ->
-                ContentElementView(
-                    element = chapterElement.element,
-                    settings = settings,
-                    onImageClick = onImageClick,
-                    onFootnoteClick = { footnoteId ->
-                        footnotes[footnoteId]?.let { onFootnoteClick(it) }
-                    },
-                    onLinkClick = onLinkClick
-                )
-                
-                if (idx < page.elements.size - 1) {
-                    Spacer(modifier = Modifier.height(settings.paragraphSpacing.dp))
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                beyondViewportPageCount = 1
+            ) { pageIndex ->
+                val page = allPages.getOrNull(pageIndex)
+                if (page != null) {
+                    val renderCommands = remember(
+                        page.anchor,
+                        page.nextAnchor,
+                        page.elements,
+                        page.engine
+                    ) {
+                        page.engine.prepareRenderCommands(page.anchor, page.nextAnchor, page.elements)
+                    }
+                    ReaderPageCanvas(
+                        renderCommands = renderCommands,
+                        pageAnchor = page.anchor,
+                        nextPageAnchor = page.nextAnchor,
+                        elements = page.elements,
+                        readerEngine = page.engine,
+                        onLinkClick = {},
+                        onFootnoteClick = {},
+                        onImageClick = { _, _ -> },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(with(density) { maxHeight.toDp() })
+                    )
                 }
             }
         }
     }
 }
+
+private data class ChapterPageData(
+    val chapterIndex: Int,
+    val elements: List<ContentElement>,
+    val engine: ReaderEngine,
+    val anchors: List<PageAnchor>,
+    val pageIndexInChapterOffset: Int
+)
+
+private data class PageInfo(
+    val chapterIndex: Int,
+    val pageIndexInChapter: Int,
+    val anchor: PageAnchor,
+    val nextAnchor: PageAnchor?,
+    val elements: List<ContentElement>,
+    val engine: ReaderEngine
+)

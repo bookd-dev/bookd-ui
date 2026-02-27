@@ -1,10 +1,9 @@
 package com.bookd.app.basic.reader.factory
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Constraints
@@ -105,7 +104,9 @@ class ImageElementFactory(
         }
 
         val altTextHeight = altTextLayout?.size?.height ?: 0
-        val remainingHeight = contentHeight - y - altTextHeight - imageToAltSpacing
+        // 图片可用高度：不扣除 alt 文本高度，避免 alt 文本过长时压缩图片尺寸
+        // measure() 阶段已保证分页正确，prerender() 只需按最佳尺寸渲染图片
+        val remainingHeight = contentHeight - y - imageToAltSpacing
         val availableHeight = if (remainingHeight > 0) remainingHeight else 1
 
         val (imageWidth, imageHeight, aspectRatio) = getImageInfo(element, availableHeight)
@@ -138,6 +139,7 @@ class ImageElementFactory(
             }
         }
 
+
         return RenderCommand.Image(
             y = y,
             src = element.src,
@@ -155,12 +157,21 @@ class ImageElementFactory(
         command: RenderCommand.Image
     ) {
         var y = command.y.toFloat()
+        val imageOffsetX = (contentWidth - command.width) / 2f
 
-        // 绘制图片
-        if (command.imageBitmap != null) {
+        // 绘制图片：优先使用 imagePainters（Coil AsyncImagePainter），回退到 imageBitmap
+        val painter = imagePainters[command.src]
+        if (painter != null) {
+            drawScope.translate(left = imageOffsetX, top = y) {
+                with(painter) {
+                    draw(Size(command.width.toFloat(), command.height.toFloat()))
+                }
+            }
+            y += command.height.toFloat()
+        } else if (command.imageBitmap != null) {
             drawScope.drawImage(
                 image = command.imageBitmap,
-                dstOffset = IntOffset(0, command.y),
+                dstOffset = IntOffset(imageOffsetX.toInt(), command.y),
                 dstSize = IntSize(command.width, command.height)
             )
             y += command.height.toFloat()
@@ -170,7 +181,7 @@ class ImageElementFactory(
         if (command.altTextLayout != null) {
             drawScope.drawText(
                 textLayoutResult = command.altTextLayout,
-                topLeft = Offset(0f, y + imageToAltSpacing),
+                topLeft = Offset((contentWidth - command.altTextLayout.size.width) / 2f, y + imageToAltSpacing),
             )
         }
     }
@@ -186,9 +197,9 @@ class ImageElementFactory(
         availableHeight: Int
     ): MeasureResult {
 
-        // 页面可用高度为 remainingH = availableH - altMeasureH - altSpacing - lineSpacing
+        // 图片可用高度：不扣除 alt 文本高度，与 prerender() 保持一致
+        // alt 文本高度只在计算 totalHeight 时加回
         val remainingHeight = availableHeight -
-                altTextHeight -
                 imageToAltSpacing -
                 if (shouldAddTopSpacing(elements, element, usedHeight)) {
                     lineSpacing
@@ -229,8 +240,8 @@ class ImageElementFactory(
         altTextHeight: Int, 
         availableHeight: Int
     ): MeasureResult {
-        // 页面可用高度为 remainingH = availableH - altMeasureH - altSpacing (不需要减行间距)
-        val remainingHeight = availableHeight - altTextHeight - imageToAltSpacing
+        // 图片可用高度：不扣除 alt 文本高度，与 prerender() 保持一致
+        val remainingHeight = availableHeight - imageToAltSpacing
         if (remainingHeight <= 0) {
             // 剩余空间不够，直接跳过, 不应该存在
             return MeasureResult.SKIP

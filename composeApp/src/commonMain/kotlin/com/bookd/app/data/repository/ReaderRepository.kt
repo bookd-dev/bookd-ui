@@ -349,7 +349,7 @@ class ReaderRepository(
                 ?: return ReaderSettings()
             
             val dto = api.getReaderSettings()
-            ReaderSettings.fromDTO(dto)
+            ReaderSettings.fromDTO(dto).copy(pageMode = PageMode.PAGE)
         } catch (_: Exception) {
             ReaderSettings()
         }

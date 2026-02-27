@@ -112,8 +112,13 @@ kotlin {
             //storage
             implementation(libs.sqldelight.native)
         }
+        val jvmTest by getting {
+            dependencies {
+                implementation(compose.desktop.uiTestJUnit4)
+                implementation(compose.desktop.currentOs)
+            }
+        }
     }
-
     // KSP Common sourceSet
     sourceSets.named("commonMain").configure {
         kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")

@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.drawscope.translate
 import com.bookd.app.basic.reader.ReaderEngine
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.extension.rememberImagePainterMap
 import com.bookd.app.data.model.ContentElement
-
 
 /**
  * 阅读器页面 Canvas 组件
@@ -30,6 +30,7 @@ fun ReaderPageCanvas(
     onLinkClick: (String) -> Unit,
     onFootnoteClick: (String) -> Unit,
     onImageClick: (String, String?) -> Unit,
+    verticalOffset: Float = readerEngine.marginVerticalPx.toFloat(),
     modifier: Modifier = Modifier
 ) {
     // 在 Composable 层预创建 Painter (这只是引用，不产生大对象)
@@ -45,12 +46,14 @@ fun ReaderPageCanvas(
                 }
             },
         onDraw = {
-            renderCommands.forEach { command ->
-                readerEngine.draw(
-                    drawScope = this,
-                    renderCommand = command,
-                    imagePainters = imagePainters
-                )
+            translate(left = readerEngine.marginHorizontalPx.toFloat(), top = verticalOffset) {
+                renderCommands.forEach { command ->
+                    readerEngine.draw(
+                        drawScope = this,
+                        renderCommand = command,
+                        imagePainters = imagePainters
+                    )
+                }
             }
         }
     )

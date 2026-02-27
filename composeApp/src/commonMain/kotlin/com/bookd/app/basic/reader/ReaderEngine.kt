@@ -26,6 +26,11 @@ class ReaderEngine(
     private val contentWidth: Int = styleController.sizeStyles.getContentWidth(constraints.maxWidth, density)
     private val contentHeight: Int = styleController.sizeStyles.getContentHeight(constraints.maxHeight, density)
 
+    /** 水平 margin（px），用于绘制时偏移 */
+    val marginHorizontalPx: Int = (constraints.maxWidth - contentWidth) / 2
+    /** 垂直 margin（px），用于绘制时偏移 */
+    val marginVerticalPx: Int = (constraints.maxHeight - contentHeight) / 2
+
     private val factory = ContentElementFactory(contentWidth, contentHeight, textMeasurer, styleController, density)
 
     /**
@@ -51,6 +56,7 @@ class ReaderEngine(
                 usedHeight = currentY, //已经使用的高度
                 availableHeight = contentHeight - currentY //剩余可用高度
             )
+
 
             // 处理特殊情况：元素高度为 0，但标记为需要分页
             if (measuredHeight == 0 && isSplit) {
@@ -115,11 +121,25 @@ class ReaderEngine(
             )
 
             if (command != null) {
+                val cmdH = getCommandHeight(command)
                 commands.add(command)
-                currentY += getCommandHeight(command)
+                // Text 和 Image 的 getCommandHeight 不含 topSpacing（lineSpacing）
+                // 而 command.y 由 prerender 内部正确累加了 spacing
+                // 因此用 command.y + cmdH 代替 currentY + cmdH 来修正累积偏差
+                // 对于 Heading/Quote/Code 等类型，height 字段已包含 topSpacing，
+                // 但同样可以用 command.y + cmdH 来计算，因为对这些类型：
+                //   command.y = prevCurrentY + topSpacing
+                //   cmdH (= height) = topSpacing + textH + bottomSpacing
+                //   command.y + cmdH 会多一个 topSpacing（错误）
+                // 所以仅对 Text 和 Image 使用修正逻辑
+                currentY = when (command) {
+                    is RenderCommand.Text,
+                    is RenderCommand.Image -> command.y + cmdH
+                    else -> currentY + cmdH
+                }
+            } else {
             }
         }
-
         return commands
     }
 

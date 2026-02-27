@@ -30,20 +30,20 @@ class ReaderTextStyles(private val settings: ReaderSettings) {
     //脚注内容，只影响脚注
     val footnoteTextStyle: TextStyle = bodyTextStyle.copy(
         fontSize = (settings.fontSize - 2).sp,
-        lineHeight = ((settings.fontWeight - 2) * settings.lineHeight).sp,
+        lineHeight = ((settings.fontSize - 2) * settings.lineHeight).sp,
     )
 
     //图片alt内容
     val imageAlternateTextStyle: TextStyle = bodyTextStyle.copy(
         fontSize = (settings.fontSize - 4).sp,
-        lineHeight = ((settings.fontWeight - 4) * settings.lineHeight).sp,
+        lineHeight = ((settings.fontSize - 4) * settings.lineHeight).sp,
     )
 
     //代码内容
     val codeTextStyle: TextStyle = bodyTextStyle.copy(
         fontFamily = FontFamily.Monospace, //代码强制使用 monospace
         fontSize = (settings.fontSize - 2).sp,
-        lineHeight = ((settings.fontWeight - 2) * settings.lineHeight).sp,
+        lineHeight = ((settings.fontSize - 2) * settings.lineHeight).sp,
     )
 
     // 引用内容
