@@ -32,12 +32,16 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.bookd.app.basic.reader.ReaderEngine
+import com.bookd.app.data.repository.ReaderRepository
+import org.koin.compose.koinInject
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.screen.reader.component.ReaderPageCanvas
 import kotlinx.coroutines.launch
+import com.bookd.app.basic.extension.logD
+import kotlin.time.Clock
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -77,6 +81,8 @@ fun PageModeContent(
         val textMeasurer = rememberTextMeasurer()
         val density = LocalDensity.current
 
+        val repository: ReaderRepository = koinInject()
+        val coroutineScope = rememberCoroutineScope()
         val chapterPageDataList = sortedChapterIndices.mapNotNull { chapterIndex ->
             val chapter = chapters[chapterIndex] ?: return@mapNotNull null
             val elements = remember(chapterIndex, chapter, settings) {
@@ -88,10 +94,28 @@ fun PageModeContent(
             val engine = remember(chapterIndex, elements, settings, maxWidth, maxHeight, density) {
                 ReaderEngine(textMeasurer, density, Constraints.fixed(maxWidth, maxHeight), settings)
             }
-            val anchors = remember(engine, elements) {
-                val result = engine.calculatePageAnchors(elements)
-                println("[PageModeContent] chapter=$chapterIndex maxWidth=$maxWidth maxHeight=$maxHeight elements=${elements.size} pages=${result.size}")
-                result
+            val cacheKey = remember(chapterIndex, elements, settings, maxWidth, maxHeight, density) {
+                repository.buildPageAnchorCacheKey(
+                    bookId = 0,
+                    chapterIndex = chapterIndex,
+                    settings = settings,
+                    viewportWidth = maxWidth,
+                    viewportHeight = maxHeight,
+                    density = density.density,
+                    elements = elements
+                )
+            }
+            val anchors = remember(engine, elements, cacheKey) {
+                repository.getPageAnchorsCache(cacheKey)?.also {
+                    coroutineScope.launch { repository.updateLastAccessedAt(cacheKey) }
+                } ?: run {
+                    val t0 = Clock.System.now().toEpochMilliseconds()
+                    val computed = engine.calculatePageAnchors(elements)
+                    val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
+                    logD(tag = "Reader") { "[PageMode] 分页测量 chapter=$chapterIndex elements=${elements.size} pages=${computed.size} 耗时 ${elapsedMs}ms" }
+                    coroutineScope.launch { repository.savePageAnchorsCache(cacheKey, computed) }
+                    computed
+                }
             }
             ChapterPageData(
                 chapterIndex = chapterIndex,
@@ -134,7 +158,6 @@ fun PageModeContent(
             initialPage = initialPageIndex.coerceIn(0, (allPages.size - 1).coerceAtLeast(0))
         ) { allPages.size }
 
-        val coroutineScope = rememberCoroutineScope()
         var lastReportedChapterIndex by remember { mutableIntStateOf(currentChapterIndex) }
 
         LaunchedEffect(pagerState.currentPage, allPages) {
@@ -210,7 +233,11 @@ fun PageModeContent(
                         page.elements,
                         page.engine
                     ) {
-                        page.engine.prepareRenderCommands(page.anchor, page.nextAnchor, page.elements)
+                        val t0 = Clock.System.now().toEpochMilliseconds()
+                        val cmds = page.engine.prepareRenderCommands(page.anchor, page.nextAnchor, page.elements)
+                        val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
+                        logD(tag = "Reader") { "[PageMode] 绘制准备 pageIndex=${page.pageIndexInChapter} cmds=${cmds.size} 耗时 ${elapsedMs}ms" }
+                        cmds
                     }
                     ReaderPageCanvas(
                         renderCommands = renderCommands,

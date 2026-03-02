@@ -3,6 +3,7 @@ package com.bookd.app.data.repository
 import com.bookd.app.Database
 import com.bookd.app.LocalReadingProgressEntity
 import com.bookd.app.basic.extension.format
+import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.data.api.ApiProvider
 import com.bookd.app.data.api.NoNetworkConfigException
 import com.bookd.app.data.model.*
@@ -23,6 +24,7 @@ class ReaderRepository(
     private val apiProvider: ApiProvider
 ) {
     private val chapterCacheQueries = database.chapterCacheQueries
+    private val pageAnchorCacheQueries = database.pageAnchorCacheQueries
     private val localProgressQueries = database.localReadingProgressQueries
     
     private val json = Json {
@@ -383,6 +385,83 @@ class ReaderRepository(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+
+    // ============ PageAnchor 缓存 ============
+
+    /**
+     * 构建 PageAnchor 缓存键
+     *
+     * 将影响分页计算的所有维度拼接成唯一字符串键，用于精确命中缓存。
+     * 包含：书籍/章节 ID、阅读器外观设置、视口尺寸、density 以及内容哈希。
+     */
+    fun buildPageAnchorCacheKey(
+        bookId: Int,
+        chapterIndex: Int,
+        settings: ReaderSettings,
+        viewportWidth: Int,
+        viewportHeight: Int,
+        density: Float,
+        elements: List<ContentElement>
+    ): String {
+        val settingsFingerprint = "${settings.fontSize}|${settings.lineHeight}|${settings.letterSpacing}|${settings.paragraphSpacing}|${settings.firstLineIndent}|${settings.marginHorizontal}|${settings.marginVertical}|${settings.fontFamily}|${settings.fontWeight}"
+        val contentHash = "${elements.size}:${elements.firstOrNull()?.hashCode() ?: 0}"
+        return "${bookId}|${chapterIndex}|${settingsFingerprint}|${viewportWidth}x${viewportHeight}@${density}|${contentHash}"
+    }
+
+    /**
+     * 读取 PageAnchor 缓存
+     *
+     * 根据 cacheKey 查询本地数据库，反序列化后返回锚点列表。
+     * 解析失败时返回 null，由调用方重新计算。
+     */
+    fun getPageAnchorsCache(cacheKey: String): List<PageAnchor>? {
+        return try {
+            val cached = pageAnchorCacheQueries.selectByCacheKey(cacheKey).executeAsOneOrNull()
+                ?: return null
+            json.decodeFromString<List<PageAnchor>>(cached.anchorsJson)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 写入 PageAnchor 缓存
+     *
+     * 将锚点列表序列化后存入数据库。当总缓存条数达到 500 条时，
+     * 自动删除最旧的 100 条以控制磁盘占用。
+     */
+    suspend fun savePageAnchorsCache(cacheKey: String, anchors: List<PageAnchor>) {
+        val total = pageAnchorCacheQueries.countAll().executeAsOne()
+        if (total >= 500L) {
+            pageAnchorCacheQueries.deleteOldEntries(100L)
+        }
+        val anchorsJson = json.encodeToString<List<PageAnchor>>(anchors)
+        val now = Clock.System.now().toEpochMilliseconds()
+        pageAnchorCacheQueries.insertOrReplace(
+            cacheKey = cacheKey,
+            anchorsJson = anchorsJson,
+            cachedAt = now,
+            lastAccessedAt = now
+        )
+    }
+
+    /**
+     * 更新 PageAnchor 缓存的最后访问时间（用于 LRU 淘汰）
+     */
+    suspend fun updateLastAccessedAt(cacheKey: String) {
+        pageAnchorCacheQueries.updateLastAccessedAt(
+            lastAccessedAt = Clock.System.now().toEpochMilliseconds(),
+            cacheKey = cacheKey
+        )
+    }
+
+    /**
+     * 清除所有 PageAnchor 缓存
+     */
+    suspend fun clearPageAnchorCache() {
+        pageAnchorCacheQueries.deleteAll()
     }
 }
 

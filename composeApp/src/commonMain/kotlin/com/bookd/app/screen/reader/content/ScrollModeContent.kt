@@ -25,6 +25,10 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import com.bookd.app.basic.reader.ReaderEngine
+import com.bookd.app.data.repository.ReaderRepository
+import org.koin.compose.koinInject
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.bookd.app.basic.reader.extension.getCommandHeight
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
@@ -32,6 +36,8 @@ import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.screen.reader.component.ReaderPageCanvas
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
+import com.bookd.app.basic.extension.logD
+import kotlin.time.Clock
 
 @OptIn(FlowPreview::class)
 @Composable
@@ -56,6 +62,8 @@ fun ScrollModeContent(
             addAll(chapter.elements)
         }
     }
+    val repository: ReaderRepository = koinInject()
+    val coroutineScope = rememberCoroutineScope()
 
     var screenSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -83,7 +91,25 @@ fun ScrollModeContent(
             }
 
             val pageAnchors = remember(engine, elements) {
-                engine.calculatePageAnchors(elements)
+                val cacheKey = repository.buildPageAnchorCacheKey(
+                    bookId = 0,
+                    chapterIndex = 0,
+                    settings = settings,
+                    viewportWidth = screenSize.width,
+                    viewportHeight = screenSize.height,
+                    density = density.density,
+                    elements = elements
+                )
+                repository.getPageAnchorsCache(cacheKey)?.also {
+                    coroutineScope.launch { repository.updateLastAccessedAt(cacheKey) }
+                } ?: run {
+                    val t0 = Clock.System.now().toEpochMilliseconds()
+                    val computed = engine.calculatePageAnchors(elements)
+                    val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
+                    logD(tag = "Reader") { "[ScrollMode] 分页测量 elements=${elements.size} pages=${computed.size} 耗时 ${elapsedMs}ms" }
+                    coroutineScope.launch { repository.savePageAnchorsCache(cacheKey, computed) }
+                    computed
+                }
             }
 
             // 300ms 防抖滚动追踪
@@ -140,7 +166,11 @@ fun ScrollModeContent(
                     itemsIndexed(pageAnchors, key = { index, _ -> index }) { index, anchor ->
                         val nextAnchor = pageAnchors.getOrNull(index + 1)
                         val renderCommands = remember(anchor, nextAnchor, elements, engine) {
-                            engine.prepareRenderCommands(anchor, nextAnchor, elements)
+                            val t0 = Clock.System.now().toEpochMilliseconds()
+                            val cmds = engine.prepareRenderCommands(anchor, nextAnchor, elements)
+                            val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
+                            logD(tag = "Reader") { "[ScrollMode] 绘制准备 anchorIndex=$index cmds=${cmds.size} 耗时 ${elapsedMs}ms" }
+                            cmds
                         }
 
                         // 计算本页实际内容高度（px）

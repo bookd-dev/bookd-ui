@@ -96,6 +96,8 @@ kotlin {
             //storage
             implementation(libs.settings.multiplatform)
             implementation(libs.settings.multiplatform.serialization)
+            //logger
+            implementation(libs.kermit)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -157,6 +159,7 @@ sqldelight {
                 database?.let {
                     it.packageName.set("com.bookd.app")
                     it.generateAsync.set(true)
+                    it.deriveSchemaFromMigrations.set(true)
                 }
             }
         })
