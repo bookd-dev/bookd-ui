@@ -28,6 +28,7 @@ coil = "3.3.0"
 settings-multiplatform = "1.3.0"
 sqldelight = "2.2.1"
 ktorfit = "2.7.2"
+kermit = "2.0.4"
 
 
 [libraries]
@@ -93,6 +94,9 @@ sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.re
 sqldelight-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 sqldelight-jvm = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 sqldelight-js = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
+
+#logger
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 
 [plugins]
