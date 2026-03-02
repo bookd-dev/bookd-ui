@@ -25,10 +25,11 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import com.bookd.app.basic.reader.ReaderEngine
+import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.data.repository.ReaderRepository
 import org.koin.compose.koinInject
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.bookd.app.basic.reader.extension.getCommandHeight
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
@@ -42,6 +43,8 @@ import kotlin.time.Clock
 @OptIn(FlowPreview::class)
 @Composable
 fun ScrollModeContent(
+    bookId: Int,
+    chapterIndex: Int,
     chapter: ChapterContent,
     settings: ReaderSettings,
     listState: LazyListState = rememberLazyListState(),
@@ -63,54 +66,61 @@ fun ScrollModeContent(
         }
     }
     val repository: ReaderRepository = koinInject()
-    val coroutineScope = rememberCoroutineScope()
-
     var screenSize by remember { mutableStateOf(IntSize.Zero) }
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .onSizeChanged { size ->
-                if (screenSize == IntSize.Zero) {
-                    screenSize = size
-                }
+                screenSize = size
             }
     ) {
         if (screenSize != IntSize.Zero) {
-            val textMeasurer = rememberTextMeasurer()
-            val density = LocalDensity.current
-
             // 缓存 Engine 实例，避免每次重组都重新测量
             val engine = remember(elements, settings, screenSize, density) {
                 ReaderEngine(textMeasurer, density, Constraints.fixed(screenSize.width, screenSize.height), settings)
             }
-
             // 滚动模式垂直 margin（仅用于首尾留白）
             val verticalMarginDp = remember(engine) {
                 with(density) { engine.marginVerticalPx.toDp() }
             }
 
-            val pageAnchors = remember(engine, elements) {
-                val cacheKey = repository.buildPageAnchorCacheKey(
-                    bookId = 0,
-                    chapterIndex = 0,
+
+            // cacheKey 独立计算
+            val cacheKey = remember(bookId, chapterIndex, elements, settings, screenSize, density) {
+                repository.buildPageAnchorCacheKey(
+                    bookId = bookId,
+                    chapterIndex = chapterIndex,
                     settings = settings,
                     viewportWidth = screenSize.width,
                     viewportHeight = screenSize.height,
                     density = density.density,
                     elements = elements
                 )
-                repository.getPageAnchorsCache(cacheKey)?.also {
-                    coroutineScope.launch { repository.updateLastAccessedAt(cacheKey) }
-                } ?: run {
-                    val t0 = Clock.System.now().toEpochMilliseconds()
-                    val computed = engine.calculatePageAnchors(elements)
-                    val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
-                    logD(tag = "Reader") { "[ScrollMode] 分页测量 elements=${elements.size} pages=${computed.size} 耗时 ${elapsedMs}ms" }
-                    coroutineScope.launch { repository.savePageAnchorsCache(cacheKey, computed) }
-                    computed
-                }
             }
+
+            // pageAnchors 改为 state，key 跟随 cacheKey
+            var pageAnchors by remember(cacheKey) { mutableStateOf<List<PageAnchor>?>(null) }
+
+            // LaunchedEffect 异步加载
+            LaunchedEffect(cacheKey) {
+                val cached = repository.getPageAnchorsCache(cacheKey)
+                if (cached != null) {
+                    repository.updateLastAccessedAt(cacheKey)
+                    pageAnchors = cached
+                    return@LaunchedEffect
+                }
+                val t0 = Clock.System.now().toEpochMilliseconds()
+                val computed = withContext(Dispatchers.Default) { engine.calculatePageAnchors(elements) }
+                val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
+                logD(tag = "Reader") { "[ScrollMode] 分页测量 elements=\${elements.size} pages=\${computed.size} 耗时 \${elapsedMs}ms" }
+                pageAnchors = computed
+                repository.savePageAnchorsCache(cacheKey, computed)
+            }
+
+            val safeAnchors = pageAnchors ?: emptyList()
 
             // 300ms 防抖滚动追踪
             LaunchedEffect(listState) {
@@ -163,8 +173,8 @@ fun ScrollModeContent(
                         Spacer(modifier = Modifier.height(verticalMarginDp))
                     }
 
-                    itemsIndexed(pageAnchors, key = { index, _ -> index }) { index, anchor ->
-                        val nextAnchor = pageAnchors.getOrNull(index + 1)
+                    itemsIndexed(safeAnchors, key = { index, _ -> index }) { index, anchor ->
+                        val nextAnchor = safeAnchors.getOrNull(index + 1)
                         val renderCommands = remember(anchor, nextAnchor, elements, engine) {
                             val t0 = Clock.System.now().toEpochMilliseconds()
                             val cmds = engine.prepareRenderCommands(anchor, nextAnchor, elements)
@@ -188,9 +198,13 @@ fun ScrollModeContent(
                             nextPageAnchor = nextAnchor,
                             elements = elements,
                             readerEngine = engine,
-                            onLinkClick = {},
-                            onFootnoteClick = {},
-                            onImageClick = { _, _ -> },
+                            onLinkClick = onLinkClick,
+                            onFootnoteClick = { footnoteId ->
+                                val footnote = elements.filterIsInstance<ContentElement.Footnote>()
+                                    .firstOrNull { it.footnoteId == footnoteId }
+                                if (footnote != null) onFootnoteClick(footnote)
+                            },
+                            onImageClick = onImageClick,
                             verticalOffset = 0f,
                             modifier = Modifier
                                 .fillMaxWidth()

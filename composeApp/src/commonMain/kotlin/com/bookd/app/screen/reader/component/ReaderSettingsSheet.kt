@@ -27,6 +27,22 @@ import com.bookd.app.basic.extension.format
 import com.bookd.app.data.model.PageAnimationType
 import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.model.ReaderSettings
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.reader_settings
+import app.composeapp.generated.resources.font_size
+import app.composeapp.generated.resources.line_height
+import app.composeapp.generated.resources.paragraph_spacing
+import app.composeapp.generated.resources.margin_horizontal
+import app.composeapp.generated.resources.margin_vertical
+import app.composeapp.generated.resources.page_mode
+import app.composeapp.generated.resources.page_mode_scroll
+import app.composeapp.generated.resources.page_mode_page
+import app.composeapp.generated.resources.page_animation
+import app.composeapp.generated.resources.page_animation_native
+import app.composeapp.generated.resources.page_animation_realistic
+import app.composeapp.generated.resources.page_animation_coming_soon
+import app.composeapp.generated.resources.first_line_indent
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 阅读器设置面板（BottomSheet）
@@ -61,14 +77,14 @@ fun ReaderSettingsSheet(
         ) {
             // 标题
             Text(
-                text = "阅读器设置",
+                text = stringResource(Res.string.reader_settings),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             
             // 字体大小
             SettingSliderRow(
-                label = "字体大小",
+                label = stringResource(Res.string.font_size),
                 value = settings.fontSize.toFloat(),
                 valueRange = 12f..32f,
                 valueText = "${settings.fontSize}",
@@ -77,7 +93,7 @@ fun ReaderSettingsSheet(
             
             // 行间距
             SettingSliderRow(
-                label = "行间距",
+                label = stringResource(Res.string.line_height),
                 value = settings.lineHeight.toFloat(),
                 valueRange = 1.0f..2.5f,
                 valueText = "%.1f".format(settings.lineHeight),
@@ -86,7 +102,7 @@ fun ReaderSettingsSheet(
             
             // 段落间距
             SettingSliderRow(
-                label = "段落间距",
+                label = stringResource(Res.string.paragraph_spacing),
                 value = settings.paragraphSpacing.toFloat(),
                 valueRange = 0f..32f,
                 valueText = "${settings.paragraphSpacing}",
@@ -95,7 +111,7 @@ fun ReaderSettingsSheet(
             
             // 页面边距（水平）
             SettingSliderRow(
-                label = "水平边距",
+                label = stringResource(Res.string.margin_horizontal),
                 value = settings.marginHorizontal.toFloat(),
                 valueRange = 8f..48f,
                 valueText = "${settings.marginHorizontal}",
@@ -104,7 +120,7 @@ fun ReaderSettingsSheet(
             
             // 页面边距（垂直）
             SettingSliderRow(
-                label = "垂直边距",
+                label = stringResource(Res.string.margin_vertical),
                 value = settings.marginVertical.toFloat(),
                 valueRange = 16f..80f,
                 valueText = "${settings.marginVertical}",
@@ -115,7 +131,7 @@ fun ReaderSettingsSheet(
             
             // 阅读模式
             Text(
-                text = "阅读模式",
+                text = stringResource(Res.string.page_mode),
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -128,14 +144,14 @@ fun ReaderSettingsSheet(
                     onClick = { onPageModeChange(PageMode.SCROLL) },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                 ) {
-                    Text("竖屏滚动")
+                    Text(stringResource(Res.string.page_mode_scroll))
                 }
                 SegmentedButton(
                     selected = settings.pageMode == PageMode.PAGE,
                     onClick = { onPageModeChange(PageMode.PAGE) },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                 ) {
-                    Text("横屏翻页")
+                    Text(stringResource(Res.string.page_mode_page))
                 }
             }
             
@@ -144,7 +160,7 @@ fun ReaderSettingsSheet(
             // 翻页动画（仅翻页模式）
             if (settings.pageMode == PageMode.PAGE) {
                 Text(
-                    text = "翻页动画",
+                    text = stringResource(Res.string.page_animation),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -157,7 +173,7 @@ fun ReaderSettingsSheet(
                         onClick = { onPageAnimationTypeChange(PageAnimationType.NATIVE) },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                     ) {
-                        Text("原生动画")
+                        Text(stringResource(Res.string.page_animation_native))
                     }
                     SegmentedButton(
                         selected = settings.pageAnimationType == PageAnimationType.REALISTIC,
@@ -165,12 +181,12 @@ fun ReaderSettingsSheet(
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                         enabled = false // MVP 阶段禁用
                     ) {
-                        Text("仿真动画")
+                        Text(stringResource(Res.string.page_animation_realistic))
                     }
                 }
                 
                 Text(
-                    text = "仿真动画即将推出",
+                    text = stringResource(Res.string.page_animation_coming_soon),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
@@ -190,7 +206,7 @@ fun ReaderSettingsSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "首行缩进",
+                    text = stringResource(Res.string.first_line_indent),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Switch(

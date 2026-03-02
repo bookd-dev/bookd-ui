@@ -40,6 +40,23 @@ import androidx.compose.ui.unit.dp
 import com.bookd.app.data.model.BookmarkResponse
 import com.bookd.app.data.model.TocItem
 import com.bookd.app.data.vm.TocSortOrder
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.toc
+import app.composeapp.generated.resources.no_bookmarks
+
+import app.composeapp.generated.resources.bookmarks_count
+import app.composeapp.generated.resources.toc_sort_asc
+import app.composeapp.generated.resources.toc_sort_desc
+import app.composeapp.generated.resources.toc_current_reading
+import app.composeapp.generated.resources.toc_read_status_read
+import app.composeapp.generated.resources.toc_read_status_reading
+import app.composeapp.generated.resources.toc_read_status_unread
+import app.composeapp.generated.resources.toc_word_count_wan
+import app.composeapp.generated.resources.toc_word_count_qian
+import app.composeapp.generated.resources.toc_word_count
+import app.composeapp.generated.resources.toc_chapter_fallback
+import app.composeapp.generated.resources.toc_delete_bookmark
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 目录/书签面板（BottomSheet）
@@ -77,12 +94,12 @@ fun ReaderTocSheet(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("目录") }
+                    text = { Text(stringResource(Res.string.toc)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("书签 (${bookmarks.size})") }
+                    text = { Text(stringResource(Res.string.bookmarks_count, bookmarks.size)) }
                 )
             }
             
@@ -127,11 +144,11 @@ private fun TocContent(
             IconButton(onClick = onSortOrderToggle) {
                 Icon(
                     imageVector = Icons.Default.SwapVert,
-                    contentDescription = if (sortOrder == TocSortOrder.ASC) "正序" else "倒序"
+                    contentDescription = if (sortOrder == TocSortOrder.ASC) stringResource(Res.string.toc_sort_asc) else stringResource(Res.string.toc_sort_desc)
                 )
             }
             Text(
-                text = if (sortOrder == TocSortOrder.ASC) "正序" else "倒序",
+                text = if (sortOrder == TocSortOrder.ASC) stringResource(Res.string.toc_sort_asc) else stringResource(Res.string.toc_sort_desc),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
@@ -166,12 +183,6 @@ private fun TocItemRow(
     isCurrentChapter: Boolean,
     onClick: () -> Unit
 ) {
-    val backgroundColor = if (isCurrentChapter) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,7 +217,7 @@ private fun TocItemRow(
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Default.Bookmark,
-                    contentDescription = "当前阅读",
+                    contentDescription = stringResource(Res.string.toc_current_reading),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -220,7 +231,11 @@ private fun TocItemRow(
             // 字数
             if (item.wordCount > 0) {
                 Text(
-                    text = formatWordCount(item.wordCount),
+                    text = when {
+                        item.wordCount >= 10000 -> stringResource(Res.string.toc_word_count_wan, item.wordCount / 10000)
+                        item.wordCount >= 1000 -> stringResource(Res.string.toc_word_count_qian, item.wordCount / 1000)
+                        else -> stringResource(Res.string.toc_word_count, item.wordCount)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -233,9 +248,9 @@ private fun TocItemRow(
             
             // 阅读状态
             val statusText = when (item.readStatus) {
-                "read" -> "已读"
-                "reading" -> "阅读中"
-                else -> "未读"
+                "read" -> stringResource(Res.string.toc_read_status_read)
+                "reading" -> stringResource(Res.string.toc_read_status_reading)
+                else -> stringResource(Res.string.toc_read_status_unread)
             }
             val statusColor = when (item.readStatus) {
                 "read" -> MaterialTheme.colorScheme.primary
@@ -276,7 +291,7 @@ private fun BookmarkContent(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "暂无书签",
+                text = stringResource(Res.string.no_bookmarks),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -293,7 +308,7 @@ private fun BookmarkContent(
         ) { bookmark ->
             BookmarkRow(
                 bookmark = bookmark,
-                chapterTitle = findChapterTitle(toc, bookmark.chapterIndex),
+                chapterTitle = findChapterTitle(toc, bookmark.chapterIndex, stringResource(Res.string.toc_chapter_fallback, bookmark.chapterIndex + 1)),
                 onClick = { onBookmarkClick(bookmark) },
                 onDelete = { onBookmarkDelete(bookmark.id) }
             )
@@ -348,28 +363,18 @@ private fun BookmarkRow(
         IconButton(onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Delete,
-                contentDescription = "删除书签",
+                contentDescription = stringResource(Res.string.toc_delete_bookmark),
                 tint = MaterialTheme.colorScheme.error
             )
         }
     }
 }
 
-/**
- * 格式化字数
- */
-private fun formatWordCount(count: Int): String {
-    return when {
-        count >= 10000 -> "${count / 10000}万字"
-        count >= 1000 -> "${count / 1000}千字"
-        else -> "${count}字"
-    }
-}
 
 /**
  * 查找章节标题
  */
-private fun findChapterTitle(toc: List<TocItem>, index: Int): String {
+private fun findChapterTitle(toc: List<TocItem>, index: Int, fallback: String): String {
     fun findInList(items: List<TocItem>): String? {
         for (item in items) {
             if (item.index == index) return item.title
@@ -377,5 +382,5 @@ private fun findChapterTitle(toc: List<TocItem>, index: Int): String {
         }
         return null
     }
-    return findInList(toc) ?: "第${index + 1}章"
+    return findInList(toc) ?: fallback
 }

@@ -201,4 +201,21 @@
     <string name="remote_progress_info">Chapter %1$d, Read %2$d%%</string>
     <string name="footnote">Footnote</string>
     <string name="close">Close</string>
+    <string name="reader_chapter_no_content">No content in this chapter</string>
+    <string name="reader_last_read_at">Last read: %1$s</string>
+    <string name="reader_local_progress">Local Progress</string>
+    <string name="reader_remote_progress">Cloud Progress</string>
+    <string name="page_animation_native">Native</string>
+    <string name="bookmarks_count">Bookmarks (%1$d)</string>
+    <string name="toc_current_reading">Currently reading</string>
+    <string name="toc_read_status_read">Read</string>
+    <string name="toc_read_status_reading">Reading</string>
+    <string name="toc_read_status_unread">Unread</string>
+    <string name="toc_word_count_wan">%1$d0k words</string>
+    <string name="toc_word_count_qian">%1$dk words</string>
+    <string name="toc_word_count">%1$d words</string>
+    <string name="toc_chapter_fallback">Chapter %1$d</string>
+    <string name="toc_delete_bookmark">Delete bookmark</string>
+
+
 </resources>

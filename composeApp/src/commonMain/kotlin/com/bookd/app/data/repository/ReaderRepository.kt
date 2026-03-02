@@ -351,7 +351,7 @@ class ReaderRepository(
                 ?: return ReaderSettings()
             
             val dto = api.getReaderSettings()
-            ReaderSettings.fromDTO(dto).copy(pageMode = PageMode.PAGE)
+            ReaderSettings.fromDTO(dto)
         } catch (_: Exception) {
             ReaderSettings()
         }
@@ -406,7 +406,7 @@ class ReaderRepository(
         elements: List<ContentElement>
     ): String {
         val settingsFingerprint = "${settings.fontSize}|${settings.lineHeight}|${settings.letterSpacing}|${settings.paragraphSpacing}|${settings.firstLineIndent}|${settings.marginHorizontal}|${settings.marginVertical}|${settings.fontFamily}|${settings.fontWeight}"
-        val contentHash = "${elements.size}:${elements.firstOrNull()?.hashCode() ?: 0}"
+        val contentHash = elements.fold(elements.size) { acc, el -> acc * 31 + el.hashCode() }.toString()
         return "${bookId}|${chapterIndex}|${settingsFingerprint}|${viewportWidth}x${viewportHeight}@${density}|${contentHash}"
     }
 
@@ -416,7 +416,7 @@ class ReaderRepository(
      * 根据 cacheKey 查询本地数据库，反序列化后返回锚点列表。
      * 解析失败时返回 null，由调用方重新计算。
      */
-    fun getPageAnchorsCache(cacheKey: String): List<PageAnchor>? {
+    suspend fun getPageAnchorsCache(cacheKey: String): List<PageAnchor>? {
         return try {
             val cached = pageAnchorCacheQueries.selectByCacheKey(cacheKey).executeAsOneOrNull()
                 ?: return null
@@ -433,18 +433,20 @@ class ReaderRepository(
      * 自动删除最旧的 100 条以控制磁盘占用。
      */
     suspend fun savePageAnchorsCache(cacheKey: String, anchors: List<PageAnchor>) {
-        val total = pageAnchorCacheQueries.countAll().executeAsOne()
-        if (total >= 500L) {
-            pageAnchorCacheQueries.deleteOldEntries(100L)
-        }
         val anchorsJson = json.encodeToString<List<PageAnchor>>(anchors)
         val now = Clock.System.now().toEpochMilliseconds()
-        pageAnchorCacheQueries.insertOrReplace(
-            cacheKey = cacheKey,
-            anchorsJson = anchorsJson,
-            cachedAt = now,
-            lastAccessedAt = now
-        )
+        database.transaction {
+            val total = pageAnchorCacheQueries.countAll().executeAsOne()
+            if (total >= 500L) {
+                pageAnchorCacheQueries.deleteOldEntries(100L)
+            }
+            pageAnchorCacheQueries.insertOrReplace(
+                cacheKey = cacheKey,
+                anchorsJson = anchorsJson,
+                cachedAt = now,
+                lastAccessedAt = now
+            )
+        }
     }
 
     /**

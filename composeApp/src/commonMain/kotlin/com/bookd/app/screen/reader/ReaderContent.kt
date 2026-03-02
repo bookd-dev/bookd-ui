@@ -42,6 +42,10 @@ import com.bookd.app.screen.reader.component.ReaderTocSheet
 import com.bookd.app.screen.reader.component.ReaderTopBar
 import com.bookd.app.screen.reader.content.PageModeContent
 import com.bookd.app.screen.reader.content.ScrollModeContent
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.loading
+import app.composeapp.generated.resources.load_failed
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * 阅读器主内容组件
@@ -112,6 +116,7 @@ fun ReaderContent(
                 state.currentChapter != null -> {
                     // 阅读内容
                     ReadingContent(
+                        bookId = state.bookId,
                         chapter = state.currentChapter,
                         adjacentChapters = state.adjacentChapters,
                         currentChapterIndex = state.currentChapterIndex,
@@ -141,7 +146,7 @@ fun ReaderContent(
                 modifier = Modifier.align(Alignment.TopCenter)
             ) {
                 ReaderTopBar(
-                    chapterTitle = state.currentChapterTitle ?: "加载中...",
+                    chapterTitle = state.currentChapterTitle ?: stringResource(Res.string.loading),
                     currentChapter = state.currentChapterIndex,
                     totalChapters = state.totalChapters,
                     showMenu = state.showTopMenu,
@@ -252,6 +257,7 @@ fun ReaderContent(
  */
 @Composable
 private fun ReadingContent(
+    bookId: Int,
     chapter: ChapterContent,
     adjacentChapters: Map<Int, ChapterContent>,
     currentChapterIndex: Int,
@@ -277,6 +283,8 @@ private fun ReadingContent(
         when (settings.pageMode) {
             PageMode.SCROLL -> {
                 ScrollModeContent(
+                    bookId = bookId,
+                    chapterIndex = currentChapterIndex,
                     chapter = chapter,
                     settings = settings,
                     listState = listState,
@@ -293,6 +301,7 @@ private fun ReadingContent(
             
             PageMode.PAGE -> {
                 PageModeContent(
+                    bookId = bookId,
                     chapters = adjacentChapters,
                     currentChapterIndex = currentChapterIndex,
                     pagerSlideDirection = pagerSlideDirection,
@@ -324,7 +333,7 @@ private fun LoadingContent() {
         ) {
             CircularProgressIndicator()
             Text(
-                text = "加载中...",
+                text = stringResource(Res.string.loading),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -345,7 +354,7 @@ private fun ErrorContent(error: String) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "加载失败",
+                text = stringResource(Res.string.load_failed),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.error
             )

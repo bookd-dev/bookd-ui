@@ -16,6 +16,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bookd.app.data.model.LocalReadingProgress
 import com.bookd.app.data.model.ReadingProgressResponse
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.progress_conflict_title
+import app.composeapp.generated.resources.progress_conflict_message
+import app.composeapp.generated.resources.reader_local_progress
+import app.composeapp.generated.resources.reader_remote_progress
+import app.composeapp.generated.resources.use_local_progress
+import app.composeapp.generated.resources.use_remote_progress
+import app.composeapp.generated.resources.local_progress_info
+import app.composeapp.generated.resources.remote_progress_info
+import app.composeapp.generated.resources.reader_last_read_at
+import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * 阅读进度冲突对话框
@@ -31,12 +45,12 @@ fun ReaderProgressConflictDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("检测到云端阅读进度")
+            Text(stringResource(Res.string.progress_conflict_title))
         },
         text = {
             Column {
                 Text(
-                    text = "发现本地和云端的阅读进度不一致，请选择要使用的进度：",
+                    text = stringResource(Res.string.progress_conflict_message),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 
@@ -45,9 +59,8 @@ fun ReaderProgressConflictDialog(
                 // 本地进度
                 if (localProgress != null) {
                     ProgressInfoRow(
-                        label = "本地进度",
-                        chapterIndex = localProgress.chapterIndex,
-                        progress = localProgress.progress,
+                        label = stringResource(Res.string.reader_local_progress),
+                        progressText = stringResource(Res.string.local_progress_info, localProgress.chapterIndex + 1, (localProgress.progress * 100).toInt()),
                         lastReadAt = formatTimestamp(localProgress.lastReadAt)
                     )
                 }
@@ -57,22 +70,21 @@ fun ReaderProgressConflictDialog(
                 // 云端进度
                 if (remoteProgress != null) {
                     ProgressInfoRow(
-                        label = "云端进度",
-                        chapterIndex = remoteProgress.currentPage,
-                        progress = remoteProgress.progress,
+                        label = stringResource(Res.string.reader_remote_progress),
+                        progressText = stringResource(Res.string.remote_progress_info, remoteProgress.currentPage + 1, (remoteProgress.progress * 100).toInt()),
                         lastReadAt = remoteProgress.lastReadAt
                     )
                 }
-            }
+                }
         },
         confirmButton = {
             Row {
                 TextButton(onClick = onUseLocal) {
-                    Text("保持本地")
+                    Text(stringResource(Res.string.use_local_progress))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onUseRemote) {
-                    Text("使用云端")
+                    Text(stringResource(Res.string.use_remote_progress))
                 }
             }
         },
@@ -83,8 +95,7 @@ fun ReaderProgressConflictDialog(
 @Composable
 private fun ProgressInfoRow(
     label: String,
-    chapterIndex: Int,
-    progress: Double,
+    progressText: String,
     lastReadAt: String
 ) {
     Column(
@@ -98,11 +109,11 @@ private fun ProgressInfoRow(
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = "第 ${chapterIndex + 1} 章 (${(progress * 100).toInt()}%)",
+            text = progressText,
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            text = "最后阅读: $lastReadAt",
+            text = stringResource(Res.string.reader_last_read_at, lastReadAt),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -113,33 +124,8 @@ private fun ProgressInfoRow(
  * 格式化时间戳为可读字符串
  */
 private fun formatTimestamp(timestamp: Long): String {
-    // 简单格式化，MVP 阶段使用简化实现
-    val seconds = timestamp / 1000
-    val minutes = (seconds / 60) % 60
-    val hours = (seconds / 3600) % 24
-    val days = seconds / 86400
-    
-    // 计算大致日期（从 1970-01-01 开始）
-    val totalDays = days.toInt()
-    var year = 1970
-    var remainingDays = totalDays
-    
-    while (true) {
-        val daysInYear = if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 366 else 365
-        if (remainingDays < daysInYear) break
-        remainingDays -= daysInYear
-        year++
-    }
-    
-    val daysInMonths = intArrayOf(31, if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
-    var month = 1
-    for (i in daysInMonths.indices) {
-        if (remainingDays < daysInMonths[i]) break
-        remainingDays -= daysInMonths[i]
-        month++
-    }
-    val day = remainingDays + 1
-    
-    return "$year-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} " +
-            "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}"
+    val instant = Instant.fromEpochMilliseconds(timestamp)
+    val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${local.year}-${(local.month.ordinal + 1).toString().padStart(2, '0')}-${local.day.toString().padStart(2, '0')} " +
+           "${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
 }

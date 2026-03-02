@@ -27,25 +27,33 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.bookd.app.basic.extension.logD
 import com.bookd.app.basic.reader.ReaderEngine
-import com.bookd.app.data.repository.ReaderRepository
-import org.koin.compose.koinInject
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
+import com.bookd.app.data.repository.ReaderRepository
 import com.bookd.app.screen.reader.component.ReaderPageCanvas
-import kotlinx.coroutines.launch
-import com.bookd.app.basic.extension.logD
 import kotlin.time.Clock
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
+import app.composeapp.generated.resources.Res
+import app.composeapp.generated.resources.reader_chapter_no_content
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PageModeContent(
+    bookId: Int,
     chapters: Map<Int, ChapterContent>,
     currentChapterIndex: Int,
     pagerSlideDirection: Int,
@@ -65,7 +73,7 @@ fun PageModeContent(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "本章无内容",
+                text = stringResource(Res.string.reader_chapter_no_content),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -83,47 +91,25 @@ fun PageModeContent(
 
         val repository: ReaderRepository = koinInject()
         val coroutineScope = rememberCoroutineScope()
-        val chapterPageDataList = sortedChapterIndices.mapNotNull { chapterIndex ->
-            val chapter = chapters[chapterIndex] ?: return@mapNotNull null
-            val elements = remember(chapterIndex, chapter, settings) {
-                buildList {
-                    chapter.title?.let { add(ContentElement.Heading(level = 1, text = it)) }
-                    addAll(chapter.elements)
-                }
-            }
-            val engine = remember(chapterIndex, elements, settings, maxWidth, maxHeight, density) {
-                ReaderEngine(textMeasurer, density, Constraints.fixed(maxWidth, maxHeight), settings)
-            }
-            val cacheKey = remember(chapterIndex, elements, settings, maxWidth, maxHeight, density) {
-                repository.buildPageAnchorCacheKey(
-                    bookId = 0,
+
+        // 每个章节通过独立 @Composable 函数异步加载，避免主线程 DB 阻塞
+        // 使用 buildList + for 循环，确保 @Composable 调用顺序稳定
+        val chapterPageDataList = buildList {
+            for (chapterIndex in sortedChapterIndices) {
+                val chapter = chapters[chapterIndex] ?: continue
+                val data = rememberChapterPageData(
+                    bookId = bookId,
                     chapterIndex = chapterIndex,
+                    chapter = chapter,
                     settings = settings,
-                    viewportWidth = maxWidth,
-                    viewportHeight = maxHeight,
-                    density = density.density,
-                    elements = elements
+                    maxWidth = maxWidth,
+                    maxHeight = maxHeight,
+                    density = density,
+                    textMeasurer = textMeasurer,
+                    repository = repository
                 )
+                if (data != null) add(data)
             }
-            val anchors = remember(engine, elements, cacheKey) {
-                repository.getPageAnchorsCache(cacheKey)?.also {
-                    coroutineScope.launch { repository.updateLastAccessedAt(cacheKey) }
-                } ?: run {
-                    val t0 = Clock.System.now().toEpochMilliseconds()
-                    val computed = engine.calculatePageAnchors(elements)
-                    val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
-                    logD(tag = "Reader") { "[PageMode] 分页测量 chapter=$chapterIndex elements=${elements.size} pages=${computed.size} 耗时 ${elapsedMs}ms" }
-                    coroutineScope.launch { repository.savePageAnchorsCache(cacheKey, computed) }
-                    computed
-                }
-            }
-            ChapterPageData(
-                chapterIndex = chapterIndex,
-                elements = elements,
-                engine = engine,
-                anchors = anchors,
-                pageIndexInChapterOffset = 0
-            )
         }
 
         val chapterPageDataWithOffset = remember(chapterPageDataList) {
@@ -245,9 +231,13 @@ fun PageModeContent(
                         nextPageAnchor = page.nextAnchor,
                         elements = page.elements,
                         readerEngine = page.engine,
-                        onLinkClick = {},
-                        onFootnoteClick = {},
-                        onImageClick = { _, _ -> },
+                        onLinkClick = onLinkClick,
+                        onFootnoteClick = { footnoteId ->
+                            val footnote = page.elements.filterIsInstance<ContentElement.Footnote>()
+                                .firstOrNull { it.footnoteId == footnoteId }
+                            if (footnote != null) onFootnoteClick(footnote)
+                        },
+                        onImageClick = onImageClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(with(density) { maxHeight.toDp() })
@@ -256,6 +246,67 @@ fun PageModeContent(
             }
         }
     }
+}
+
+/**
+ * 异步加载单章节分页数据。
+ * 先查本地 DB 缓存（suspend，不阻塞主线程），未命中则在 Default 调度器上执行测量计算。
+ * 加载完成前返回 null，外层 mapNotNull 会跳过该章节，完成后触发重组。
+ */
+@Composable
+private fun rememberChapterPageData(
+    bookId: Int,
+    chapterIndex: Int,
+    chapter: ChapterContent,
+    settings: ReaderSettings,
+    maxWidth: Int,
+    maxHeight: Int,
+    density: Density,
+    textMeasurer: TextMeasurer,
+    repository: ReaderRepository
+): ChapterPageData? {
+    val elements = remember(chapterIndex, chapter, settings) {
+        buildList {
+            chapter.title?.let { add(ContentElement.Heading(level = 1, text = it)) }
+            addAll(chapter.elements)
+        }
+    }
+    val engine = remember(chapterIndex, elements, settings, maxWidth, maxHeight, density) {
+        ReaderEngine(textMeasurer, density, Constraints.fixed(maxWidth, maxHeight), settings)
+    }
+    val cacheKey = remember(chapterIndex, elements, settings, maxWidth, maxHeight, density) {
+        repository.buildPageAnchorCacheKey(
+            bookId = bookId,
+            chapterIndex = chapterIndex,
+            settings = settings,
+            viewportWidth = maxWidth,
+            viewportHeight = maxHeight,
+            density = density.density,
+            elements = elements
+        )
+    }
+
+    var anchors by remember(cacheKey) { mutableStateOf<List<PageAnchor>?>(null) }
+
+    LaunchedEffect(cacheKey) {
+        // 1. 异步读缓存（不阻塞主线程）
+        val cached = repository.getPageAnchorsCache(cacheKey)
+        if (cached != null) {
+            repository.updateLastAccessedAt(cacheKey)
+            anchors = cached
+            return@LaunchedEffect
+        }
+        // 2. 缓存未命中：在后台线程执行耗时计算
+        val t0 = Clock.System.now().toEpochMilliseconds()
+        val computed = withContext(Dispatchers.Default) { engine.calculatePageAnchors(elements) }
+        val elapsedMs = Clock.System.now().toEpochMilliseconds() - t0
+        logD(tag = "Reader") { "[PageMode] 分页测量 chapter=$chapterIndex elements=${elements.size} pages=${computed.size} 耗时 ${elapsedMs}ms" }
+        anchors = computed
+        repository.savePageAnchorsCache(cacheKey, computed)
+    }
+
+    val currentAnchors = anchors ?: return null
+    return ChapterPageData(chapterIndex, elements, engine, currentAnchors, 0)
 }
 
 private data class ChapterPageData(
