@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,7 +26,8 @@ import com.bookd.app.data.model.TextStyle
 @Composable
 fun ReaderFootnoteDialog(
     footnote: ContentElement.Footnote,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onLinkClick: (String) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -46,6 +48,7 @@ fun ReaderFootnoteDialog(
                         val hasUnderline = span.styles.contains(TextStyle.UNDERLINE)
                         val hasStrikethrough = span.styles.contains(TextStyle.STRIKETHROUGH)
                         
+                        val start = length
                         withStyle(
                             SpanStyle(
                                 fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
@@ -62,12 +65,22 @@ fun ReaderFootnoteDialog(
                         ) {
                             append(span.text)
                         }
+                        val end = length
+                        if (!span.link.isNullOrBlank()) {
+                            addStringAnnotation(tag = "URL", annotation = span.link, start = start, end = end)
+                        }
                     }
-                }
                 
-                Text(
+                }
+                ClickableText(
                     text = annotatedString,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    onClick = { offset ->
+                        annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                            .firstOrNull()?.let { annotation ->
+                                onLinkClick(annotation.item)
+                            }
+                    }
                 )
             }
         },

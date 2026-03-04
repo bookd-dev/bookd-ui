@@ -193,8 +193,16 @@ class ParagraphElementFactory(
                 // 这里应该遍历 element.spans 来应用局部样式（如加粗）
                 // 简单起见，这里只 append 纯文本
                 spans.forEach { span ->
+                    val start = length
                     withStyle(styleController.buildMeasureSpanStyle(span)) {
                         append(span.text)
+                    }
+                    val end = length
+                    if (!span.link.isNullOrBlank()) {
+                        addStringAnnotation(tag = "URL", annotation = span.link, start = start, end = end)
+                    }
+                    if (!span.footnoteId.isNullOrBlank()) {
+                        addStringAnnotation(tag = "footnote", annotation = span.footnoteId, start = start, end = end)
                     }
                     // 会自动判定是否要添加脚注占位
                     autoAppendFootnoteInlineContent(
@@ -209,3 +217,4 @@ class ParagraphElementFactory(
         }
     }
 }
+

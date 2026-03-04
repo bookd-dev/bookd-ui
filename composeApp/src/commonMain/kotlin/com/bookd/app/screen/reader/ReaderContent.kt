@@ -234,7 +234,8 @@ fun ReaderContent(
             if (state.showFootnoteDialog && state.currentFootnote != null) {
                 ReaderFootnoteDialog(
                     footnote = state.currentFootnote,
-                    onDismiss = onFootnoteDismiss
+                    onDismiss = onFootnoteDismiss,
+                    onLinkClick = onLinkClick
                 )
             }
 

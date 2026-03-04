@@ -1,7 +1,10 @@
 package com.bookd.app.screen.reader.component
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -41,8 +44,74 @@ fun ReaderPageCanvas(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(renderCommands) {
-                detectTapGestures { offset ->
-                    //TODO 点击事件
+                awaitEachGesture {
+                    awaitFirstDown(pass = PointerEventPass.Main)
+                    val up = waitForUpOrCancellation(pass = PointerEventPass.Main) ?: return@awaitEachGesture
+
+                    val rawOffset = up.position
+                    val contentX = rawOffset.x - readerEngine.marginHorizontalPx.toFloat()
+                    val contentY = rawOffset.y - verticalOffset
+
+                    // 1. 检测图片点击
+                    for (cmd in renderCommands) {
+                        if (cmd is RenderCommand.Image) {
+                            val contentWidth = size.width - 2 * readerEngine.marginHorizontalPx
+                            val imageOffsetX = (contentWidth - cmd.width) / 2f
+                            if (contentX >= imageOffsetX && contentX <= imageOffsetX + cmd.width &&
+                                contentY >= cmd.y && contentY <= cmd.y + cmd.height) {
+                                up.consume()
+                                onImageClick(cmd.src, cmd.altText)
+                                return@awaitEachGesture
+                            }
+                        }
+                    }
+
+                    // 2. 检测文本 annotation（链接/脚注）
+                    for (cmd in renderCommands) {
+                        if (cmd is RenderCommand.Text) {
+                            val textTop = cmd.y.toFloat()
+                            val textBottom = textTop + cmd.textLayout.size.height
+                            if (contentY >= textTop && contentY < textBottom) {
+                                val localOffset = androidx.compose.ui.geometry.Offset(contentX, contentY - textTop)
+                                val charOffset = cmd.textLayout.getOffsetForPosition(localOffset)
+
+                                // 检查 URL annotation
+                                val urlAnnotations = cmd.textLayout.layoutInput.text
+                                    .getStringAnnotations(tag = "URL", start = charOffset, end = charOffset)
+                                if (urlAnnotations.isNotEmpty()) {
+                                    up.consume()
+                                    onLinkClick(urlAnnotations.first().item)
+                                    return@awaitEachGesture
+                                }
+
+                                // 检查 footnote annotation（文本型脚注）
+                                val footnoteAnnotations = cmd.textLayout.layoutInput.text
+                                    .getStringAnnotations(tag = "footnote", start = charOffset, end = charOffset)
+                                if (footnoteAnnotations.isNotEmpty()) {
+                                    up.consume()
+                                    onFootnoteClick(footnoteAnnotations.first().item)
+                                    return@awaitEachGesture
+                                }
+
+                                // 检查 inlineContent 脚注图标（图片占位符）
+                                val inlineContentMap = cmd.inlineContent ?: continue
+                                for ((key, info) in inlineContentMap) {
+                                    val rect = cmd.textLayout.placeholderRects.getOrNull(info.index) ?: continue
+                                    if (contentX >= rect.left && contentX <= rect.right &&
+                                        contentY - textTop >= rect.top && contentY - textTop <= rect.bottom) {
+                                        // key 格式: "footnote:{footnoteId}:{image}:{index}"
+                                        val parts = key.split(":")
+                                        if (parts.size >= 2 && parts[0] == "footnote") {
+                                            up.consume()
+                                            onFootnoteClick(parts[1])
+                                            return@awaitEachGesture
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // 未命中任何内容 → 不消费事件，透传给外层
                 }
             },
         onDraw = {
