@@ -3,12 +3,11 @@ CREATE TABLE ChapterCacheEntity (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     bookId INTEGER NOT NULL,
     chapterIndex INTEGER NOT NULL,
-    content TEXT NOT NULL,  -- JSON 序列化的 ChapterContent
-    cachedAt INTEGER NOT NULL,  -- 缓存时间戳（毫秒）
+    content TEXT NOT NULL,
+    cachedAt INTEGER NOT NULL,
     UNIQUE(bookId, chapterIndex)
 );
 
--- 索引：按书籍查询
 CREATE INDEX chapter_cache_book_id_index ON ChapterCacheEntity(bookId);
 
 -- 获取指定章节缓存

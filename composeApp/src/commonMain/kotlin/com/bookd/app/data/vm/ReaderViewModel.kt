@@ -352,9 +352,10 @@ class ReaderViewModel(
     
     // ============= 进度管理 =============
     
-    fun updateScrollPosition(paragraphIndex: Int, scrollOffset: Int) {
-        _state.update { 
+    fun updateScrollPosition(chapterIndex: Int, paragraphIndex: Int, scrollOffset: Int) {
+        _state.update {
             it.copy(
+                currentChapterIndex = chapterIndex,
                 currentParagraphIndex = paragraphIndex,
                 scrollOffset = scrollOffset
             )
@@ -685,6 +686,33 @@ class ReaderViewModel(
         }
     }
     
+    /**
+     * 处理滚动模式章节切换（由 ScrollModeContent 触发）
+     * 当用户滚动时某章内容占屏超过一半，自动调用此方法更新当前章节
+     */
+    fun onScrollChapterChanged(newChapterIndex: Int) {
+        val currentIndex = _state.value.currentChapterIndex
+        if (newChapterIndex == currentIndex) return
+
+        val totalChapters = _state.value.totalChapters
+        if (newChapterIndex < 0 || newChapterIndex >= totalChapters) return
+
+        _state.update { state ->
+            state.copy(
+                currentChapterIndex = newChapterIndex,
+                currentChapter = state.adjacentChapters[newChapterIndex],
+                currentParagraphIndex = 0,
+                scrollOffset = 0
+            )
+        }
+
+        // 更新本地进度
+        updateLocalProgress()
+
+        // 异步补充加载新的相邻章节
+        loadAdjacentChaptersForPager(newChapterIndex)
+    }
+
     // ============= 设置 =============
     
     fun updateSettings(settings: ReaderSettings) {

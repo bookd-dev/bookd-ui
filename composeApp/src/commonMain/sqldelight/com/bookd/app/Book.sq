@@ -23,7 +23,6 @@ CREATE TABLE BookEntity (
     updatedAt TEXT
 );
 
--- 按 sourceId 索引，加速查询
 CREATE INDEX book_source_id_index ON BookEntity(sourceId);
 
 -- 获取所有书籍

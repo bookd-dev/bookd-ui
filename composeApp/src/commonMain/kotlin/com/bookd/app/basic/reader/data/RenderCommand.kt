@@ -41,7 +41,8 @@ sealed class RenderCommand {
         val height: Int,
         val imageBitmap: ImageBitmap? = null, // 缓存的图片
         val altText: String? = null,
-        val altTextLayout: TextLayoutResult? = null // alt 文本的布局
+        val altTextLayout: TextLayoutResult? = null, // alt 文本的布局
+        val altSpacing: Int = 0 // 图片与 alt 文本之间的间距
     ) : RenderCommand()
 
     /**

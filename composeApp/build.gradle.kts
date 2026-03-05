@@ -154,15 +154,14 @@ ktorfit {
 
 sqldelight {
     databases {
-        create("Database", object : Action<SqlDelightDatabase> {
-            override fun execute(database: SqlDelightDatabase?) {
-                database?.let {
-                    it.packageName.set("com.bookd.app")
-                    it.generateAsync.set(true)
-                    it.deriveSchemaFromMigrations.set(true)
-                }
-            }
-        })
+        create("Database") {
+            generateAsync = true
+//            deriveSchemaFromMigrations = true
+            verifyMigrations = true
+
+            packageName = "com.bookd.app"
+            srcDirs.setFrom("src/commonMain/sqldelight")
+        }
     }
 }
 

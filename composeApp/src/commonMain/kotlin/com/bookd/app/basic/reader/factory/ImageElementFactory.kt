@@ -147,7 +147,8 @@ class ImageElementFactory(
             height = finalHeight,
             imageBitmap = null,
             altText = element.alt,
-            altTextLayout = altTextLayout
+            altTextLayout = altTextLayout,
+            altSpacing = if (altTextLayout != null) imageToAltSpacing else 0
         )
     }
 

@@ -8,7 +8,7 @@ import com.bookd.app.basic.reader.data.RenderCommand
 fun getCommandHeight(command: RenderCommand): Int {
     return when (command) {
         is RenderCommand.Text -> command.textLayout.size.height
-        is RenderCommand.Image -> command.height + (command.altTextLayout?.size?.height ?: 0)
+        is RenderCommand.Image -> command.height + command.altSpacing + (command.altTextLayout?.size?.height ?: 0)
         is RenderCommand.Heading -> command.height
         is RenderCommand.Quote -> command.height
         is RenderCommand.Code -> command.height
