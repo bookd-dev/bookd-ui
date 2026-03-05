@@ -71,7 +71,7 @@ fun ReaderPageCanvas(
                         if (cmd is RenderCommand.Text) {
                             val textTop = cmd.y.toFloat()
                             val textBottom = textTop + cmd.textLayout.size.height
-                            if (contentY >= textTop && contentY < textBottom) {
+                            if (contentY in textTop..<textBottom) {
                                 val localOffset = androidx.compose.ui.geometry.Offset(contentX, contentY - textTop)
                                 val charOffset = cmd.textLayout.getOffsetForPosition(localOffset)
 
