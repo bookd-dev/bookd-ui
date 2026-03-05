@@ -36,14 +36,13 @@ fun ReaderPageCanvas(
     verticalOffset: Float = readerEngine.marginVerticalPx.toFloat(),
     modifier: Modifier = Modifier
 ) {
-    // 在 Composable 层预创建 Painter (这只是引用，不产生大对象)
     val imagePainters = elements.rememberImagePainterMap()
 
-    // 2. 绘制阶段（使用 Canvas）
+    // 绘制阶段（使用 Canvas）
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(renderCommands) {
+            .pointerInput(pageAnchor) {
                 awaitEachGesture {
                     awaitFirstDown(pass = PointerEventPass.Main)
                     val up = waitForUpOrCancellation(pass = PointerEventPass.Main) ?: return@awaitEachGesture

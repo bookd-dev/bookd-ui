@@ -7,6 +7,9 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.bookd.app.data.model.ContentElement
 
+/**
+ * AsyncImagePainter 的 mutableStateOf 机制保证加载完自动重绘，不需要额外处理
+ */
 @Composable
 fun List<ContentElement>.rememberImagePainterMap(): Map<String, AsyncImagePainter> {
     val painters = mutableMapOf<String, AsyncImagePainter>()
@@ -14,17 +17,12 @@ fun List<ContentElement>.rememberImagePainterMap(): Map<String, AsyncImagePainte
     this.forEach { element ->
         when (element) {
             is ContentElement.Image -> {
-                // 关键点：使用 key 确保 Painter 与 src 绑定，不受列表顺序影响
-                painters[element.src] = key(element.src) {
-                    rememberAsyncImagePainter(element.src)
-                }
+                painters[element.src] = rememberAsyncImagePainter(element.src)
             }
 
             is ContentElement.Footnote -> {
                 element.footnoteImage?.let { src ->
-                    painters[src] = key(src) {
-                        rememberAsyncImagePainter(src)
-                    }
+                    painters[src] = rememberAsyncImagePainter(src)
                 }
             }
 
