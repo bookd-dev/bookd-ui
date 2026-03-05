@@ -75,10 +75,18 @@ data class ReaderState(
     val error: String? = null
 ) {
     /**
-     * 总章节数
+     * 总章节数（仅包含 inToc=true 的章节，用于进度上报等语义场景）
      */
     val totalChapters: Int
         get() = manifest?.totalChapters ?: 0
+    
+    /**
+     * 可访问章节的数量上界（基于 spine 的最大索引 + 1）。
+     * spine 包含所有文档的 index（不论 inToc），因此比 totalChapters 更准确地
+     * 反映了可加载章节的索引范围。所有索引边界检查应使用此属性而非 totalChapters。
+     */
+    val chapterCount: Int
+        get() = ((manifest?.spine?.maxOrNull() ?: -1) + 1)
     
     /**
      * 当前章节标题
@@ -102,7 +110,7 @@ data class ReaderState(
      * 是否有下一章
      */
     val hasNextChapter: Boolean
-        get() = currentChapterIndex < totalChapters - 1
+        get() = currentChapterIndex < chapterCount - 1
     
     /**
      * 查找目录项
@@ -269,13 +277,13 @@ class ReaderViewModel(
             
             try {
                 val bookId = _state.value.bookId
-                val totalChapters = _state.value.totalChapters
+                val chapterCount = _state.value.chapterCount
                 
-                // 确定需要加载的章节范围（当前章节 + 前后各一章）
+                // 确定需要加载的章节范围（当前章节 + 向前10章历史 + 向后2章预加载）
                 val chaptersToLoad = buildList {
-                    if (chapterIndex > 0) add(chapterIndex - 1)
+                    for (i in maxOf(0, chapterIndex - 10) until chapterIndex) add(i)
                     add(chapterIndex)
-                    if (chapterIndex < totalChapters - 1) add(chapterIndex + 1)
+                    for (i in (chapterIndex + 1)..minOf(chapterCount - 1, chapterIndex + 2)) add(i)
                 }
                 
                 // 加载所有需要的章节
@@ -317,11 +325,11 @@ class ReaderViewModel(
      * 预加载更远的章节（当前章节 ±2）
      */
     private fun preloadFurtherChapters(currentIndex: Int) {
-        val totalChapters = _state.value.totalChapters
+        val chapterCount = _state.value.chapterCount
         val bookId = _state.value.bookId
         
         listOf(currentIndex - 2, currentIndex + 2)
-            .filter { it in 0 until totalChapters }
+            .filter { it in 0 until chapterCount }
             .filter { !_state.value.preloadedChapters.containsKey(it) }
             .forEach { index ->
                 scope.launch {
@@ -571,7 +579,7 @@ class ReaderViewModel(
     
     fun jumpToChapter(index: Int) {
         val state = _state.value
-        if (index < 0 || index >= state.totalChapters) return
+        if (index < 0 || index >= state.chapterCount) return
         
         _state.update { 
             it.copy(
@@ -613,8 +621,8 @@ class ReaderViewModel(
         val currentIndex = _state.value.currentChapterIndex
         if (newChapterIndex == currentIndex) return
         
-        val totalChapters = _state.value.totalChapters
-        if (newChapterIndex < 0 || newChapterIndex >= totalChapters) return
+        val chapterCount = _state.value.chapterCount
+        if (newChapterIndex < 0 || newChapterIndex >= chapterCount) return
         
         _state.update { state ->
             state.copy(
@@ -638,23 +646,34 @@ class ReaderViewModel(
     private fun loadAdjacentChaptersForPager(centerIndex: Int) {
         scope.launch {
             val bookId = _state.value.bookId
-            val totalChapters = _state.value.totalChapters
+            val chapterCount = _state.value.chapterCount
             val currentAdjacent = _state.value.adjacentChapters
             
-            val neededIndices = buildList {
-                if (centerIndex > 0) add(centerIndex - 1)
-                add(centerIndex)
-                if (centerIndex < totalChapters - 1) add(centerIndex + 1)
-            }
+            // 向前保留10章历史 + 当前章 + 向后预加载2章
+            val neededMin = maxOf(0, centerIndex - 10)
+            val neededMax = minOf(chapterCount - 1, centerIndex + 2)
+            val neededIndices = (neededMin..neededMax).toList()
+            
+            // 后端（向后方向）只增不减，避免相邻章节切换时反复增删 adjacentChapters
+            // 导致 LazyColumn 布局抖动，进而触发章节切换死循环。
+            // 前端（向前方向）正常裁剪，不影响历史章节访问。
+            // 软上限 25 章（前10 + 当前 + 后14），防止大跳转时窗口无限增长。
+            val trimMin = neededMin
+            val rawMax = maxOf(neededMax, currentAdjacent.keys.maxOrNull() ?: neededMax)
+            val trimMax = minOf(rawMax, trimMin + 24)
+            val validRange = (trimMin..trimMax).toSet()
             
             val missingIndices = neededIndices.filter { !currentAdjacent.containsKey(it) }
             
             if (missingIndices.isEmpty()) {
-                val validRange = neededIndices.toSet()
-                _state.update { state ->
-                    state.copy(
-                        adjacentChapters = state.adjacentChapters.filterKeys { it in validRange }
-                    )
+                // 只有当 adjacentChapters 的键集合与 validRange 不同时才裁剪，
+                // 避免产生新 Map 对象触发不必要的重组
+                if (currentAdjacent.keys != validRange) {
+                    _state.update { state ->
+                        state.copy(
+                            adjacentChapters = state.adjacentChapters.filterKeys { it in validRange }
+                        )
+                    }
                 }
                 return@launch
             }
@@ -674,7 +693,6 @@ class ReaderViewModel(
                 }
             }
             
-            val validRange = neededIndices.toSet()
             _state.update { state ->
                 state.copy(
                     adjacentChapters = (state.adjacentChapters + newChapters).filterKeys { it in validRange },
@@ -694,8 +712,8 @@ class ReaderViewModel(
         val currentIndex = _state.value.currentChapterIndex
         if (newChapterIndex == currentIndex) return
 
-        val totalChapters = _state.value.totalChapters
-        if (newChapterIndex < 0 || newChapterIndex >= totalChapters) return
+        val chapterCount = _state.value.chapterCount
+        if (newChapterIndex < 0 || newChapterIndex >= chapterCount) return
 
         _state.update { state ->
             state.copy(
