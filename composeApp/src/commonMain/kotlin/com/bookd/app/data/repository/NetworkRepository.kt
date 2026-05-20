@@ -1,5 +1,6 @@
 package com.bookd.app.data.repository
 
+import com.bookd.app.data.api.NetworkAddressProvider
 import com.bookd.app.data.structure.UrlTestState
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
@@ -58,11 +59,11 @@ class NetworkConfigRepository(private val settings: Settings) {
 class NetworkSwitcher(
     private val config: NetworkConfigRepository,
     private val httpClient: HttpClient
-) {
+) : NetworkAddressProvider {
     private val _networkState = MutableStateFlow(NetworkState())
     val networkState: StateFlow<NetworkState> = _networkState
 
-    val currentUrl: String?
+    override val currentUrl: String?
         get() = (_networkState.value.status as? ConnectionStatus.Connected)?.url
 
     //检测并选择最佳的 URL

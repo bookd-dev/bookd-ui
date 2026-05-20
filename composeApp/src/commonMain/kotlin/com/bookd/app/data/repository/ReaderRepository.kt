@@ -81,7 +81,14 @@ class ReaderRepository(
         if (cached != null) {
             return try {
                 val content = json.decodeFromString<ChapterContent>(cached.content)
-                Result.success(content)
+                if (content.elements.isEmpty()) {
+                    // elements 为空视为无效缓存（书籍解析未完成时的历史脏数据），
+                    // 删除后重新从网络获取以拿到完整内容。
+                    chapterCacheQueries.deleteByBookAndChapter(bookId.toLong(), chapterIndex.toLong())
+                    fetchAndCacheChapter(bookId, chapterIndex)
+                } else {
+                    Result.success(content)
+                }
             } catch (e: Exception) {
                 // 缓存解析失败，删除并重新获取
                 chapterCacheQueries.deleteByBookAndChapter(bookId.toLong(), chapterIndex.toLong())

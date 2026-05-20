@@ -1,17 +1,24 @@
 package com.bookd.app.data.api
 
 import com.bookd.app.data.converter.SuccessResponseConverterFactory
-import com.bookd.app.data.repository.NetworkSwitcher
 import de.jensklingenberg.ktorfit.Ktorfit
 import io.ktor.client.HttpClient
+
+/**
+ * 网络地址提供者接口
+ * 抽象当前激活的服务器地址，方便测试时注入 fake 实现
+ */
+interface NetworkAddressProvider {
+    val currentUrl: String?
+}
 
 /**
  * API 提供者
  * 动态创建 Ktorfit 实例，处理无网络配置的情况
  */
-class ApiProvider(
+open class ApiProvider(
     private val httpClient: HttpClient,
-    private val networkSwitcher: NetworkSwitcher
+    private val networkSwitcher: NetworkAddressProvider
 ) {
     private var cachedKtorfit: Ktorfit? = null
     private var cachedBaseUrl: String? = null
@@ -81,7 +88,7 @@ class ApiProvider(
     /**
      * 获取 ReaderApi，如果未配置网络返回 null
      */
-    fun getReaderApiOrNull(): ReaderApi? {
+    open fun getReaderApiOrNull(): ReaderApi? {
         return if (isConfigured) getKtorfit().createReaderApi() else null
     }
     
