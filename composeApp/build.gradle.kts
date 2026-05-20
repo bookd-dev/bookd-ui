@@ -18,6 +18,10 @@ plugins {
 
 kotlin {
     applyDefaultHierarchyTemplate()
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
     
     androidTarget {
         compilerOptions {
@@ -41,7 +45,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
-            implementation(compose.preview)
+            implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.appcompat)
@@ -49,14 +53,14 @@ kotlin {
             implementation(libs.sqldelight.android)
         }
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
-            implementation(compose.material3AdaptiveNavigationSuite)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.components.resources)
+            implementation(libs.compose.ui.tooling.preview)
+            implementation(libs.compose.material3.adaptive.navigation.suite)
+            implementation(libs.compose.material.icons.extended)
 
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
@@ -73,10 +77,7 @@ kotlin {
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinxJson)
             implementation(libs.ktor.client.logging)
-            implementation(libs.ktorfit) //包含了ktor 3.3.3版本核心代码了
-            implementation(libs.ktorfit.converters.response)
-            implementation(libs.ktorfit.converters.call)
-            implementation(libs.ktorfit.converters.flow)
+            implementation(libs.ktorfit) // 包含 Ktor 核心依赖
 
             // kotlin coroutine
             implementation(libs.kotlinx.coroutines.core)
@@ -116,7 +117,7 @@ kotlin {
         }
         val jvmTest by getting {
             dependencies {
-                implementation(compose.desktop.uiTestJUnit4)
+                implementation(libs.compose.ui.test.junit4)
                 implementation(compose.desktop.currentOs)
             }
         }
@@ -149,7 +150,7 @@ ksp {
 
 ktorfit {
     errorCheckingMode = ErrorCheckingMode.ERROR
-    compilerPluginVersion.set("2.3.3")
+    compilerPluginVersion.set("2.3.4")
 }
 
 sqldelight {
@@ -193,7 +194,7 @@ android {
 }
 
 dependencies {
-    debugImplementation(compose.uiTooling)
+    debugImplementation(libs.compose.ui.tooling)
 }
 
 compose.desktop {

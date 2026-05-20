@@ -5,7 +5,7 @@ package com.bookd.app.screen
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation3.rememberSupportingPaneSceneStrategy
@@ -73,7 +73,7 @@ fun AppScreen() {
 
     // Override the defaults so that there isn't a horizontal or vertical space between the panes.
     // See b/444438086
-    val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+    val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
     val directive = remember(windowAdaptiveInfo) {
         calculatePaneScaffoldDirective(windowAdaptiveInfo)
             .copy(horizontalPartitionSpacerSize = 0.dp, verticalPartitionSpacerSize = 0.dp)
@@ -94,12 +94,14 @@ fun AppScreen() {
        SnackbarHostScaffold(error) {
            NavDisplay(
                backStack = backStack,
-               transitionSpec = transitionSpec(),
-               popTransitionSpec = popTransitionSpec(),
-               predictivePopTransitionSpec = predictivePopTransitionSpec(),
-               sceneStrategy = DialogSceneStrategy<NavKey>()
-                   .then(supportingPaneStrategy)
-                   .then(SinglePaneSceneStrategy()),
+               transitionSpec = transitionSpec<NavKey>(),
+               popTransitionSpec = popTransitionSpec<NavKey>(),
+               predictivePopTransitionSpec = predictivePopTransitionSpec<NavKey>(),
+               sceneStrategies = listOf(
+                   DialogSceneStrategy<NavKey>(),
+                   supportingPaneStrategy,
+                   SinglePaneSceneStrategy()
+               ),
                entryProvider = entryProvider {
                    entry<RouteMain> {
                        MainScreen(

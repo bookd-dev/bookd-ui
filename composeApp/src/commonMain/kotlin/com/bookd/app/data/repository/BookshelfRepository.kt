@@ -227,7 +227,7 @@ class BookshelfRepository(
                     currentPage = progress?.currentPage?.toLong(),
                     totalPages = progress?.totalPages?.toLong(),
                     lastReadAt = progress?.lastReadAt,
-                    sortIndex = (offset + index).toLong()  // 保持服务器返回的排序
+                    sortIndex = offset + index  // 保持服务器返回的排序
                 )
             }
             

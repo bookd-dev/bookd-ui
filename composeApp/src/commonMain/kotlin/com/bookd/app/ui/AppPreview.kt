@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation3.runtime.rememberNavBackStack
 import coil3.ColorImage
 import coil3.annotation.ExperimentalCoilApi
@@ -15,7 +16,6 @@ import com.bookd.app.di.appModules
 import com.bookd.app.screen.RouteMain.Companion.RouteBookshelf
 import com.bookd.app.screen.config
 import com.bookd.app.ui.theme.AppTheme
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.KoinApplicationPreview
 
 
