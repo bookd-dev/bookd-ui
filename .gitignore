@@ -38,3 +38,5 @@ google-services.json
 .DS_Store
 AGENTS.md
 **/AGENTS.md
+.codex/**
+.opencode/**
