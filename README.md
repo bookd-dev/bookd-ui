@@ -1,13 +1,19 @@
 This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM).
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
+* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
-    - [commonMain](./composeApp/src/commonMain/kotlin) is for code that's common for all targets.
+    - [commonMain](./shared/src/commonMain/kotlin) is for code that's common for all targets.
     - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
       For example, if you want to use Apple's CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-      Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
+      the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
+      Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
       folder is the appropriate location.
+
+* [/androidApp](./androidApp/src/main) contains the Android application entry point, manifest, app resources,
+  versioning, signing, and R8 configuration.
+
+* [/desktopApp](./desktopApp/src/main) contains the Desktop (JVM) application entry point and native distribution
+  configuration.
 
 * [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you're sharing your UI with Compose Multiplatform,
   you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
@@ -19,11 +25,11 @@ in your IDE's toolbar or build it directly from the terminal:
 
 - on macOS/Linux
   ```shell
-  ./gradlew :composeApp:assembleDebug
+  ./gradlew :androidApp:assembleDebug
   ```
 - on Windows
   ```shell
-  .\gradlew.bat :composeApp:assembleDebug
+  .\gradlew.bat :androidApp:assembleDebug
   ```
 
 ### Build and Run Desktop (JVM) Application
@@ -33,11 +39,11 @@ in your IDE's toolbar or run it directly from the terminal:
 
 - on macOS/Linux
   ```shell
-  ./gradlew :composeApp:run
+  ./gradlew :desktopApp:run
   ```
 - on Windows
   ```shell
-  .\gradlew.bat :composeApp:run
+  .\gradlew.bat :desktopApp:run
   ```
 
 ### Build and Run iOS Application
