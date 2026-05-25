@@ -13,8 +13,9 @@
     <string name="success">Success</string>
     <string name="failed">Failed</string>
     <string name="pending">Pending</string>
+    <string name="refresh">Refresh</string>
+    <string name="search">Search</string>
 
-    <string name="search_book">Search book</string>
     <string name="network_config">Network configuration</string>
     <string name="remote_url">Remote: </string>
     <string name="local_url">Local: </string>

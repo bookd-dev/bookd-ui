@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.bookd.app.data.model.Book
 import com.bookd.app.data.model.BookSource
-import com.bookd.app.data.structure.BookSourceMenu
 import com.bookd.app.data.vm.BookSourceEffect
 import com.bookd.app.data.vm.BookSourceIntent
 import com.bookd.app.data.vm.BookSourceState
@@ -74,13 +73,14 @@ fun BookSourceScreen() {
         onRefresh = {
             viewModel.onIntent(BookSourceIntent.RefreshCurrentBooks)
         },
+        onRefreshAll = {
+            viewModel.onIntent(BookSourceIntent.RefreshAll)
+        },
         onBookClick = { book ->
             screenContext.navigator.navigateTo(RouteBookDetail(bookId = book.id))
         },
-        onMenuClick = {
-            when (it) {
-                BookSourceMenu.SearchBook -> screenContext.navigator.navigateTo(RouteSearchBook)
-            }
+        onSearchClick = {
+            screenContext.navigator.navigateTo(RouteSearchBook)
         }
     )
 }
@@ -94,8 +94,9 @@ private fun BookSourceContent(
     onGetScrollState: (Int) -> LazyListState = { LazyListState() },
     onLoadMore: (Int) -> Unit = {},
     onRefresh: () -> Unit = {},
+    onRefreshAll: () -> Unit = {},
     onBookClick: (Book) -> Unit = {},
-    onMenuClick: (entry: BookSourceMenu) -> Unit = {},
+    onSearchClick: () -> Unit = {},
 ) {
     val sources = state.sources
     val coroutineScope = rememberCoroutineScope()
@@ -134,12 +135,17 @@ private fun BookSourceContent(
             sources = sources,
             pagerState = pagerState,
             isCollapsed = isCollapsed,
+            isRefreshingAll = state.sourcesLoading ||
+                state.booksLoading.values.any { it } ||
+                state.booksLoadingMore.values.any { it } ||
+                state.booksRefreshing.values.any { it },
             onBookSourceChange = { index ->
                 coroutineScope.launch {
                     pagerState.scrollToPage(index)
                 }
             },
-            onMenuClick = onMenuClick
+            onRefreshAllClick = onRefreshAll,
+            onSearchClick = onSearchClick
         )
 
         // 主体内容

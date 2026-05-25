@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
@@ -103,7 +104,7 @@ sealed class BookSourceIntent {
     /** 刷新当前书源的书籍 */
     data object RefreshCurrentBooks : BookSourceIntent()
     
-    /** 刷新所有数据（书源 + 当前书籍） */
+    /** 刷新所有数据（书源 + 所有书源的首屏书籍） */
     data object RefreshAll : BookSourceIntent()
 }
 
@@ -156,37 +157,42 @@ class BookSourceViewModel(
     
     private fun loadSources(forceRefresh: Boolean = false) {
         scope.launch {
-            _state.update { it.copy(sourcesLoading = true, sourcesError = null) }
-            
-            bookSourceRepository.getSources(forceRefresh).fold(
-                onSuccess = { sources ->
-                    _state.update { 
-                        it.copy(
-                            sources = sources,
-                            sourcesLoading = false,
-                            // 如果当前索引超出范围，重置为 0
-                            selectedSourceIndex = if (it.selectedSourceIndex >= sources.size) 0 else it.selectedSourceIndex
-                        )
-                    }
-                    
-                    // 自动加载第一个书源的书籍
-                    sources.firstOrNull()?.let { source ->
-                        if (_state.value.booksBySource[source.id].isNullOrEmpty()) {
-                            loadBooks(source.id)
-                        }
-                    }
-                },
-                onFailure = { e ->
-                    _state.update { 
-                        it.copy(
-                            sourcesLoading = false,
-                            sourcesError = e.message
-                        )
-                    }
-                    throw e
+            val sources = loadSourcesInternal(forceRefresh)
+
+            // 自动加载第一个书源的书籍
+            sources.firstOrNull()?.let { source ->
+                if (_state.value.booksBySource[source.id].isNullOrEmpty()) {
+                    loadBooks(source.id)
                 }
-            )
+            }
         }
+    }
+
+    private suspend fun loadSourcesInternal(forceRefresh: Boolean = false): List<BookSource> {
+        _state.update { it.copy(sourcesLoading = true, sourcesError = null) }
+
+        return bookSourceRepository.getSources(forceRefresh).fold(
+            onSuccess = { sources ->
+                _state.update {
+                    it.copy(
+                        sources = sources,
+                        sourcesLoading = false,
+                        // 如果当前索引超出范围，重置为 0
+                        selectedSourceIndex = if (it.selectedSourceIndex >= sources.size) 0 else it.selectedSourceIndex
+                    )
+                }
+                sources
+            },
+            onFailure = { e ->
+                _state.update {
+                    it.copy(
+                        sourcesLoading = false,
+                        sourcesError = e.message
+                    )
+                }
+                throw e
+            }
+        )
     }
     
     private fun selectSource(index: Int) {
@@ -204,46 +210,54 @@ class BookSourceViewModel(
     }
     
     private fun loadBooks(sourceId: Int, forceRefresh: Boolean = false) {
+        scope.launch {
+            loadBooksInternal(sourceId, forceRefresh, scrollToTop = forceRefresh)
+        }
+    }
+
+    private suspend fun loadBooksInternal(
+        sourceId: Int,
+        forceRefresh: Boolean = false,
+        scrollToTop: Boolean = forceRefresh
+    ) {
         // 如果正在加载，跳过
         if (_state.value.booksLoading[sourceId] == true) return
-        
-        scope.launch {
-            _state.update { state ->
-                state.copy(
-                    booksLoading = state.booksLoading + (sourceId to true),
-                    booksRefreshing = if (forceRefresh) state.booksRefreshing + (sourceId to true) else state.booksRefreshing,
-                    booksError = state.booksError + (sourceId to null)
-                )
-            }
-            
-            bookRepository.getBooks(sourceId, offset = 0, forceRefresh = forceRefresh).fold(
-                onSuccess = { response ->
-                    _state.update { state ->
-                        state.copy(
-                            booksBySource = state.booksBySource + (sourceId to response.books),
-                            booksLoading = state.booksLoading + (sourceId to false),
-                            booksRefreshing = state.booksRefreshing + (sourceId to false),
-                            booksHasMore = state.booksHasMore + (sourceId to response.hasMore),
-                            booksTotal = state.booksTotal + (sourceId to response.total)
-                        )
-                    }
-                    
-                    if (forceRefresh) {
-                        _effect.emit(BookSourceEffect.ScrollToTop(sourceId))
-                    }
-                },
-                onFailure = { e ->
-                    _state.update { state ->
-                        state.copy(
-                            booksLoading = state.booksLoading + (sourceId to false),
-                            booksRefreshing = state.booksRefreshing + (sourceId to false),
-                            booksError = state.booksError + (sourceId to e.message)
-                        )
-                    }
-                    throw e
-                }
+
+        _state.update { state ->
+            state.copy(
+                booksLoading = state.booksLoading + (sourceId to true),
+                booksRefreshing = if (forceRefresh) state.booksRefreshing + (sourceId to true) else state.booksRefreshing,
+                booksError = state.booksError + (sourceId to null)
             )
         }
+
+        bookRepository.getBooks(sourceId, offset = 0, forceRefresh = forceRefresh).fold(
+            onSuccess = { response ->
+                _state.update { state ->
+                    state.copy(
+                        booksBySource = state.booksBySource + (sourceId to response.books),
+                        booksLoading = state.booksLoading + (sourceId to false),
+                        booksRefreshing = state.booksRefreshing + (sourceId to false),
+                        booksHasMore = state.booksHasMore + (sourceId to response.hasMore),
+                        booksTotal = state.booksTotal + (sourceId to response.total)
+                    )
+                }
+
+                if (scrollToTop) {
+                    _effect.emit(BookSourceEffect.ScrollToTop(sourceId))
+                }
+            },
+            onFailure = { e ->
+                _state.update { state ->
+                    state.copy(
+                        booksLoading = state.booksLoading + (sourceId to false),
+                        booksRefreshing = state.booksRefreshing + (sourceId to false),
+                        booksError = state.booksError + (sourceId to e.message)
+                    )
+                }
+                throw e
+            }
+        )
     }
     
     private fun loadMoreBooks(sourceId: Int) {
@@ -291,9 +305,35 @@ class BookSourceViewModel(
     }
     
     private fun refreshAll() {
+        if (_state.value.sourcesLoading || hasActiveBookOperation()) return
+
         scope.launch {
-            // 先刷新书源
-            loadSources(forceRefresh = true)
+            val currentSourceId = _state.value.currentSource?.id
+            val sources = loadSourcesInternal(forceRefresh = true)
+            val failures = mutableListOf<Throwable>()
+
+            sources.forEach { source ->
+                try {
+                    loadBooksInternal(
+                        sourceId = source.id,
+                        forceRefresh = true,
+                        scrollToTop = source.id == currentSourceId
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    failures += e
+                }
+            }
+
+            failures.firstOrNull()?.let { throw it }
         }
+    }
+
+    private fun hasActiveBookOperation(): Boolean {
+        val state = _state.value
+        return state.booksLoading.values.any { it } ||
+            state.booksLoadingMore.values.any { it } ||
+            state.booksRefreshing.values.any { it }
     }
 }
