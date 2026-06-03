@@ -203,6 +203,9 @@
     <string name="footnote">Footnote</string>
     <string name="close">Close</string>
     <string name="reader_chapter_no_content">No content in this chapter</string>
+    <string name="reader_loading_chapter">Loading chapter...</string>
+    <string name="reader_retry">Retry</string>
+    <string name="reader_toc_empty">No table of contents</string>
     <string name="reader_last_read_at">Last read: %1$s</string>
     <string name="reader_local_progress">Local Progress</string>
     <string name="reader_remote_progress">Cloud Progress</string>

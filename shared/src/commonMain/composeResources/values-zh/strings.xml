@@ -202,4 +202,22 @@
     <string name="remote_progress_info">第 %1$d 章，已读 %2$d%%</string>
     <string name="footnote">注释</string>
     <string name="close">关闭</string>
+    <string name="reader_chapter_no_content">本章暂无内容</string>
+    <string name="reader_loading_chapter">章节加载中...</string>
+    <string name="reader_retry">重试</string>
+    <string name="reader_toc_empty">暂无目录</string>
+    <string name="reader_last_read_at">最后阅读：%1$s</string>
+    <string name="reader_local_progress">本地进度</string>
+    <string name="reader_remote_progress">云端进度</string>
+    <string name="page_animation_native">原生</string>
+    <string name="bookmarks_count">书签（%1$d）</string>
+    <string name="toc_current_reading">正在阅读</string>
+    <string name="toc_read_status_read">已读</string>
+    <string name="toc_read_status_reading">阅读中</string>
+    <string name="toc_read_status_unread">未读</string>
+    <string name="toc_word_count_wan">%1$d 万字</string>
+    <string name="toc_word_count_qian">%1$d 千字</string>
+    <string name="toc_word_count">%1$d 字</string>
+    <string name="toc_chapter_fallback">第 %1$d 章</string>
+    <string name="toc_delete_bookmark">删除书签</string>
 </resources>
