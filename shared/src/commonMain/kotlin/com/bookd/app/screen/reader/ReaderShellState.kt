@@ -8,6 +8,7 @@ data class ReaderShellUiState(
     val showInlineLoading: Boolean,
     val showBlockingError: Boolean,
     val showProgressConflict: Boolean,
+    val footerProgressText: String?,
 )
 
 fun buildReaderShellUiState(state: ReaderState): ReaderShellUiState {
@@ -18,5 +19,12 @@ fun buildReaderShellUiState(state: ReaderState): ReaderShellUiState {
         showInlineLoading = state.isLoadingChapter && state.currentChapter != null,
         showBlockingError = state.error != null && state.currentChapter == null,
         showProgressConflict = state.hasProgressConflict && state.localProgress != null && state.remoteProgress != null,
+        footerProgressText = buildReaderFooterProgressText(state.currentChapterIndex, state.chapterCount),
     )
+}
+
+fun buildReaderFooterProgressText(currentChapterIndex: Int, totalChapters: Int): String? {
+    if (totalChapters <= 0) return null
+    val current = (currentChapterIndex + 1).coerceIn(1, totalChapters)
+    return "$current/$totalChapters"
 }

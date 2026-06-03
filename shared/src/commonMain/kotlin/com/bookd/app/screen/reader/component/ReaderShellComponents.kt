@@ -61,7 +61,6 @@ import app.composeapp.generated.resources.previous_chapter
 import app.composeapp.generated.resources.progress_conflict_message
 import app.composeapp.generated.resources.progress_conflict_title
 import app.composeapp.generated.resources.reader_last_read_at
-import app.composeapp.generated.resources.reader_loading_chapter
 import app.composeapp.generated.resources.reader_local_progress
 import app.composeapp.generated.resources.reader_remote_progress
 import app.composeapp.generated.resources.reader_retry
@@ -202,8 +201,6 @@ fun ReaderTopChrome(
 
 @Composable
 fun ReaderBottomMenu(
-    currentChapter: Int,
-    totalChapters: Int,
     hasPreviousChapter: Boolean,
     hasNextChapter: Boolean,
     onPreviousChapter: () -> Unit,
@@ -219,20 +216,8 @@ fun ReaderBottomMenu(
     ) {
         Column(
             modifier = Modifier
-                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Text(
-                text = if (totalChapters > 0) {
-                    "${currentChapter + 1} / $totalChapters"
-                } else {
-                    stringResource(Res.string.reader_loading_chapter)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -257,6 +242,38 @@ fun ReaderBottomMenu(
                     Text(stringResource(Res.string.next_chapter))
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ReaderStatusBar(
+    progressText: String,
+    currentTime: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = progressText,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = currentTime,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -8,6 +8,13 @@ The client SHALL provide reader chrome for navigation, current reading context, 
 - **THEN** the reader SHALL render the content area
 - **AND** it SHALL make reader chrome actions available without replacing the rendered content.
 
+#### Scenario: Reader status metadata is visible
+- **WHEN** the reader has loaded the current chapter content
+- **THEN** the reader SHALL show compact reading progress at the bottom-left of the reader viewport
+- **AND** it SHALL show the current device time at the bottom-right of the reader viewport
+- **AND** both status values SHALL remain visible when the reader menu shell is hidden
+- **AND** the rendered book content SHALL reserve the status metadata area instead of appearing beneath or overlapping it.
+
 #### Scenario: Reader menu is toggled
 - **WHEN** the user taps the configured menu activation area
 - **THEN** the reader SHALL show or hide the reader menu shell.

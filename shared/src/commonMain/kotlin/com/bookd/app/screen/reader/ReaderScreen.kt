@@ -1,7 +1,9 @@
 package com.bookd.app.screen.reader
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -17,6 +19,8 @@ import app.composeapp.generated.resources.app_name
 import app.composeapp.generated.resources.bookmark_added
 import app.composeapp.generated.resources.bookmark_deleted
 import app.composeapp.generated.resources.progress_saved
+import app.composeapp.generated.resources.reader_loading_chapter
+import com.bookd.app.basic.extension.getCurrentTimeString
 import com.bookd.app.data.vm.ReaderEffect
 import com.bookd.app.data.vm.ReaderViewModel
 import com.bookd.app.screen.RouteBookDetail
@@ -26,8 +30,10 @@ import com.bookd.app.screen.reader.component.ReaderErrorSurface
 import com.bookd.app.screen.reader.component.ReaderLoadingSurface
 import com.bookd.app.screen.reader.component.ReaderProgressConflictDialog
 import com.bookd.app.screen.reader.component.ReaderSettingsSheet
+import com.bookd.app.screen.reader.component.ReaderStatusBar
 import com.bookd.app.screen.reader.component.ReaderTocSheet
 import com.bookd.app.screen.reader.component.ReaderTopChrome
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
 
@@ -51,6 +57,7 @@ fun ReaderScreen(
     var isChromeVisible by remember { mutableStateOf(true) }
     var isSettingsVisible by remember { mutableStateOf(false) }
     var isTocVisible by remember { mutableStateOf(false) }
+    var currentTime by remember { mutableStateOf(getCurrentTimeString()) }
     val shellUiState = buildReaderShellUiState(state)
 
     // 预加载国际化字符串
@@ -58,10 +65,18 @@ fun ReaderScreen(
     val bookmarkAddedMsg = stringResource(Res.string.bookmark_added)
     val bookmarkDeletedMsg = stringResource(Res.string.bookmark_deleted)
     val progressSavedMsg = stringResource(Res.string.progress_saved)
+    val footerProgressText = shellUiState.footerProgressText ?: stringResource(Res.string.reader_loading_chapter)
 
     // 初始加载
     LaunchedEffect(bookId) {
         viewModel.loadBook(bookId, startChapterIndex)
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = getCurrentTimeString()
+            delay(60_000L)
+        }
     }
 
     // 处理一次性效果
@@ -111,24 +126,55 @@ fun ReaderScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             shellUiState.showContent && currentChapter != null -> {
-                ReaderContent(
-                    bookId = state.bookId,
-                    currentChapterIndex = state.currentChapterIndex,
-                    adjacentChapters = adjacentChapters,
-                    settings = state.readerSettings,
-                    onToggleMenu = { isChromeVisible = !isChromeVisible },
-                    onImageClick = { _, _ -> /* 后续 complete-reader-inline-interactions 实现 */ },
-                    onFootnoteClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
-                    onLinkClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
-                    onParagraphLongClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
-                    onScrollPositionChanged = { chapterIndex, paragraphIndex, scrollOffset ->
-                        viewModel.updateScrollPosition(chapterIndex, paragraphIndex, scrollOffset)
-                    },
-                    onCurrentChapterChanged = { newChapterIndex ->
-                        viewModel.onScrollChapterChanged(newChapterIndex)
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        ReaderContent(
+                            bookId = state.bookId,
+                            currentChapterIndex = state.currentChapterIndex,
+                            adjacentChapters = adjacentChapters,
+                            settings = state.readerSettings,
+                            onToggleMenu = { isChromeVisible = !isChromeVisible },
+                            onImageClick = { _, _ -> /* 后续 complete-reader-inline-interactions 实现 */ },
+                            onFootnoteClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
+                            onLinkClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
+                            onParagraphLongClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
+                            onScrollPositionChanged = { chapterIndex, paragraphIndex, scrollOffset ->
+                                viewModel.updateScrollPosition(chapterIndex, paragraphIndex, scrollOffset)
+                            },
+                            onCurrentChapterChanged = { newChapterIndex ->
+                                viewModel.onScrollChapterChanged(newChapterIndex)
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        if (isChromeVisible) {
+                            ReaderTopChrome(
+                                title = state.bookTitle.ifBlank { fallbackTitle },
+                                subtitle = state.currentChapterTitle,
+                                isLoadingChapter = shellUiState.showInlineLoading,
+                                onBack = { viewModel.back() },
+                                onBookDetail = { viewModel.viewBookDetail() },
+                                onSettings = { isSettingsVisible = true },
+                                modifier = Modifier.align(Alignment.TopCenter)
+                            )
+                            ReaderBottomMenu(
+                                hasPreviousChapter = state.hasPreviousChapter,
+                                hasNextChapter = state.hasNextChapter,
+                                onPreviousChapter = { viewModel.previousChapter() },
+                                onNextChapter = { viewModel.nextChapter() },
+                                onTocClick = { isTocVisible = true },
+                                onSettingsClick = { isSettingsVisible = true },
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
+                    }
+
+                    ReaderStatusBar(
+                        progressText = footerProgressText,
+                        currentTime = currentTime,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             shellUiState.showBlockingError -> {
@@ -143,29 +189,6 @@ fun ReaderScreen(
             else -> {
                 ReaderLoadingSurface(modifier = Modifier.fillMaxSize())
             }
-        }
-
-        if (shellUiState.showContent && isChromeVisible) {
-            ReaderTopChrome(
-                title = state.bookTitle.ifBlank { fallbackTitle },
-                subtitle = state.currentChapterTitle,
-                isLoadingChapter = shellUiState.showInlineLoading,
-                onBack = { viewModel.back() },
-                onBookDetail = { viewModel.viewBookDetail() },
-                onSettings = { isSettingsVisible = true },
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
-            ReaderBottomMenu(
-                currentChapter = state.currentChapterIndex,
-                totalChapters = state.chapterCount,
-                hasPreviousChapter = state.hasPreviousChapter,
-                hasNextChapter = state.hasNextChapter,
-                onPreviousChapter = { viewModel.previousChapter() },
-                onNextChapter = { viewModel.nextChapter() },
-                onTocClick = { isTocVisible = true },
-                onSettingsClick = { isSettingsVisible = true },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
     }
 

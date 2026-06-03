@@ -7,6 +7,7 @@ import com.bookd.app.data.model.ReadingProgressResponse
 import com.bookd.app.data.model.TextSpan
 import com.bookd.app.data.vm.ReaderState
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -76,6 +77,17 @@ class ReaderShellStateTest {
         )
 
         assertFalse(shell.showProgressConflict)
+    }
+
+    @Test
+    fun `given chapter position when build footer progress text then returns compact progress`() {
+        assertEquals("1/355", buildReaderFooterProgressText(currentChapterIndex = 0, totalChapters = 355))
+        assertEquals("355/355", buildReaderFooterProgressText(currentChapterIndex = 400, totalChapters = 355))
+    }
+
+    @Test
+    fun `given no chapters when build footer progress text then returns null`() {
+        assertEquals(null, buildReaderFooterProgressText(currentChapterIndex = 0, totalChapters = 0))
     }
 
     private fun chapter() = ChapterContent(
