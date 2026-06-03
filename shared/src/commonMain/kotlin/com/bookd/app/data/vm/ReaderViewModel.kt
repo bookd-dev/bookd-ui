@@ -183,6 +183,11 @@ class ReaderViewModel(
     // 进度保存防抖 Job
     private var progressSaveJob: Job? = null
     private var scrollRequestSequence: Long = 0L
+
+    // 阅读设置保存防抖 Job
+    private var settingsDebounceJob: Job? = null
+    private var settingsSyncJob: Job? = null
+    private var pendingReaderSettings: ReaderSettings? = null
     
     // 自动同步 Job
     private var autoSyncJob: Job? = null
@@ -884,11 +889,25 @@ class ReaderViewModel(
     }
     
     private fun syncSettings(settings: ReaderSettings) {
-        scope.launch {
-            try {
+        pendingReaderSettings = settings
+        settingsDebounceJob?.cancel()
+        settingsDebounceJob = scope.launch {
+            delay(500)
+            startSettingsSyncIfNeeded()
+        }
+    }
+
+    private fun startSettingsSyncIfNeeded() {
+        if (settingsSyncJob?.isActive == true) return
+
+        settingsSyncJob = scope.launch {
+            while (true) {
+                val settings = pendingReaderSettings ?: break
+                pendingReaderSettings = null
                 readerRepository.updateReaderSettings(settings)
-            } catch (_: Exception) {
-                // 同步失败静默处理
+
+                if (pendingReaderSettings == null) break
+                delay(500)
             }
         }
     }
@@ -991,6 +1010,8 @@ class ReaderViewModel(
     override fun onCleared() {
         super.onCleared()
         progressSaveJob?.cancel()
+        settingsDebounceJob?.cancel()
+        settingsSyncJob?.cancel()
         autoSyncJob?.cancel()
     }
 }
