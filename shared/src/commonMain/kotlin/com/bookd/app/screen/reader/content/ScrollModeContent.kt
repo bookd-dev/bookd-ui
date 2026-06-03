@@ -93,10 +93,7 @@ fun ScrollModeContent(
     val chapterElements: Map<Int, List<ContentElement>> by remember {
         derivedStateOf {
             val result = adjacentChaptersState.mapValues { (_, chapter) ->
-                buildList {
-                    chapter.title?.let { add(ContentElement.Heading(level = 1, text = it)) }
-                    addAll(chapter.elements)
-                }
+                buildReaderChapterElements(chapter)
             }
             result.entries.sortedBy { it.key }.forEach { (idx, elems) ->
                 logD(tag = "Reader") { "[ScrollMode] chapterElements[$idx] size=${elems.size} title=${adjacentChaptersState[idx]?.title}" }
@@ -136,8 +133,8 @@ fun ScrollModeContent(
                 with(density) { engine.marginVerticalPx.toDp() }
             }
 
-            // pageAnchors 不绑定任何 key：生命周期跟随 Composable，避免 adjacentChapters 变化时整体清空导致闪烁
-            var chapterAnchors by remember {
+            // pageAnchors 只绑定 engine：章节窗口变化时增量加载，布局/设置变化时重新分页。
+            var chapterAnchors by remember(engine) {
                 mutableStateOf<Map<Int, List<PageAnchor>>>(emptyMap())
             }
 

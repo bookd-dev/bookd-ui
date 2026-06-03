@@ -131,6 +131,7 @@ fun ReaderScreen(
                         ReaderContent(
                             bookId = state.bookId,
                             currentChapterIndex = state.currentChapterIndex,
+                            currentPageIndex = state.currentPageIndex,
                             adjacentChapters = adjacentChapters,
                             settings = state.readerSettings,
                             onToggleMenu = { isChromeVisible = !isChromeVisible },
@@ -144,6 +145,8 @@ fun ReaderScreen(
                             onCurrentChapterChanged = { newChapterIndex ->
                                 viewModel.onScrollChapterChanged(newChapterIndex)
                             },
+                            onPagePositionChanged = viewModel::updatePagePosition,
+                            onPagerChapterChanged = viewModel::onPagerChapterChanged,
                             modifier = Modifier.fillMaxSize()
                         )
 

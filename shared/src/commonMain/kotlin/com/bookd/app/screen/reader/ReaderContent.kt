@@ -5,7 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
+import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.model.ReaderSettings
+import com.bookd.app.screen.reader.content.PageModeContent
 import com.bookd.app.screen.reader.content.ScrollModeContent
 
 
@@ -13,6 +15,7 @@ import com.bookd.app.screen.reader.content.ScrollModeContent
 fun ReaderContent(
     bookId: Int,
     currentChapterIndex: Int,
+    currentPageIndex: Int,
     adjacentChapters: Map<Int, ChapterContent>,
     settings: ReaderSettings,
     onToggleMenu: () -> Unit,
@@ -22,22 +25,43 @@ fun ReaderContent(
     onParagraphLongClick: (paragraphIndex: Int) -> Unit,
     onScrollPositionChanged: (chapterIndex: Int, paragraphIndex: Int, scrollOffset: Int) -> Unit,
     onCurrentChapterChanged: (chapterIndex: Int) -> Unit,
+    onPagePositionChanged: (pageIndex: Int) -> Unit,
+    onPagerChapterChanged: (chapterIndex: Int, direction: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 目前仅实现滚动模式；翻页模式后续在此处按 settings.pageMode 分支
-    ScrollModeContent(
-        bookId = bookId,
-        currentChapterIndex = currentChapterIndex,
-        adjacentChapters = adjacentChapters,
-        settings = settings,
-        onToggleMenu = onToggleMenu,
-        onImageClick = onImageClick,
-        onFootnoteClick = onFootnoteClick,
-        onLinkClick = onLinkClick,
-        onParagraphLongClick = onParagraphLongClick,
-        onScrollPositionChanged = onScrollPositionChanged,
-        onCurrentChapterChanged = onCurrentChapterChanged,
-        modifier = modifier.fillMaxSize()
-    )
+    when (settings.pageMode) {
+        PageMode.SCROLL -> {
+            ScrollModeContent(
+                bookId = bookId,
+                currentChapterIndex = currentChapterIndex,
+                adjacentChapters = adjacentChapters,
+                settings = settings,
+                onToggleMenu = onToggleMenu,
+                onImageClick = onImageClick,
+                onFootnoteClick = onFootnoteClick,
+                onLinkClick = onLinkClick,
+                onParagraphLongClick = onParagraphLongClick,
+                onScrollPositionChanged = onScrollPositionChanged,
+                onCurrentChapterChanged = onCurrentChapterChanged,
+                modifier = modifier.fillMaxSize()
+            )
+        }
+        PageMode.PAGE -> {
+            PageModeContent(
+                bookId = bookId,
+                currentChapterIndex = currentChapterIndex,
+                currentPageIndex = currentPageIndex,
+                adjacentChapters = adjacentChapters,
+                settings = settings,
+                onToggleMenu = onToggleMenu,
+                onImageClick = onImageClick,
+                onFootnoteClick = onFootnoteClick,
+                onLinkClick = onLinkClick,
+                onParagraphLongClick = onParagraphLongClick,
+                onPagePositionChanged = onPagePositionChanged,
+                onPagerChapterChanged = onPagerChapterChanged,
+                modifier = modifier.fillMaxSize()
+            )
+        }
+    }
 }
-
