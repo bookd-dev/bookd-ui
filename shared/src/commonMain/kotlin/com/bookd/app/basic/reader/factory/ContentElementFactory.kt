@@ -104,7 +104,7 @@ class ContentElementFactory(
             is ContentElement.Image -> imageElementFactory
             is ContentElement.Footnote -> null //不参与绘制测量，因为在段落内处理了
             is ContentElement.Code -> codeElementFactory
-            ContentElement.Divider -> dividerElementFactory
+            is ContentElement.Divider -> dividerElementFactory
             is ContentElement.ListBlock -> listBlockElementFactory
             is ContentElement.Quote -> quoteElementFactory
         } as? IContentMeasureFactory<ContentElement, RenderCommand>
@@ -118,7 +118,7 @@ class ContentElementFactory(
             is ContentElement.Image -> imageElementFactory
             is ContentElement.Footnote -> null //不参与绘制测量，因为在段落内处理了
             is ContentElement.Code -> codeElementFactory
-            ContentElement.Divider -> dividerElementFactory
+            is ContentElement.Divider -> dividerElementFactory
             is ContentElement.ListBlock -> listBlockElementFactory
             is ContentElement.Quote -> quoteElementFactory
         } as? IContentMeasureFactory<ContentElement, RenderCommand>

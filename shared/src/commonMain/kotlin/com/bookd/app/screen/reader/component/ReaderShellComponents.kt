@@ -29,6 +29,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -72,6 +74,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.back
+import app.composeapp.generated.resources.bookmarks
+import app.composeapp.generated.resources.bookmarks_count
 import app.composeapp.generated.resources.cancel
 import app.composeapp.generated.resources.first_line_indent
 import app.composeapp.generated.resources.font_size
@@ -81,6 +85,7 @@ import app.composeapp.generated.resources.loading
 import app.composeapp.generated.resources.margin_horizontal
 import app.composeapp.generated.resources.margin_vertical
 import app.composeapp.generated.resources.next_chapter
+import app.composeapp.generated.resources.no_bookmarks
 import app.composeapp.generated.resources.page_mode
 import app.composeapp.generated.resources.page_mode_page
 import app.composeapp.generated.resources.page_mode_scroll
@@ -89,6 +94,7 @@ import app.composeapp.generated.resources.previous_chapter
 import app.composeapp.generated.resources.progress_conflict_message
 import app.composeapp.generated.resources.progress_conflict_title
 import app.composeapp.generated.resources.reader_last_read_at
+import app.composeapp.generated.resources.reader_add_bookmark_current
 import app.composeapp.generated.resources.reader_local_progress
 import app.composeapp.generated.resources.reader_remote_progress
 import app.composeapp.generated.resources.reader_retry
@@ -107,6 +113,7 @@ import app.composeapp.generated.resources.local_progress_info
 import app.composeapp.generated.resources.toc
 import app.composeapp.generated.resources.toc_chapter_fallback
 import app.composeapp.generated.resources.toc_current_reading
+import app.composeapp.generated.resources.toc_delete_bookmark
 import app.composeapp.generated.resources.toc_read_status_read
 import app.composeapp.generated.resources.toc_read_status_reading
 import app.composeapp.generated.resources.toc_read_status_unread
@@ -115,6 +122,7 @@ import app.composeapp.generated.resources.use_local_progress
 import app.composeapp.generated.resources.use_remote_progress
 import app.composeapp.generated.resources.view_book_detail
 import com.bookd.app.basic.extension.format
+import com.bookd.app.data.model.BookmarkResponse
 import com.bookd.app.data.model.LocalReadingProgress
 import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.model.ReaderSettings
@@ -737,10 +745,16 @@ fun ReaderTocSheet(
     currentChapterIndex: Int,
     progressPercent: Int,
     totalChapters: Int,
+    bookmarks: List<BookmarkResponse>,
     onDismiss: () -> Unit,
+    onChapterClick: (Int) -> Unit,
+    onBookmarkClick: (BookmarkResponse) -> Unit,
+    onAddBookmark: () -> Unit,
+    onDeleteBookmark: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var descending by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(ReaderTocSheetTab.Toc) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val displayItems = remember(tocItems, currentChapterIndex, progressPercent, descending) {
@@ -780,51 +794,110 @@ fun ReaderTocSheet(
                 descending = descending,
                 onSortClick = { descending = !descending },
             )
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ReaderTocTabChip(
+                    selected = selectedTab == ReaderTocSheetTab.Toc,
+                    label = stringResource(Res.string.toc),
+                    onClick = { selectedTab = ReaderTocSheetTab.Toc },
+                    modifier = Modifier.weight(1f),
+                )
+                ReaderTocTabChip(
+                    selected = selectedTab == ReaderTocSheetTab.Bookmarks,
+                    label = stringResource(Res.string.bookmarks_count, bookmarks.size),
+                    onClick = { selectedTab = ReaderTocSheetTab.Bookmarks },
+                    modifier = Modifier.weight(1f),
+                )
+            }
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
                 modifier = Modifier.padding(top = 14.dp),
             )
-            if (tocItems.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.reader_toc_empty),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 240.dp, max = 560.dp),
-                ) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        items(displayItems, key = { it.item.index }) { displayItem ->
-                            ReaderTocChapterRow(displayItem = displayItem)
+            when (selectedTab) {
+                ReaderTocSheetTab.Toc -> {
+                    if (tocItems.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.reader_toc_empty),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 240.dp, max = 560.dp),
+                        ) {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                items(displayItems, key = { it.item.index }) { displayItem ->
+                                    ReaderTocChapterRow(
+                                        displayItem = displayItem,
+                                        onClick = { onChapterClick(displayItem.item.index) },
+                                    )
+                                }
+                            }
+                            if (currentItemIndex >= 0) {
+                                LocateCurrentChapterButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(currentItemIndex)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(end = 2.dp),
+                                )
+                            }
                         }
                     }
-                    if (currentItemIndex >= 0) {
-                        LocateCurrentChapterButton(
-                            onClick = {
-                                coroutineScope.launch {
-                                    listState.animateScrollToItem(currentItemIndex)
-                                }
-                            },
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = 2.dp),
-                        )
-                    }
+                }
+                ReaderTocSheetTab.Bookmarks -> {
+                    ReaderBookmarkList(
+                        bookmarks = bookmarks,
+                        onAddBookmark = onAddBookmark,
+                        onBookmarkClick = onBookmarkClick,
+                        onDeleteBookmark = onDeleteBookmark,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 240.dp, max = 560.dp),
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+private enum class ReaderTocSheetTab {
+    Toc,
+    Bookmarks
+}
+
+@Composable
+private fun ReaderTocTabChip(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(text = label, style = MaterialTheme.typography.labelLarge)
+            }
+        },
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -925,7 +998,10 @@ private fun LocateCurrentChapterButton(
 }
 
 @Composable
-private fun ReaderTocChapterRow(displayItem: ReaderTocDisplayItem) {
+private fun ReaderTocChapterRow(
+    displayItem: ReaderTocDisplayItem,
+    onClick: () -> Unit,
+) {
     val item = displayItem.item
     val selected = displayItem.selected
     val title = item.title.ifBlank {
@@ -938,6 +1014,7 @@ private fun ReaderTocChapterRow(displayItem: ReaderTocDisplayItem) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onClick)
                 .background(
                     if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f)
                     else MaterialTheme.colorScheme.surface,
@@ -1015,6 +1092,89 @@ private fun ReaderTocChapterRow(displayItem: ReaderTocDisplayItem) {
                         )
                     }
                 }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+    }
+}
+
+@Composable
+private fun ReaderBookmarkList(
+    bookmarks: List<BookmarkResponse>,
+    onAddBookmark: () -> Unit,
+    onBookmarkClick: (BookmarkResponse) -> Unit,
+    onDeleteBookmark: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        TextButton(onClick = onAddBookmark, modifier = Modifier.align(Alignment.End)) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(stringResource(Res.string.reader_add_bookmark_current))
+        }
+        if (bookmarks.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(Res.string.no_bookmarks),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(bookmarks, key = { it.id }) { bookmark ->
+                    ReaderBookmarkRow(
+                        bookmark = bookmark,
+                        onClick = { onBookmarkClick(bookmark) },
+                        onDelete = { onDeleteBookmark(bookmark.id) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReaderBookmarkRow(
+    bookmark: BookmarkResponse,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val title = bookmark.title
+        ?: stringResource(Res.string.toc_chapter_fallback, bookmark.chapterIndex + 1)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = bookmark.note?.takeIf { it.isNotBlank() } ?: bookmark.createdAt,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(Res.string.toc_delete_bookmark),
+                )
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))

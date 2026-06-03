@@ -211,6 +211,9 @@ class ReaderRepository(
         progress: Double,
         currentChapter: Int,
         totalChapters: Int,
+        anchorId: String? = null,
+        paragraphIndex: Int? = null,
+        scrollOffset: Int? = null,
         chapterPageIndex: Int? = null,
         chapterTotalPages: Int? = null,
         chapterScrollPercent: Double? = null
@@ -220,6 +223,10 @@ class ReaderRepository(
             progress = progress,
             currentPage = currentChapter,
             totalPages = totalChapters,
+            chapterIndex = currentChapter,
+            anchorId = anchorId,
+            paragraphIndex = paragraphIndex,
+            scrollOffset = scrollOffset,
             chapterPageIndex = chapterPageIndex,
             chapterTotalPages = chapterTotalPages,
             chapterScrollPercent = chapterScrollPercent
@@ -243,6 +250,7 @@ class ReaderRepository(
         localProgressQueries.insertOrReplace(
             bookId = progress.bookId.toLong(),
             chapterIndex = progress.chapterIndex.toLong(),
+            anchorId = progress.anchorId,
             paragraphIndex = progress.paragraphIndex.toLong(),
             scrollOffset = progress.scrollOffset.toLong(),
             pageIndex = progress.pageIndex.toLong(),
@@ -305,12 +313,16 @@ class ReaderRepository(
     suspend fun addBookmark(
         bookId: Int,
         chapterIndex: Int,
+        anchorId: String?,
         paragraphIndex: Int?,
+        scrollOffset: Int?,
         note: String?
     ): Result<BookmarkResponse> {
         val bookmark = BookmarkDTO(
             chapterIndex = chapterIndex,
+            anchorId = anchorId,
             paragraphIndex = paragraphIndex,
+            scrollOffset = scrollOffset,
             note = note
         )
         return addBookmark(bookId, bookmark)
@@ -501,6 +513,7 @@ private fun LocalReadingProgressEntity.toLocalProgress(): LocalReadingProgress {
     return LocalReadingProgress(
         bookId = bookId.toInt(),
         chapterIndex = chapterIndex.toInt(),
+        anchorId = anchorId,
         paragraphIndex = paragraphIndex.toInt(),
         scrollOffset = scrollOffset.toInt(),
         pageIndex = pageIndex.toInt(),

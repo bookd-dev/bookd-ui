@@ -54,10 +54,12 @@ data class ReaderState(
     
     // 进度（本地）
     val localProgress: LocalReadingProgress? = null,
+    val currentAnchorId: String? = null,
     val currentParagraphIndex: Int = 0,
     val scrollOffset: Int = 0,
     val currentPageIndex: Int = 0,
     val calculatedProgress: Double = 0.0,
+    val isProgrammaticJumpPending: Boolean = false,
     
     // 进度冲突
     val hasProgressConflict: Boolean = false,
@@ -140,7 +142,13 @@ sealed interface ReaderEffect {
     data class NavigateToBookDetail(val bookId: Int) : ReaderEffect
     
     /** 滚动到指定位置 */
-    data class ScrollToPosition(val paragraphIndex: Int, val offset: Int) : ReaderEffect
+    data class ScrollToPosition(
+        val sequence: Long,
+        val chapterIndex: Int,
+        val anchorId: String?,
+        val paragraphIndex: Int,
+        val offset: Int
+    ) : ReaderEffect
     
     /** 翻页到指定页 */
     data class ScrollToPage(val pageIndex: Int) : ReaderEffect
@@ -174,6 +182,7 @@ class ReaderViewModel(
     
     // 进度保存防抖 Job
     private var progressSaveJob: Job? = null
+    private var scrollRequestSequence: Long = 0L
     
     // 自动同步 Job
     private var autoSyncJob: Job? = null
@@ -236,18 +245,34 @@ class ReaderViewModel(
                     }
                 } else {
                     // 无冲突，确定起始章节
-                    val chapterIndex = startChapterIndex 
+                    val chapterIndex = startChapterIndex
                         ?: localProgress?.chapterIndex 
-                        ?: remoteProgress?.currentPage 
+                        ?: remoteProgress?.chapterIndex
                         ?: 0
+                    val initialAnchorId = if (startChapterIndex == null) {
+                        localProgress?.anchorId ?: remoteProgress?.anchorId
+                    } else {
+                        null
+                    }
+                    val initialParagraphIndex = if (startChapterIndex == null) {
+                        localProgress?.paragraphIndex ?: remoteProgress?.paragraphIndex ?: 0
+                    } else {
+                        0
+                    }
+                    val initialScrollOffset = if (startChapterIndex == null) {
+                        localProgress?.scrollOffset ?: remoteProgress?.scrollOffset ?: 0
+                    } else {
+                        0
+                    }
                     
                     _state.update { 
                         it.copy(
                             localProgress = localProgress,
                             remoteProgress = remoteProgress,
                             currentChapterIndex = chapterIndex,
-                            currentParagraphIndex = localProgress?.paragraphIndex ?: 0,
-                            scrollOffset = localProgress?.scrollOffset ?: 0,
+                            currentAnchorId = initialAnchorId,
+                            currentParagraphIndex = initialParagraphIndex,
+                            scrollOffset = initialScrollOffset,
                             currentPageIndex = localProgress?.pageIndex ?: 0,
                             isLoading = false
                         )
@@ -255,6 +280,15 @@ class ReaderViewModel(
                     
                     // 加载章节内容
                     loadChapter(chapterIndex)
+
+                    if (initialAnchorId != null || initialParagraphIndex > 0 || initialScrollOffset > 0) {
+                        requestScrollToPosition(
+                            chapterIndex = chapterIndex,
+                            anchorId = initialAnchorId,
+                            paragraphIndex = initialParagraphIndex,
+                            offset = initialScrollOffset
+                        )
+                    }
                     
                     // 加载书签
                     loadBookmarks(bookId)
@@ -360,10 +394,12 @@ class ReaderViewModel(
     
     // ============= 进度管理 =============
     
-    fun updateScrollPosition(chapterIndex: Int, paragraphIndex: Int, scrollOffset: Int) {
+    fun updateScrollPosition(chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) {
+        if (_state.value.isProgrammaticJumpPending) return
         _state.update {
             it.copy(
                 currentChapterIndex = chapterIndex,
+                currentAnchorId = anchorId,
                 currentParagraphIndex = paragraphIndex,
                 scrollOffset = scrollOffset
             )
@@ -394,6 +430,7 @@ class ReaderViewModel(
         val localProgress = LocalReadingProgress(
             bookId = state.bookId,
             chapterIndex = state.currentChapterIndex,
+            anchorId = state.currentAnchorId,
             paragraphIndex = state.currentParagraphIndex,
             scrollOffset = state.scrollOffset,
             pageIndex = state.currentPageIndex,
@@ -451,6 +488,9 @@ class ReaderViewModel(
                         progress = currentProgress,
                         currentChapter = state.currentChapterIndex,
                         totalChapters = state.totalChapters,
+                        anchorId = state.currentAnchorId,
+                        paragraphIndex = state.currentParagraphIndex,
+                        scrollOffset = state.scrollOffset,
                         chapterPageIndex = state.currentPageIndex,
                         chapterScrollPercent = if (state.readerSettings.pageMode == PageMode.SCROLL) {
                             state.currentParagraphIndex.toDouble() / (state.currentChapter?.elements?.size ?: 1)
@@ -475,6 +515,9 @@ class ReaderViewModel(
                     progress = state.calculatedProgress,
                     currentChapter = state.currentChapterIndex,
                     totalChapters = state.totalChapters,
+                    anchorId = state.currentAnchorId,
+                    paragraphIndex = state.currentParagraphIndex,
+                    scrollOffset = state.scrollOffset,
                     chapterPageIndex = state.currentPageIndex,
                     chapterScrollPercent = if (state.readerSettings.pageMode == PageMode.SCROLL) {
                         state.currentParagraphIndex.toDouble() / (state.currentChapter?.elements?.size ?: 1)
@@ -495,7 +538,7 @@ class ReaderViewModel(
     ): Boolean {
         if (local == null || remote == null) return false
         
-        return local.chapterIndex != remote.currentPage && 
+        return local.chapterIndex != remote.chapterIndex &&
                local.progress > 0 && 
                remote.progress > 0
     }
@@ -508,6 +551,7 @@ class ReaderViewModel(
             it.copy(
                 hasProgressConflict = false,
                 currentChapterIndex = localProgress.chapterIndex,
+                currentAnchorId = localProgress.anchorId,
                 currentParagraphIndex = localProgress.paragraphIndex,
                 scrollOffset = localProgress.scrollOffset,
                 currentPageIndex = localProgress.pageIndex
@@ -515,6 +559,12 @@ class ReaderViewModel(
         }
         
         loadChapter(localProgress.chapterIndex)
+        requestScrollToPosition(
+            chapterIndex = localProgress.chapterIndex,
+            anchorId = localProgress.anchorId,
+            paragraphIndex = localProgress.paragraphIndex,
+            offset = localProgress.scrollOffset
+        )
         
         // 用本地进度覆盖远程
         scope.launch {
@@ -524,6 +574,9 @@ class ReaderViewModel(
                     progress = localProgress.progress,
                     currentChapter = localProgress.chapterIndex,
                     totalChapters = state.totalChapters,
+                    anchorId = localProgress.anchorId,
+                    paragraphIndex = localProgress.paragraphIndex,
+                    scrollOffset = localProgress.scrollOffset,
                     chapterPageIndex = localProgress.pageIndex,
                     chapterScrollPercent = null
                 )
@@ -537,19 +590,26 @@ class ReaderViewModel(
         val state = _state.value
         val remoteProgress = state.remoteProgress ?: return
         
-        val chapterIndex = remoteProgress.currentPage
+        val chapterIndex = remoteProgress.chapterIndex
         
         _state.update { 
             it.copy(
                 hasProgressConflict = false,
                 currentChapterIndex = chapterIndex,
-                currentParagraphIndex = 0,
-                scrollOffset = 0,
+                currentAnchorId = remoteProgress.anchorId,
+                currentParagraphIndex = remoteProgress.paragraphIndex ?: 0,
+                scrollOffset = remoteProgress.scrollOffset ?: 0,
                 currentPageIndex = 0
             )
         }
         
         loadChapter(chapterIndex)
+        requestScrollToPosition(
+            chapterIndex = chapterIndex,
+            anchorId = remoteProgress.anchorId,
+            paragraphIndex = remoteProgress.paragraphIndex ?: 0,
+            offset = remoteProgress.scrollOffset ?: 0
+        )
         
         // 删除本地进度
         scope.launch {
@@ -584,21 +644,20 @@ class ReaderViewModel(
         _state.update { 
             it.copy(
                 currentParagraphIndex = 0,
+                currentAnchorId = null,
                 scrollOffset = 0,
                 currentPageIndex = 0
             )
         }
         
         loadChapter(index)
-        
-        scope.launch {
-            _effect.emit(ReaderEffect.ScrollToPosition(0, 0))
-        }
+        requestScrollToPosition(index, anchorId = null, paragraphIndex = 0, offset = 0)
     }
     
     fun jumpToBookmark(bookmark: BookmarkResponse) {
         _state.update { 
             it.copy(
+                currentAnchorId = bookmark.anchorId,
                 currentParagraphIndex = bookmark.paragraphIndex ?: 0
             )
         }
@@ -607,8 +666,51 @@ class ReaderViewModel(
             loadChapter(bookmark.chapterIndex)
         }
         
+        requestScrollToPosition(
+            chapterIndex = bookmark.chapterIndex,
+            anchorId = bookmark.anchorId,
+            paragraphIndex = bookmark.paragraphIndex ?: 0,
+            offset = bookmark.scrollOffset ?: 0
+        )
+    }
+
+    fun onProgrammaticScrollCompleted(
+        chapterIndex: Int,
+        anchorId: String?,
+        paragraphIndex: Int,
+        scrollOffset: Int
+    ) {
+        _state.update {
+            it.copy(
+                currentChapterIndex = chapterIndex,
+                currentAnchorId = anchorId,
+                currentParagraphIndex = paragraphIndex,
+                scrollOffset = scrollOffset,
+                isProgrammaticJumpPending = false
+            )
+        }
+        updateLocalProgress()
+    }
+
+    private fun requestScrollToPosition(
+        chapterIndex: Int,
+        anchorId: String?,
+        paragraphIndex: Int,
+        offset: Int
+    ) {
+        scrollRequestSequence += 1
+        val sequence = scrollRequestSequence
+        _state.update { it.copy(isProgrammaticJumpPending = true) }
         scope.launch {
-            _effect.emit(ReaderEffect.ScrollToPosition(bookmark.paragraphIndex ?: 0, 0))
+            _effect.emit(
+                ReaderEffect.ScrollToPosition(
+                    sequence = sequence,
+                    chapterIndex = chapterIndex,
+                    anchorId = anchorId,
+                    paragraphIndex = paragraphIndex,
+                    offset = offset
+                )
+            )
         }
     }
     
@@ -709,6 +811,8 @@ class ReaderViewModel(
      * 当用户滚动时某章内容占屏超过一半，自动调用此方法更新当前章节
      */
     fun onScrollChapterChanged(newChapterIndex: Int) {
+        if (_state.value.isProgrammaticJumpPending) return
+
         val currentIndex = _state.value.currentChapterIndex
         if (newChapterIndex == currentIndex) return
 
@@ -791,7 +895,7 @@ class ReaderViewModel(
     
     // ============= 书签 =============
     
-    fun addBookmark(chapterIndex: Int, paragraphIndex: Int, note: String?) {
+    fun addBookmark(chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int, note: String?) {
         scope.launch {
             _state.update { it.copy(isAddingBookmark = true) }
             
@@ -799,7 +903,9 @@ class ReaderViewModel(
                 val bookmark = readerRepository.addBookmark(
                     bookId = _state.value.bookId,
                     chapterIndex = chapterIndex,
+                    anchorId = anchorId,
                     paragraphIndex = paragraphIndex,
+                    scrollOffset = scrollOffset,
                     note = note
                 ).getOrThrow()
                 
@@ -816,6 +922,17 @@ class ReaderViewModel(
                 throw e
             }
         }
+    }
+
+    fun addBookmarkAtCurrentPosition(note: String? = null) {
+        val state = _state.value
+        addBookmark(
+            chapterIndex = state.currentChapterIndex,
+            anchorId = state.currentAnchorId,
+            paragraphIndex = state.currentParagraphIndex,
+            scrollOffset = state.scrollOffset,
+            note = note
+        )
     }
     
     fun deleteBookmark(bookmarkId: Int) {
@@ -851,6 +968,9 @@ class ReaderViewModel(
                     progress = state.calculatedProgress,
                     currentChapter = state.currentChapterIndex,
                     totalChapters = state.totalChapters,
+                    anchorId = state.currentAnchorId,
+                    paragraphIndex = state.currentParagraphIndex,
+                    scrollOffset = state.scrollOffset,
                     chapterPageIndex = state.currentPageIndex,
                     chapterScrollPercent = null
                 )

@@ -228,4 +228,5 @@
     <string name="toc_word_count">%1$d 字</string>
     <string name="toc_chapter_fallback">第 %1$d 章</string>
     <string name="toc_delete_bookmark">删除书签</string>
+    <string name="reader_add_bookmark_current">添加当前书签</string>
 </resources>

@@ -13,6 +13,7 @@ import com.bookd.app.data.model.BookmarkResponse
 import com.bookd.app.data.model.BookmarksResponse
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
+import com.bookd.app.data.model.LocalReadingProgress
 import com.bookd.app.data.model.ReaderSettingsDTO
 import com.bookd.app.data.model.ReadingProgressDTO
 import com.bookd.app.data.model.ReadingProgressResponse
@@ -195,6 +196,105 @@ class ReaderRepositoryChapterCacheTest {
         assertTrue(result.isFailure, "空缓存 + 无网络时应返回 Failure")
         assertTrue(result.exceptionOrNull() is NoNetworkConfigException)
     }
+
+    @Test
+    fun `given local progress with anchor when save and read then preserves anchor-aware fields`() = runBlocking {
+        val progress = LocalReadingProgress(
+            bookId = 7,
+            chapterIndex = 12,
+            anchorId = "epub-ch12-p4",
+            paragraphIndex = 4,
+            scrollOffset = 128,
+            pageIndex = 2,
+            progress = 0.42,
+            lastReadAt = 123456L
+        )
+
+        repository.saveLocalProgress(progress)
+
+        val restored = repository.getLocalProgress(progress.bookId)
+        assertNotNull(restored, "应能读回本地进度")
+        assertEquals("epub-ch12-p4", restored.anchorId)
+        assertEquals(12, restored.chapterIndex)
+        assertEquals(4, restored.paragraphIndex)
+        assertEquals(128, restored.scrollOffset)
+        assertEquals(2, restored.pageIndex)
+    }
+
+    @Test
+    fun `given old local progress row without anchor when migrate then reads anchor as null and keeps fallback fields`() {
+        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        Database.Schema.synchronous().migrate(driver, 1, 3)
+        driver.execute(
+            identifier = null,
+            sql = """
+                INSERT INTO LocalReadingProgressEntity (
+                    bookId, chapterIndex, paragraphIndex, scrollOffset, pageIndex, progress, lastReadAt
+                ) VALUES (11, 4, 2, 32, 1, 0.5, 999)
+            """.trimIndent(),
+            parameters = 0,
+        )
+        Database.Schema.synchronous().migrate(driver, 3, 4)
+        val migratedRepository = ReaderRepository(Database(driver), FakeApiProvider(fakeApi))
+
+        val restored = migratedRepository.getLocalProgress(11)
+
+        assertNotNull(restored, "迁移后应能读回旧本地进度")
+        assertEquals(4, restored.chapterIndex)
+        assertEquals(null, restored.anchorId)
+        assertEquals(2, restored.paragraphIndex)
+        assertEquals(32, restored.scrollOffset)
+        assertEquals(1, restored.pageIndex)
+        assertEquals(0.5, restored.progress)
+        assertEquals(999L, restored.lastReadAt)
+    }
+
+    @Test
+    fun `given anchor position when updateRemoteProgress then sends chapter anchor fallback and offset`() = runBlocking {
+        val result = repository.updateRemoteProgress(
+            bookId = 8,
+            progress = 0.5,
+            currentChapter = 9,
+            totalChapters = 20,
+            anchorId = "txt-9-p2",
+            paragraphIndex = 2,
+            scrollOffset = 64,
+            chapterPageIndex = 1,
+            chapterScrollPercent = 0.25
+        )
+
+        assertTrue(result.isSuccess, "远程进度更新应返回 Success")
+        val dto = fakeApi.lastProgressDto
+        assertNotNull(dto, "应向 API 发送进度 DTO")
+        assertEquals(9, dto.currentPage)
+        assertEquals(9, dto.chapterIndex)
+        assertEquals("txt-9-p2", dto.anchorId)
+        assertEquals(2, dto.paragraphIndex)
+        assertEquals(64, dto.scrollOffset)
+        assertEquals(1, dto.chapterPageIndex)
+        assertEquals(0.25, dto.chapterScrollPercent)
+    }
+
+    @Test
+    fun `given anchor bookmark when addBookmark then sends chapter anchor fallback and note`() = runBlocking {
+        val result = repository.addBookmark(
+            bookId = 9,
+            chapterIndex = 3,
+            anchorId = "epub-3-p7",
+            paragraphIndex = 7,
+            scrollOffset = 32,
+            note = "重点"
+        )
+
+        assertTrue(result.isSuccess, "添加书签应返回 Success")
+        val dto = fakeApi.lastBookmarkDto
+        assertNotNull(dto, "应向 API 发送书签 DTO")
+        assertEquals(3, dto.chapterIndex)
+        assertEquals("epub-3-p7", dto.anchorId)
+        assertEquals(7, dto.paragraphIndex)
+        assertEquals(32, dto.scrollOffset)
+        assertEquals("重点", dto.note)
+    }
 }
 
 // ============ 测试辅助：Fake 实现 ============
@@ -208,6 +308,8 @@ private class FakeReaderApi : ReaderApi {
         index = 0, title = null, elements = emptyList(), prevIndex = null, nextIndex = null
     )
     var networkCallCount = 0
+    var lastProgressDto: ReadingProgressDTO? = null
+    var lastBookmarkDto: BookmarkDTO? = null
 
     override suspend fun getChapterContent(bookId: Int, chapterIndex: Int): ChapterContent {
         networkCallCount++
@@ -225,13 +327,41 @@ private class FakeReaderApi : ReaderApi {
 
     override suspend fun updateReadingProgress(
         bookId: Int, progress: ReadingProgressDTO
-    ): ReadingProgressResponse = throw UnsupportedOperationException()
+    ): ReadingProgressResponse {
+        lastProgressDto = progress
+        return ReadingProgressResponse(
+            id = 1,
+            bookId = bookId,
+            progress = progress.progress,
+            currentPage = progress.currentPage ?: 0,
+            totalPages = progress.totalPages,
+            lastReadAt = "2026-06-03T00:00:00Z",
+            chapterIndex = progress.chapterIndex ?: progress.currentPage ?: 0,
+            anchorId = progress.anchorId,
+            paragraphIndex = progress.paragraphIndex,
+            scrollOffset = progress.scrollOffset,
+            chapterPageIndex = progress.chapterPageIndex,
+            chapterTotalPages = progress.chapterTotalPages,
+            chapterScrollPercent = progress.chapterScrollPercent
+        )
+    }
 
     override suspend fun getBookmarks(bookId: Int): BookmarksResponse =
         throw UnsupportedOperationException()
 
-    override suspend fun addBookmark(bookId: Int, bookmark: BookmarkDTO): BookmarkResponse =
-        throw UnsupportedOperationException()
+    override suspend fun addBookmark(bookId: Int, bookmark: BookmarkDTO): BookmarkResponse {
+        lastBookmarkDto = bookmark
+        return BookmarkResponse(
+            id = 1,
+            bookId = bookId,
+            chapterIndex = bookmark.chapterIndex,
+            anchorId = bookmark.anchorId,
+            paragraphIndex = bookmark.paragraphIndex,
+            scrollOffset = bookmark.scrollOffset,
+            note = bookmark.note,
+            createdAt = "2026-06-03T00:00:00Z"
+        )
+    }
 
     override suspend fun updateBookmark(bookmarkId: Int, bookmark: BookmarkDTO): BookmarkResponse =
         throw UnsupportedOperationException()

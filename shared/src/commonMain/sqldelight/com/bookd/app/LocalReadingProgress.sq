@@ -2,6 +2,7 @@
 CREATE TABLE LocalReadingProgressEntity (
     bookId INTEGER NOT NULL PRIMARY KEY,
     chapterIndex INTEGER NOT NULL,
+    anchorId TEXT,
     paragraphIndex INTEGER NOT NULL DEFAULT 0,
     scrollOffset INTEGER NOT NULL DEFAULT 0,
     pageIndex INTEGER NOT NULL DEFAULT 0,
@@ -20,8 +21,8 @@ SELECT * FROM LocalReadingProgressEntity ORDER BY lastReadAt DESC;
 -- 插入或替换本地进度
 insertOrReplace:
 INSERT OR REPLACE INTO LocalReadingProgressEntity (
-    bookId, chapterIndex, paragraphIndex, scrollOffset, pageIndex, progress, lastReadAt
-) VALUES (?, ?, ?, ?, ?, ?, ?);
+    bookId, chapterIndex, anchorId, paragraphIndex, scrollOffset, pageIndex, progress, lastReadAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 -- 删除指定书籍的本地进度
 deleteByBookId:

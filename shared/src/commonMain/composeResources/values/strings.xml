@@ -228,6 +228,7 @@
     <string name="toc_word_count">%1$d words</string>
     <string name="toc_chapter_fallback">Chapter %1$d</string>
     <string name="toc_delete_bookmark">Delete bookmark</string>
+    <string name="reader_add_bookmark_current">Add current bookmark</string>
 
 
 </resources>

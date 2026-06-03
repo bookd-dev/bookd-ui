@@ -16,6 +16,10 @@ data class ReadingProgressResponse(
     val documentId: String? = null,
     val deviceId: String? = null,
     val lastReadAt: String,
+    val chapterIndex: Int = currentPage,
+    val anchorId: String? = null,
+    val paragraphIndex: Int? = null,
+    val scrollOffset: Int? = null,
     // 章节详细进度
     val chapterPageIndex: Int? = null,
     val chapterTotalPages: Int? = null,

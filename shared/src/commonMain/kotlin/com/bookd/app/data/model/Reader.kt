@@ -68,18 +68,21 @@ data class ChapterContent(
  */
 @Serializable
 sealed class ContentElement {
+    abstract val anchorId: String?
     
     @Serializable
     @SerialName("paragraph")
     data class Paragraph(
-        val spans: List<TextSpan>
+        val spans: List<TextSpan>,
+        override val anchorId: String? = null
     ) : ContentElement()
     
     @Serializable
     @SerialName("heading")
     data class Heading(
         val level: Int,
-        val text: String
+        val text: String,
+        override val anchorId: String? = null
     ) : ContentElement()
     
     @Serializable
@@ -89,32 +92,38 @@ sealed class ContentElement {
         val alt: String? = null,
         val width: Int? = null,
         val height: Int? = null,
-        val aspectRatio: Double? = null  // 宽高比 (width / height)
+        val aspectRatio: Double? = null,  // 宽高比 (width / height)
+        override val anchorId: String? = null
     ) : ContentElement()
     
     @Serializable
     @SerialName("quote")
     data class Quote(
-        val spans: List<TextSpan>
+        val spans: List<TextSpan>,
+        override val anchorId: String? = null
     ) : ContentElement()
     
     @Serializable
     @SerialName("code")
     data class Code(
         val text: String,
-        val language: String? = null
+        val language: String? = null,
+        override val anchorId: String? = null
     ) : ContentElement()
     
     @Serializable
     @SerialName("listBlock")
     data class ListBlock(
         val ordered: Boolean,
-        val items: List<ListItem>
+        val items: List<ListItem>,
+        override val anchorId: String? = null
     ) : ContentElement()
     
     @Serializable
     @SerialName("divider")
-    data object Divider : ContentElement()
+    data class Divider(
+        override val anchorId: String? = null
+    ) : ContentElement()
     
     @Serializable
     @SerialName("footnote")
@@ -125,7 +134,8 @@ sealed class ContentElement {
         val width: Int? = null,  // 图片宽度
         val height: Int? = null,  // 图片高度
         val aspectRatio: Double? = null,  // 宽高比 (width / height)
-        val contentSpans: List<TextSpan>  // 脚注内容文本
+        val contentSpans: List<TextSpan>,  // 脚注内容文本
+        override val anchorId: String? = null
     ) : ContentElement()
 }
 
@@ -176,6 +186,10 @@ data class ReadingProgressDTO(
     val documentId: String? = null,
     val deviceId: String? = null,
     val lastReadAt: String? = null,
+    val chapterIndex: Int? = null,
+    val anchorId: String? = null,
+    val paragraphIndex: Int? = null,
+    val scrollOffset: Int? = null,
     // 章节详细进度
     val chapterPageIndex: Int? = null,
     val chapterTotalPages: Int? = null,
@@ -314,7 +328,9 @@ enum class PageAnimationType(val value: String) {
 @Serializable
 data class BookmarkDTO(
     val chapterIndex: Int,
+    val anchorId: String? = null,
     val paragraphIndex: Int? = null,
+    val scrollOffset: Int? = null,
     val cfiLocation: String? = null,
     val note: String? = null
 )
@@ -326,12 +342,19 @@ data class BookmarkDTO(
 data class BookmarkResponse(
     val id: Int,
     val bookId: Int,
-    val chapterIndex: Int,
-    val paragraphIndex: Int?,
-    val cfiLocation: String?,
-    val note: String?,
+    val chapterIndex: Int = 0,
+    val anchorId: String? = null,
+    val paragraphIndex: Int? = null,
+    val scrollOffset: Int? = null,
+    val cfiLocation: String? = null,
+    val positionType: String? = null,
+    val positionValue: String? = null,
+    val documentId: String? = null,
+    val title: String? = null,
+    val note: String? = null,
+    val color: String? = null,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String? = null
 )
 
 /**
@@ -351,6 +374,7 @@ data class BookmarksResponse(
 data class LocalReadingProgress(
     val bookId: Int,
     val chapterIndex: Int,
+    val anchorId: String? = null,
     val paragraphIndex: Int,
     val scrollOffset: Int = 0,
     val pageIndex: Int = 0,

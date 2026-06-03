@@ -62,7 +62,7 @@ class ReaderEngineTest {
         ContentElement.Heading(level = level, text = text)
 
     /** 分隔线 */
-    private val divider: ContentElement = ContentElement.Divider
+    private val divider: ContentElement = ContentElement.Divider()
 
     // ============ calculatePageAnchors 测试 ============
 

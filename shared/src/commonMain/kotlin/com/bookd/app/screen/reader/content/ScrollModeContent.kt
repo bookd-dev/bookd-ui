@@ -47,12 +47,14 @@ fun ScrollModeContent(
     adjacentChapters: Map<Int, ChapterContent>,
     settings: ReaderSettings,
     listState: LazyListState = rememberLazyListState(),
+    scrollRequest: ReaderScrollRequest? = null,
     onToggleMenu: () -> Unit,
     onImageClick: (url: String, alt: String?) -> Unit,
     onFootnoteClick: (ContentElement.Footnote) -> Unit,
     onLinkClick: (url: String) -> Unit,
     onParagraphLongClick: (paragraphIndex: Int) -> Unit,
-    onScrollPositionChanged: (chapterIndex: Int, paragraphIndex: Int, scrollOffset: Int) -> Unit,
+    onScrollPositionChanged: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
+    onScrollRequestCompleted: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
     onCurrentChapterChanged: (chapterIndex: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -208,7 +210,7 @@ fun ScrollModeContent(
             // 用 derivedStateOf 而非 remember(key)：derivedStateOf 在 orderedChapterIndices 或
             // chapterAnchors 任一变化时自动重算，但它本身是 State 而不是 LaunchedEffect 的 key，
             // 不会打断任何协程 Effect，彻底切断映射表重建 → 章节检测触发 → 切换循环的链路。
-            val itemChapterMap: List<Pair<Int, Int>> by remember {
+            val itemChapterMap: List<ReaderScrollItem> by remember {
                 derivedStateOf {
                     buildList {
                         for (idx in orderedChapterIndices) {
@@ -218,13 +220,22 @@ fun ScrollModeContent(
                                 continue
                             }
                             anchors.indices.forEach { anchorIdx ->
-                                add(idx to anchorIdx)               // anchor items
+                                val elementAnchorId = chapterElements[idx]
+                                    ?.getOrNull(anchors[anchorIdx].elementIndex)
+                                    ?.anchorId
+                                add(
+                                    ReaderScrollItem(
+                                        chapterIndex = idx,
+                                        anchorIndex = anchorIdx,
+                                        anchorId = elementAnchorId
+                                    )
+                                )
                             }
                         }
                     }.also { map ->
                         logD(tag = "Reader") {
                             val summary = orderedChapterIndices.joinToString { idx ->
-                                val count = map.count { it.first == idx && it.second >= 0 }
+                                val count = map.count { it.chapterIndex == idx && it.anchorIndex >= 0 }
                                 "ch$idx:${count}pages"
                             }
                             "[ScrollMode] itemChapterMap 构建完成 totalItems=${map.size} [$summary]"
@@ -252,11 +263,38 @@ fun ScrollModeContent(
                     .collect { (globalIndex, scrollOffset) ->
                         // index 0 = top-spacer，内容从 index 1 开始，映射时偏移 -1
                         val mapIndex = (globalIndex - 1).coerceAtLeast(0)
-                        val (chapterIdx, localAnchorIdx) = itemChapterMapState.getOrNull(mapIndex)
+                        val item = itemChapterMapState.getOrNull(mapIndex)
                             ?: return@collect
-                        val paragraphIndex = localAnchorIdx.coerceAtLeast(0)
-                        onScrollPositionChanged(chapterIdx, paragraphIndex, scrollOffset)
+                        val paragraphIndex = item.anchorIndex.coerceAtLeast(0)
+                        onScrollPositionChanged(item.chapterIndex, item.anchorId, paragraphIndex, scrollOffset)
                     }
+            }
+
+            LaunchedEffect(scrollRequest, itemChapterMap) {
+                val request = scrollRequest ?: return@LaunchedEffect
+                val anchors = chapterAnchors[request.chapterIndex] ?: return@LaunchedEffect
+                val elements = chapterElements[request.chapterIndex] ?: return@LaunchedEffect
+                val resolution = resolveReaderScrollAnchor(
+                    elements = elements,
+                    pageAnchors = anchors,
+                    anchorId = request.anchorId,
+                    fallbackIndex = request.paragraphIndex
+                )
+                val mapIndex = itemChapterMap.indexOfFirst {
+                    it.chapterIndex == request.chapterIndex && it.anchorIndex == resolution.anchorIndex
+                }
+                if (mapIndex < 0) return@LaunchedEffect
+
+                listState.scrollToItem(
+                    index = mapIndex + 1,
+                    scrollOffset = request.offset.coerceAtLeast(0)
+                )
+                onScrollRequestCompleted(
+                    request.chapterIndex,
+                    resolution.anchorId,
+                    resolution.anchorIndex,
+                    request.offset.coerceAtLeast(0)
+                )
             }
 
             // 章节切换检测：屏幕中心点 + 到底正向推进策略
@@ -413,6 +451,54 @@ internal data class VisibleItemInfo(
     val offset: Int,
     val size: Int
 )
+
+data class ReaderScrollRequest(
+    val sequence: Long,
+    val chapterIndex: Int,
+    val anchorId: String?,
+    val paragraphIndex: Int,
+    val offset: Int
+)
+
+internal data class ReaderScrollItem(
+    val chapterIndex: Int,
+    val anchorIndex: Int,
+    val anchorId: String?
+)
+
+internal data class ReaderScrollResolution(
+    val anchorIndex: Int,
+    val anchorId: String?
+)
+
+internal fun resolveReaderScrollAnchor(
+    elements: List<ContentElement>,
+    pageAnchors: List<PageAnchor>,
+    anchorId: String?,
+    fallbackIndex: Int
+): ReaderScrollResolution {
+    if (pageAnchors.isEmpty()) {
+        return ReaderScrollResolution(anchorIndex = 0, anchorId = null)
+    }
+
+    val targetElementIndex = anchorId
+        ?.let { targetAnchorId -> elements.indexOfFirst { it.anchorId == targetAnchorId } }
+        ?.takeIf { it >= 0 }
+
+    val resolvedAnchorIndex = if (targetElementIndex != null) {
+        pageAnchors.indexOfLast { it.elementIndex <= targetElementIndex }
+            .coerceAtLeast(0)
+    } else {
+        fallbackIndex.coerceIn(0, pageAnchors.lastIndex)
+    }
+
+    val resolvedAnchor = pageAnchors[resolvedAnchorIndex]
+    val resolvedAnchorId = elements.getOrNull(resolvedAnchor.elementIndex)?.anchorId
+    return ReaderScrollResolution(
+        anchorIndex = resolvedAnchorIndex,
+        anchorId = resolvedAnchorId
+    )
+}
 
 /**
  * 章节切换检测纯算法：占据可见面积最大的章节 + 到底正向推进策略。

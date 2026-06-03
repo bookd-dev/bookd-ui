@@ -1,0 +1,1 @@
+ALTER TABLE LocalReadingProgressEntity ADD COLUMN anchorId TEXT;

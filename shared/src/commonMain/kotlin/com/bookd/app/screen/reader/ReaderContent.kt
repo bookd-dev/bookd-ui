@@ -8,6 +8,7 @@ import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.screen.reader.content.PageModeContent
+import com.bookd.app.screen.reader.content.ReaderScrollRequest
 import com.bookd.app.screen.reader.content.ScrollModeContent
 
 
@@ -18,12 +19,14 @@ fun ReaderContent(
     currentPageIndex: Int,
     adjacentChapters: Map<Int, ChapterContent>,
     settings: ReaderSettings,
+    scrollRequest: ReaderScrollRequest?,
     onToggleMenu: () -> Unit,
     onImageClick: (url: String, alt: String?) -> Unit,
     onFootnoteClick: (ContentElement.Footnote) -> Unit,
     onLinkClick: (url: String) -> Unit,
     onParagraphLongClick: (paragraphIndex: Int) -> Unit,
-    onScrollPositionChanged: (chapterIndex: Int, paragraphIndex: Int, scrollOffset: Int) -> Unit,
+    onScrollPositionChanged: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
+    onScrollRequestCompleted: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
     onCurrentChapterChanged: (chapterIndex: Int) -> Unit,
     onPagePositionChanged: (pageIndex: Int) -> Unit,
     onPagerChapterChanged: (chapterIndex: Int, direction: Int) -> Unit,
@@ -36,12 +39,14 @@ fun ReaderContent(
                 currentChapterIndex = currentChapterIndex,
                 adjacentChapters = adjacentChapters,
                 settings = settings,
+                scrollRequest = scrollRequest,
                 onToggleMenu = onToggleMenu,
                 onImageClick = onImageClick,
                 onFootnoteClick = onFootnoteClick,
                 onLinkClick = onLinkClick,
                 onParagraphLongClick = onParagraphLongClick,
                 onScrollPositionChanged = onScrollPositionChanged,
+                onScrollRequestCompleted = onScrollRequestCompleted,
                 onCurrentChapterChanged = onCurrentChapterChanged,
                 modifier = modifier.fillMaxSize()
             )

@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ import app.composeapp.generated.resources.bookmark_deleted
 import app.composeapp.generated.resources.progress_saved
 import app.composeapp.generated.resources.reader_loading_chapter
 import com.bookd.app.basic.extension.getCurrentTimeString
+import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.vm.ReaderEffect
 import com.bookd.app.data.vm.ReaderViewModel
 import com.bookd.app.screen.RouteBookDetail
@@ -33,6 +35,7 @@ import com.bookd.app.screen.reader.component.ReaderSettingsSheet
 import com.bookd.app.screen.reader.component.ReaderStatusBar
 import com.bookd.app.screen.reader.component.ReaderTocSheet
 import com.bookd.app.screen.reader.component.ReaderTopChrome
+import com.bookd.app.screen.reader.content.ReaderScrollRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
@@ -54,10 +57,12 @@ fun ReaderScreen(
     val snackbarHostState = screenContext.snackbarHostState
 
     val state by viewModel.state.collectAsState()
+    val currentPageMode by rememberUpdatedState(state.readerSettings.pageMode)
     var isChromeVisible by remember { mutableStateOf(true) }
     var isSettingsVisible by remember { mutableStateOf(false) }
     var isTocVisible by remember { mutableStateOf(false) }
     var currentTime by remember { mutableStateOf(getCurrentTimeString()) }
+    var pendingScrollRequest by remember { mutableStateOf<ReaderScrollRequest?>(null) }
     val shellUiState = buildReaderShellUiState(state)
 
     // 预加载国际化字符串
@@ -99,7 +104,22 @@ fun ReaderScreen(
                     snackbarHostState.showSnackbar(progressSavedMsg)
                 }
                 is ReaderEffect.ScrollToPosition -> {
-                    // TODO: 书签/目录跳转时，通过 listState.scrollToItem 处理
+                    pendingScrollRequest = ReaderScrollRequest(
+                        sequence = effect.sequence,
+                        chapterIndex = effect.chapterIndex,
+                        anchorId = effect.anchorId,
+                        paragraphIndex = effect.paragraphIndex,
+                        offset = effect.offset
+                    )
+                    if (currentPageMode != PageMode.SCROLL) {
+                        viewModel.onProgrammaticScrollCompleted(
+                            chapterIndex = effect.chapterIndex,
+                            anchorId = effect.anchorId,
+                            paragraphIndex = effect.paragraphIndex,
+                            scrollOffset = effect.offset
+                        )
+                        pendingScrollRequest = null
+                    }
                 }
                 is ReaderEffect.ScrollToPage -> {
                     // 翻页模式跳页（翻页模式实现时处理）
@@ -134,13 +154,23 @@ fun ReaderScreen(
                             currentPageIndex = state.currentPageIndex,
                             adjacentChapters = adjacentChapters,
                             settings = state.readerSettings,
+                            scrollRequest = pendingScrollRequest,
                             onToggleMenu = { isChromeVisible = !isChromeVisible },
                             onImageClick = { _, _ -> /* 后续 complete-reader-inline-interactions 实现 */ },
                             onFootnoteClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
                             onLinkClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
                             onParagraphLongClick = { /* 后续 complete-reader-inline-interactions 实现 */ },
-                            onScrollPositionChanged = { chapterIndex, paragraphIndex, scrollOffset ->
-                                viewModel.updateScrollPosition(chapterIndex, paragraphIndex, scrollOffset)
+                            onScrollPositionChanged = { chapterIndex, anchorId, paragraphIndex, scrollOffset ->
+                                viewModel.updateScrollPosition(chapterIndex, anchorId, paragraphIndex, scrollOffset)
+                            },
+                            onScrollRequestCompleted = { chapterIndex, anchorId, paragraphIndex, scrollOffset ->
+                                pendingScrollRequest = null
+                                viewModel.onProgrammaticScrollCompleted(
+                                    chapterIndex = chapterIndex,
+                                    anchorId = anchorId,
+                                    paragraphIndex = paragraphIndex,
+                                    scrollOffset = scrollOffset
+                                )
                             },
                             onCurrentChapterChanged = { newChapterIndex ->
                                 viewModel.onScrollChapterChanged(newChapterIndex)
@@ -215,7 +245,18 @@ fun ReaderScreen(
             currentChapterIndex = state.currentChapterIndex,
             progressPercent = state.progressPercent,
             totalChapters = state.totalChapters,
+            bookmarks = state.bookmarks,
             onDismiss = { isTocVisible = false },
+            onChapterClick = { chapterIndex ->
+                isTocVisible = false
+                viewModel.jumpToChapter(chapterIndex)
+            },
+            onBookmarkClick = { bookmark ->
+                isTocVisible = false
+                viewModel.jumpToBookmark(bookmark)
+            },
+            onAddBookmark = { viewModel.addBookmarkAtCurrentPosition() },
+            onDeleteBookmark = viewModel::deleteBookmark,
         )
     }
 
