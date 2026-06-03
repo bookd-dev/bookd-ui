@@ -38,6 +38,16 @@ The client SHALL let users open reader settings from the reader shell and update
 - **THEN** the reader SHALL update the `ReaderSettings` state
 - **AND** it SHALL persist the setting through the existing settings update path.
 
+#### Scenario: Reader settings surface follows Material Design
+- **WHEN** the user opens the reader settings surface
+- **THEN** the reader SHALL present settings in a Material Design bottom sheet with grouped controls, consistent spacing, and clear visual hierarchy
+- **AND** numeric reader settings SHALL use rounded discrete sliders with visible current value labels and tick marks
+- **AND** numeric slider tick marks SHALL omit the minimum and maximum endpoint dots
+- **AND** numeric slider thumbs SHALL use a minimal solid dot without a contrasting outer ring
+- **AND** numeric slider changes SHALL snap to the nearest supported tick value
+- **AND** numeric slider changes SHALL provide light haptic feedback when the selected tick changes on supported platforms
+- **AND** page mode and boolean settings SHALL use Material components with clear selected and checked states.
+
 ### Requirement: Progress conflicts require explicit user choice
 The client SHALL require explicit user choice when local and remote progress conflict.
 

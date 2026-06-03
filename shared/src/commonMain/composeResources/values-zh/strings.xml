@@ -209,6 +209,8 @@
     <string name="reader_last_read_at">最后阅读：%1$s</string>
     <string name="reader_local_progress">本地进度</string>
     <string name="reader_remote_progress">云端进度</string>
+    <string name="reader_settings_typography">排版</string>
+    <string name="reader_settings_preferences">阅读偏好</string>
     <string name="page_animation_native">原生</string>
     <string name="bookmarks_count">书签（%1$d）</string>
     <string name="toc_current_reading">正在阅读</string>

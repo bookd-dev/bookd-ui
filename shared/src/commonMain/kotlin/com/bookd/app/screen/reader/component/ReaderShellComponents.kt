@@ -1,9 +1,14 @@
 package com.bookd.app.screen.reader.component
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +18,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -25,22 +33,35 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.back
 import app.composeapp.generated.resources.cancel
@@ -65,6 +86,8 @@ import app.composeapp.generated.resources.reader_local_progress
 import app.composeapp.generated.resources.reader_remote_progress
 import app.composeapp.generated.resources.reader_retry
 import app.composeapp.generated.resources.reader_settings
+import app.composeapp.generated.resources.reader_settings_preferences
+import app.composeapp.generated.resources.reader_settings_typography
 import app.composeapp.generated.resources.reader_toc_empty
 import app.composeapp.generated.resources.remote_progress_info
 import app.composeapp.generated.resources.local_progress_info
@@ -84,6 +107,8 @@ import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 @Composable
 fun ReaderLoadingSurface(
@@ -295,84 +320,147 @@ fun ReaderSettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 text = stringResource(Res.string.reader_settings),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
             )
-            SettingSliderRow(
-                label = stringResource(Res.string.font_size),
-                value = settings.fontSize.toFloat(),
-                valueRange = 12f..32f,
-                valueText = settings.fontSize.toString(),
-                onValueChange = { onFontSizeChange(it.toInt()) },
-            )
-            SettingSliderRow(
-                label = stringResource(Res.string.line_height),
-                value = settings.lineHeight.toFloat(),
-                valueRange = 1.0f..2.5f,
-                valueText = "%.1f".format(settings.lineHeight),
-                onValueChange = { onLineHeightChange(it.toDouble()) },
-            )
-            SettingSliderRow(
-                label = stringResource(Res.string.paragraph_spacing),
-                value = settings.paragraphSpacing.toFloat(),
-                valueRange = 0f..32f,
-                valueText = settings.paragraphSpacing.toString(),
-                onValueChange = { onParagraphSpacingChange(it.toInt()) },
-            )
-            SettingSliderRow(
-                label = stringResource(Res.string.margin_horizontal),
-                value = settings.marginHorizontal.toFloat(),
-                valueRange = 8f..56f,
-                valueText = settings.marginHorizontal.toString(),
-                onValueChange = { onMarginHorizontalChange(it.toInt()) },
-            )
-            SettingSliderRow(
-                label = stringResource(Res.string.margin_vertical),
-                value = settings.marginVertical.toFloat(),
-                valueRange = 16f..96f,
-                valueText = settings.marginVertical.toString(),
-                onValueChange = { onMarginVerticalChange(it.toInt()) },
-            )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            Text(
-                text = stringResource(Res.string.page_mode),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = settings.pageMode == PageMode.SCROLL,
-                    onClick = { onPageModeChange(PageMode.SCROLL) },
-                    label = { Text(stringResource(Res.string.page_mode_scroll)) },
+
+            ReaderSettingsSection(title = stringResource(Res.string.reader_settings_typography)) {
+                SettingSliderRow(
+                    label = stringResource(Res.string.font_size),
+                    value = settings.fontSize.toFloat(),
+                    valueRange = 12f..32f,
+                    step = 1f,
+                    valueText = settings.fontSize.toString(),
+                    onValueChange = { onFontSizeChange(it.toInt()) },
                 )
-                FilterChip(
-                    selected = settings.pageMode == PageMode.PAGE,
-                    onClick = { onPageModeChange(PageMode.PAGE) },
-                    label = { Text(stringResource(Res.string.page_mode_page)) },
+                SettingSliderRow(
+                    label = stringResource(Res.string.line_height),
+                    value = settings.lineHeight.toFloat(),
+                    valueRange = 1.0f..2.5f,
+                    step = 0.1f,
+                    valueText = "%.1f".format(settings.lineHeight),
+                    onValueChange = { onLineHeightChange(it.toDouble()) },
+                )
+                SettingSliderRow(
+                    label = stringResource(Res.string.paragraph_spacing),
+                    value = settings.paragraphSpacing.toFloat(),
+                    valueRange = 0f..32f,
+                    step = 4f,
+                    valueText = settings.paragraphSpacing.toString(),
+                    onValueChange = { onParagraphSpacingChange(it.toInt()) },
+                )
+                SettingSliderRow(
+                    label = stringResource(Res.string.margin_horizontal),
+                    value = settings.marginHorizontal.toFloat(),
+                    valueRange = 8f..56f,
+                    step = 4f,
+                    valueText = settings.marginHorizontal.toString(),
+                    onValueChange = { onMarginHorizontalChange(it.toInt()) },
+                )
+                SettingSliderRow(
+                    label = stringResource(Res.string.margin_vertical),
+                    value = settings.marginVertical.toFloat(),
+                    valueRange = 16f..96f,
+                    step = 8f,
+                    valueText = settings.marginVertical.toString(),
+                    onValueChange = { onMarginVerticalChange(it.toInt()) },
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(stringResource(Res.string.first_line_indent), style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = settings.firstLineIndent,
-                    onCheckedChange = { onFirstLineIndentChange() },
+
+            ReaderSettingsSection(title = stringResource(Res.string.reader_settings_preferences)) {
+                Text(
+                    text = stringResource(Res.string.page_mode),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ReaderPageModeChip(
+                        selected = settings.pageMode == PageMode.SCROLL,
+                        label = stringResource(Res.string.page_mode_scroll),
+                        onClick = { onPageModeChange(PageMode.SCROLL) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    ReaderPageModeChip(
+                        selected = settings.pageMode == PageMode.PAGE,
+                        label = stringResource(Res.string.page_mode_page),
+                        onClick = { onPageModeChange(PageMode.PAGE) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(Res.string.first_line_indent),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    Switch(
+                        checked = settings.firstLineIndent,
+                        onCheckedChange = { onFirstLineIndentChange() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        ),
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun ReaderSettingsSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 1.dp,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                content = content,
+            )
         }
     }
 }
@@ -382,29 +470,246 @@ private fun SettingSliderRow(
     label: String,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
     valueText: String,
     onValueChange: (Float) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    val snappedValue = snapReaderSettingValue(value, valueRange, step)
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
             Text(
-                valueText,
+                text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Text(
+                    text = valueText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
         }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
+        DiscreteSettingSlider(
+            value = snappedValue,
             valueRange = valueRange,
+            step = step,
+            onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+@Composable
+private fun DiscreteSettingSlider(
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val thumbRadius = with(density) { 9.dp.toPx() }
+    val trackHeight = with(density) { 8.dp.toPx() }
+    val tickRadius = with(density) { 2.dp.toPx() }
+    val activeTrackColor = MaterialTheme.colorScheme.onSurface
+    val inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val activeTickColor = MaterialTheme.colorScheme.surface
+    val inactiveTickColor = MaterialTheme.colorScheme.outlineVariant
+    val thumbColor = MaterialTheme.colorScheme.onSurface
+    val snappedValue = snapReaderSettingValue(value, valueRange, step)
+    val tickCount = readerSettingTickCount(valueRange, step)
+    var lastHapticValue by remember(valueRange, step) { mutableStateOf(snappedValue) }
+
+    BoxWithConstraints(
+        modifier = modifier.height(50.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        val widthPx = constraints.maxWidth.toFloat()
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(valueRange, step, widthPx) {
+                    fun updateFromX(x: Float) {
+                        val rawValue = sliderXToReaderSettingValue(
+                            x = x,
+                            width = widthPx,
+                            thumbRadius = thumbRadius,
+                            valueRange = valueRange,
+                        )
+                        val snapped = snapReaderSettingValue(rawValue, valueRange, step)
+                        if (snapped != lastHapticValue) {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            lastHapticValue = snapped
+                        }
+                        onValueChange(snapped)
+                    }
+
+                    detectTapGestures { offset ->
+                        updateFromX(offset.x)
+                    }
+                }
+                .pointerInput(valueRange, step, widthPx) {
+                    fun updateFromX(x: Float) {
+                        val rawValue = sliderXToReaderSettingValue(
+                            x = x,
+                            width = widthPx,
+                            thumbRadius = thumbRadius,
+                            valueRange = valueRange,
+                        )
+                        val snapped = snapReaderSettingValue(rawValue, valueRange, step)
+                        if (snapped != lastHapticValue) {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            lastHapticValue = snapped
+                        }
+                        onValueChange(snapped)
+                    }
+
+                    detectDragGestures(
+                        onDragStart = { offset -> updateFromX(offset.x) },
+                        onDrag = { change, _ -> updateFromX(change.position.x) },
+                    )
+                },
+        ) {
+            val trackStart = thumbRadius
+            val trackEnd = size.width - thumbRadius
+            val trackWidth = (trackEnd - trackStart).coerceAtLeast(1f)
+            val centerY = size.height / 2f
+            val activeEnd = trackStart + trackWidth * readerSettingValueFraction(snappedValue, valueRange)
+
+            drawRoundRect(
+                color = inactiveTrackColor,
+                topLeft = Offset(trackStart, centerY - trackHeight / 2f),
+                size = Size(trackWidth, trackHeight),
+                cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f),
+            )
+            drawRoundRect(
+                color = activeTrackColor,
+                topLeft = Offset(trackStart, centerY - trackHeight / 2f),
+                size = Size((activeEnd - trackStart).coerceAtLeast(0f), trackHeight),
+                cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f),
+            )
+
+            readerSettingInteriorTickIndices(tickCount).forEach { index ->
+                val fraction = if (tickCount == 1) 0f else index.toFloat() / (tickCount - 1)
+                val tickX = trackStart + trackWidth * fraction
+                drawCircle(
+                    color = if (tickX <= activeEnd + 0.5f) activeTickColor else inactiveTickColor,
+                    radius = tickRadius,
+                    center = Offset(tickX, centerY),
+                )
+            }
+
+            drawCircle(
+                color = thumbColor,
+                radius = thumbRadius,
+                center = Offset(activeEnd, centerY),
+            )
+        }
+    }
+}
+
+internal fun snapReaderSettingValue(
+    rawValue: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+): Float {
+    if (step <= 0f) return rawValue.coerceIn(valueRange.start, valueRange.endInclusive)
+    val clamped = rawValue.coerceIn(valueRange.start, valueRange.endInclusive)
+    val stepIndex = ((clamped - valueRange.start) / step).roundToInt()
+    val snapped = valueRange.start + stepIndex * step
+    val precision = readerSettingStepPrecision(step)
+    val factor = 10.0.pow(precision).toFloat()
+    return ((snapped * factor).roundToInt() / factor).coerceIn(valueRange.start, valueRange.endInclusive)
+}
+
+internal fun readerSettingTickCount(
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+): Int {
+    if (step <= 0f) return 2
+    val distance = valueRange.endInclusive - valueRange.start
+    return (distance / step).roundToInt().coerceAtLeast(1) + 1
+}
+
+internal fun readerSettingInteriorTickIndices(tickCount: Int): IntRange {
+    if (tickCount <= 2) return IntRange.EMPTY
+    return 1 until tickCount - 1
+}
+
+internal fun readerSettingValueFraction(
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+): Float {
+    val distance = valueRange.endInclusive - valueRange.start
+    if (distance <= 0f) return 0f
+    return ((value - valueRange.start) / distance).coerceIn(0f, 1f)
+}
+
+internal fun sliderXToReaderSettingValue(
+    x: Float,
+    width: Float,
+    thumbRadius: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+): Float {
+    val trackStart = thumbRadius
+    val trackEnd = width - thumbRadius
+    val trackWidth = (trackEnd - trackStart).coerceAtLeast(1f)
+    val fraction = ((x - trackStart) / trackWidth).coerceIn(0f, 1f)
+    return valueRange.start + (valueRange.endInclusive - valueRange.start) * fraction
+}
+
+private fun readerSettingStepPrecision(step: Float): Int {
+    val text = step.toString().trimEnd('0')
+    val decimalIndex = text.indexOf('.')
+    return if (decimalIndex < 0) 0 else text.length - decimalIndex - 1
+}
+
+@Composable
+private fun ReaderPageModeChip(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = MaterialTheme.colorScheme.outlineVariant,
+            selectedBorderColor = MaterialTheme.colorScheme.primary,
+        ),
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

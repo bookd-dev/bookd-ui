@@ -209,6 +209,8 @@
     <string name="reader_last_read_at">Last read: %1$s</string>
     <string name="reader_local_progress">Local Progress</string>
     <string name="reader_remote_progress">Cloud Progress</string>
+    <string name="reader_settings_typography">Typography</string>
+    <string name="reader_settings_preferences">Reading preferences</string>
     <string name="page_animation_native">Native</string>
     <string name="bookmarks_count">Bookmarks (%1$d)</string>
     <string name="toc_current_reading">Currently reading</string>
