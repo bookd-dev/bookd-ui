@@ -198,8 +198,8 @@
     <string name="progress_conflict_message">Local and cloud reading progress are different. Which one to use?</string>
     <string name="use_local_progress">Use Local</string>
     <string name="use_remote_progress">Use Cloud</string>
-    <string name="local_progress_info">Chapter %1$d, Read %2$d%%</string>
-    <string name="remote_progress_info">Chapter %1$d, Read %2$d%%</string>
+    <string name="local_progress_info">Chapter %1$d, Read %2$d%</string>
+    <string name="remote_progress_info">Chapter %1$d, Read %2$d%</string>
     <string name="footnote">Footnote</string>
     <string name="close">Close</string>
     <string name="reader_chapter_no_content">No content in this chapter</string>
@@ -214,6 +214,12 @@
     <string name="page_animation_native">Native</string>
     <string name="bookmarks_count">Bookmarks (%1$d)</string>
     <string name="toc_current_reading">Currently reading</string>
+    <string name="reader_toc_summary">%1$d chapters · %2$d% read</string>
+    <string name="reader_toc_order_asc">Ascending</string>
+    <string name="reader_toc_order_desc">Descending</string>
+    <string name="reader_toc_read_percent">%1$d% read</string>
+    <string name="reader_toc_image_count">%1$d images</string>
+    <string name="reader_toc_locate_current">Locate current chapter</string>
     <string name="toc_read_status_read">Read</string>
     <string name="toc_read_status_reading">Reading</string>
     <string name="toc_read_status_unread">Unread</string>

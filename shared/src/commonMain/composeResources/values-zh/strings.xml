@@ -198,8 +198,8 @@
     <string name="progress_conflict_message">本地与云端阅读进度不一致，请选择使用哪个进度？</string>
     <string name="use_local_progress">使用本地</string>
     <string name="use_remote_progress">使用云端</string>
-    <string name="local_progress_info">第 %1$d 章，已读 %2$d%%</string>
-    <string name="remote_progress_info">第 %1$d 章，已读 %2$d%%</string>
+    <string name="local_progress_info">第 %1$d 章，已读 %2$d%</string>
+    <string name="remote_progress_info">第 %1$d 章，已读 %2$d%</string>
     <string name="footnote">注释</string>
     <string name="close">关闭</string>
     <string name="reader_chapter_no_content">本章暂无内容</string>
@@ -214,6 +214,12 @@
     <string name="page_animation_native">原生</string>
     <string name="bookmarks_count">书签（%1$d）</string>
     <string name="toc_current_reading">正在阅读</string>
+    <string name="reader_toc_summary">共 %1$d 章 · 已读 %2$d%</string>
+    <string name="reader_toc_order_asc">正序</string>
+    <string name="reader_toc_order_desc">倒序</string>
+    <string name="reader_toc_read_percent">读到%1$d%</string>
+    <string name="reader_toc_image_count">%1$d 张图</string>
+    <string name="reader_toc_locate_current">定位当前章节</string>
     <string name="toc_read_status_read">已读</string>
     <string name="toc_read_status_reading">阅读中</string>
     <string name="toc_read_status_unread">未读</string>

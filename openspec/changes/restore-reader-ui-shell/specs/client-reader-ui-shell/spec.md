@@ -19,6 +19,13 @@ The client SHALL provide reader chrome for navigation, current reading context, 
 - **WHEN** the user taps the configured menu activation area
 - **THEN** the reader SHALL show or hide the reader menu shell.
 
+#### Scenario: Reader table of contents is presented
+- **WHEN** the user opens the reader table of contents surface
+- **THEN** the reader SHALL show chapter count, current reading progress, and a reversible sort control
+- **AND** it SHALL omit book header, search, tab labels, compact display controls, and extra current-chapter marker affordances from the TOC surface
+- **AND** it SHALL list chapters with compact title text, word-count and image-count metadata, read status, read progress when available, and a clear current-chapter highlight.
+- **AND** it SHALL provide a floating icon control that scrolls the TOC list to the current chapter.
+
 ### Requirement: Reader screen communicates loading and failure states
 The client SHALL show explicit reader loading and failure states instead of leaving the screen blank.
 

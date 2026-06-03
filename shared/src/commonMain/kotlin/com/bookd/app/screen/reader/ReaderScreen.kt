@@ -213,6 +213,8 @@ fun ReaderScreen(
         ReaderTocSheet(
             tocItems = state.manifest?.toc.orEmpty(),
             currentChapterIndex = state.currentChapterIndex,
+            progressPercent = state.progressPercent,
+            totalChapters = state.totalChapters,
             onDismiss = { isTocVisible = false },
         )
     }
