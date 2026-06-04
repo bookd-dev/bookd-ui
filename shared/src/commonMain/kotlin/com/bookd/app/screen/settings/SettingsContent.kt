@@ -33,6 +33,7 @@ import app.composeapp.generated.resources.*
 import com.bookd.app.AppBuildConfig
 import com.bookd.app.data.vm.SettingsIntent
 import com.bookd.app.data.vm.SettingsState
+import com.bookd.app.screen.AppShellNoWindowInsets
 import com.bookd.app.screen.settings.component.SettingItem
 import com.bookd.app.ui.AppPreviewContent
 import com.bookd.app.ui.AppVerticalZHPreview
@@ -55,9 +56,11 @@ fun SettingsContent(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.settings)) },
+                windowInsets = AppShellNoWindowInsets,
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = AppShellNoWindowInsets,
         modifier = modifier,
     ) { padding ->
         Column(

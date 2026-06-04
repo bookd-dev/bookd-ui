@@ -1,5 +1,6 @@
 package com.bookd.app.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
@@ -85,14 +86,33 @@ fun MainScreen(
     val navigator = LocalNavigator.current
     val topLevelBackStack = remember { TopLevelBackStack(fromRoute(route)) }
 
+    val colorScheme = MaterialTheme.colorScheme
     val itemColors = NavigationSuiteDefaults.itemColors(
-        navigationBarItemColors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent),
-        navigationRailItemColors = NavigationRailItemDefaults.colors(indicatorColor = Color.Transparent),
-        navigationDrawerItemColors = NavigationDrawerItemDefaults.colors(selectedContainerColor = Color.Transparent)
+        navigationBarItemColors = NavigationBarItemDefaults.colors(
+            selectedIconColor = colorScheme.onSurface,
+            selectedTextColor = colorScheme.onSurface,
+            unselectedIconColor = colorScheme.outline,
+            unselectedTextColor = colorScheme.outline,
+            indicatorColor = Color.Transparent
+        ),
+        navigationRailItemColors = NavigationRailItemDefaults.colors(
+            selectedIconColor = colorScheme.onSurface,
+            selectedTextColor = colorScheme.onSurface,
+            unselectedIconColor = colorScheme.outline,
+            unselectedTextColor = colorScheme.outline,
+            indicatorColor = Color.Transparent
+        ),
+        navigationDrawerItemColors = NavigationDrawerItemDefaults.colors(
+            selectedIconColor = colorScheme.onSurface,
+            selectedTextColor = colorScheme.onSurface,
+            unselectedIconColor = colorScheme.outline,
+            unselectedTextColor = colorScheme.outline,
+            selectedContainerColor = Color.Transparent
+        )
     )
 
     NavigationSuiteScaffold(
-        modifier = Modifier.consumeWindowInsets(WindowInsets.navigationBars),
+        modifier = Modifier.appShellOuterSafeAreaPadding(),
         navigationSuiteItems = {
             TOP_LEVEL_ROUTES.forEach { topLevelRoute ->
                 val isSelected = topLevelRoute == topLevelBackStack.topLevelKey
@@ -132,8 +152,8 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .consumeWindowInsets(WindowInsets.statusBars),
+                .background(MaterialTheme.colorScheme.background)
+                .appShellContentSafeAreaPadding(),
         ) {
             NavDisplay(
                 backStack = topLevelBackStack.backStack,

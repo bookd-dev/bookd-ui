@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import coil3.compose.AsyncImagePainter
 import com.bookd.app.basic.reader.controller.ReaderStyleController
+import com.bookd.app.basic.reader.controller.styles.ReaderThemeColors
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.basic.reader.data.RenderCommand
@@ -19,8 +20,9 @@ class ReaderEngine(
     private val density: Density,
     private val constraints: Constraints, // 屏幕实际宽高
     private val settings: ReaderSettings,
+    private val colors: ReaderThemeColors = ReaderThemeColors(),
 ){
-    val styleController: ReaderStyleController = ReaderStyleController(settings)
+    val styleController: ReaderStyleController = ReaderStyleController(settings, colors)
 
     // 计算内容区域的有效宽高
     private val contentWidth: Int = styleController.sizeStyles.getContentWidth(constraints.maxWidth, density)

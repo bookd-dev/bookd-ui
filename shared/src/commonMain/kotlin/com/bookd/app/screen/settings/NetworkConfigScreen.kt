@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,7 +25,6 @@ import com.bookd.app.data.vm.AppViewModel
 import com.bookd.app.screen.rememberScreenContext
 import com.bookd.app.ui.AppVerticalZHPreview
 import com.bookd.app.ui.theme.AppTheme
-import com.bookd.app.ui.theme.Gray500
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
@@ -150,7 +148,7 @@ private fun NetworkConfigContent(
             Text(
                 text = stringResource(Res.string.test),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = Gray500
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Column(
@@ -246,7 +244,7 @@ private fun NetworkConfigContent(
 private fun NetworkConfigPreview() {
     AppTheme {
         Box(
-            modifier = Modifier.fillMaxSize().background(color = Color.Gray),
+            modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
             NetworkConfigContent(

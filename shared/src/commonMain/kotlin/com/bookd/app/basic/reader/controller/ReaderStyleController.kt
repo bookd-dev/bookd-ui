@@ -9,13 +9,15 @@ import com.bookd.app.basic.reader.controller.styles.ReaderParagraphStyles
 import com.bookd.app.basic.reader.controller.styles.ReaderColorStyles
 import com.bookd.app.basic.reader.controller.styles.ReaderSizeStyles
 import com.bookd.app.basic.reader.controller.styles.ReaderTextStyles
+import com.bookd.app.basic.reader.controller.styles.ReaderThemeColors
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.data.model.TextSpan
 import com.bookd.app.data.model.TextStyle as BookTextStyle
 
 
 class ReaderStyleController(
-    settings: ReaderSettings
+    settings: ReaderSettings,
+    colors: ReaderThemeColors = ReaderThemeColors(),
 ) {
 
     /**
@@ -26,7 +28,7 @@ class ReaderStyleController(
     /**
      * 阅读器所需的textStyle集合
      */
-    val textStyles: ReaderTextStyles = ReaderTextStyles(settings)
+    val textStyles: ReaderTextStyles = ReaderTextStyles(settings, colors)
 
     /**
      * 阅读器所需的spacing/size集合
@@ -38,7 +40,7 @@ class ReaderStyleController(
      */
     val paragraphStyles: ReaderParagraphStyles = ReaderParagraphStyles(settings)
 
-    val colorStyles: ReaderColorStyles = ReaderColorStyles()
+    val colorStyles: ReaderColorStyles = ReaderColorStyles(colors)
 
     /**
      * 构建span样式文本
@@ -75,6 +77,7 @@ class ReaderStyleController(
         return SpanStyle(
             fontSize = style.fontSize,
             letterSpacing = style.letterSpacing,
+            color = style.color,
             fontWeight = if (isBold) FontWeight.Bold else style.fontWeight,
             fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
             fontFamily = if (isCode) FontFamily.Monospace else null,

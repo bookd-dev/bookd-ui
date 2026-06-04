@@ -2,7 +2,7 @@ package com.bookd.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 黑白简洁主题色板
+// 简洁中性色板
 
 // 主色调 - 纯黑白
 val Black = Color(0xFF000000)
@@ -67,48 +67,48 @@ val LightErrorContainer = Color(0xFFFCD8DF)
 val LightOnErrorContainer = Color(0xFF8C0018)
 
 // Dark Theme Colors
-val DarkPrimary = White
-val DarkOnPrimary = Black
-val DarkPrimaryContainer = Gray800
-val DarkOnPrimaryContainer = White
+val DarkPrimary = Color(0xFFF4F6F8)
+val DarkOnPrimary = Color(0xFF111315)
+val DarkPrimaryContainer = Color(0xFF30353B)
+val DarkOnPrimaryContainer = Color(0xFFF4F6F8)
 
-val DarkSecondary = Gray300
-val DarkOnSecondary = Black
-val DarkSecondaryContainer = Gray700
-val DarkOnSecondaryContainer = Gray100
+val DarkSecondary = Color(0xFFE0E3E6)
+val DarkOnSecondary = Color(0xFF15181B)
+val DarkSecondaryContainer = Color(0xFF343A40)
+val DarkOnSecondaryContainer = Color(0xFFF1F3F5)
 
-val DarkTertiary = Gray400
-val DarkOnTertiary = Black
-val DarkTertiaryContainer = Gray800
-val DarkOnTertiaryContainer = Gray200
+val DarkTertiary = Color(0xFFD5DAE0)
+val DarkOnTertiary = Color(0xFF15181B)
+val DarkTertiaryContainer = Color(0xFF2D343A)
+val DarkOnTertiaryContainer = Color(0xFFE9EDF1)
 
-val DarkBackground = Black
-val DarkOnBackground = White
-val DarkSurface = Gray900
-val DarkOnSurface = White
-val DarkSurfaceVariant = Gray800
-val DarkOnSurfaceVariant = Gray300
+val DarkBackground = Color(0xFF111315)
+val DarkOnBackground = Color(0xFFF4F6F8)
+val DarkSurface = Color(0xFF111315)
+val DarkOnSurface = Color(0xFFF4F6F8)
+val DarkSurfaceVariant = Color(0xFF252A2E)
+val DarkOnSurfaceVariant = Color(0xFFE1E5EA)
 
-val DarkOutline = Gray600
-val DarkOutlineVariant = Gray700
+val DarkOutline = Color(0xFF89919A)
+val DarkOutlineVariant = Color(0xFF555D66)
 
-val DarkSurfaceTint = White
-val DarkInverseSurface = Gray100
-val DarkInverseOnSurface = Black
-val DarkInversePrimary = Black
+val DarkSurfaceTint = DarkPrimary
+val DarkInverseSurface = Color(0xFFE7EAED)
+val DarkInverseOnSurface = Color(0xFF111315)
+val DarkInversePrimary = Color(0xFF111315)
 val DarkScrim = Black
 
 // Surface Container 系列 - 用于不同层级的容器
-val DarkSurfaceDim = Color(0xFF0E0E0E)
-val DarkSurfaceBright = Gray700
-val DarkSurfaceContainerLowest = Black
-val DarkSurfaceContainerLow = Color(0xFF1A1A1A)
-val DarkSurfaceContainer = Gray900
-val DarkSurfaceContainerHigh = Gray800
-val DarkSurfaceContainerHighest = Gray700
+val DarkSurfaceDim = Color(0xFF0F1113)
+val DarkSurfaceBright = Color(0xFF30363D)
+val DarkSurfaceContainerLowest = Color(0xFF111315)
+val DarkSurfaceContainerLow = Color(0xFF171A1D)
+val DarkSurfaceContainer = Color(0xFF1D2125)
+val DarkSurfaceContainerHigh = Color(0xFF242930)
+val DarkSurfaceContainerHighest = Color(0xFF2C3238)
 
 val DarkError = Color(0xFFCF6679)
-val DarkOnError = Black
+val DarkOnError = Color(0xFF111315)
 val DarkErrorContainer = Color(0xFF8C0018)
 val DarkOnErrorContainer = Color(0xFFFCD8DF)
 

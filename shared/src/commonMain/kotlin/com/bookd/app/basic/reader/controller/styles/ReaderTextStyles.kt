@@ -6,11 +6,13 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.sp
 import com.bookd.app.data.model.ReaderSettings
 
-class ReaderTextStyles(private val settings: ReaderSettings) {
+class ReaderTextStyles(
+    private val settings: ReaderSettings,
+    private val colors: ReaderThemeColors = ReaderThemeColors(),
+) {
 
     // 正文文本大小, 影响全局的测量
     val bodyTextStyle: TextStyle = TextStyle(
@@ -20,6 +22,7 @@ class ReaderTextStyles(private val settings: ReaderSettings) {
         lineHeight = (settings.fontSize * settings.lineHeight).sp,
         letterSpacing = settings.letterSpacing.sp,
         textAlign = settings.getTextAlign(),
+        color = colors.content,
         // 优化行高对齐，防止文字切头去尾
         lineHeightStyle = LineHeightStyle(
             alignment = LineHeightStyle.Alignment.Center,
@@ -82,4 +85,3 @@ class ReaderTextStyles(private val settings: ReaderSettings) {
         )
     }
 }
-

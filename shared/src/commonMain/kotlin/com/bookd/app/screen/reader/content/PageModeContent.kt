@@ -1,5 +1,6 @@
 package com.bookd.app.screen.reader.content
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -25,6 +27,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import com.bookd.app.basic.extension.logD
 import com.bookd.app.basic.reader.ReaderEngine
+import com.bookd.app.basic.reader.controller.styles.ReaderThemeColors
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
@@ -69,6 +72,24 @@ fun PageModeContent(
     val density = LocalDensity.current
     val densityValue = density.density
     val coroutineScope = rememberCoroutineScope()
+    val colorScheme = MaterialTheme.colorScheme
+    val readerThemeColors = remember(
+        colorScheme.background,
+        colorScheme.onBackground,
+        colorScheme.onSurfaceVariant,
+        colorScheme.surfaceVariant,
+        colorScheme.outline,
+        colorScheme.outlineVariant,
+    ) {
+        ReaderThemeColors(
+            background = colorScheme.background,
+            content = colorScheme.onBackground,
+            secondaryContent = colorScheme.onSurfaceVariant,
+            surfaceVariant = colorScheme.surfaceVariant,
+            outline = colorScheme.outline,
+            outlineVariant = colorScheme.outlineVariant,
+        )
+    }
 
     val adjacentChaptersState by rememberUpdatedState(adjacentChapters)
     val orderedChapterIndices: List<Int> by remember {
@@ -90,14 +111,15 @@ fun PageModeContent(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize().background(readerThemeColors.background)) {
         if (!constraints.isZero) {
-            val engine = remember(textMeasurer, settings, constraints, densityValue) {
+            val engine = remember(textMeasurer, settings, constraints, densityValue, readerThemeColors) {
                 ReaderEngine(
                     textMeasurer,
                     density,
                     Constraints.fixed(constraints.maxWidth, constraints.maxHeight),
-                    settings
+                    settings,
+                    readerThemeColors,
                 )
             }
             var chapterAnchors by remember(engine) {

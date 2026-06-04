@@ -1,11 +1,13 @@
 package com.bookd.app.screen.reader.content
 
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -14,6 +16,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import com.bookd.app.basic.extension.logD
 import com.bookd.app.basic.reader.ReaderEngine
+import com.bookd.app.basic.reader.controller.styles.ReaderThemeColors
 import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.extension.getCommandHeight
@@ -65,6 +68,24 @@ fun ScrollModeContent(
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val densityValue = density.density
+    val colorScheme = MaterialTheme.colorScheme
+    val readerThemeColors = remember(
+        colorScheme.background,
+        colorScheme.onBackground,
+        colorScheme.onSurfaceVariant,
+        colorScheme.surfaceVariant,
+        colorScheme.outline,
+        colorScheme.outlineVariant,
+    ) {
+        ReaderThemeColors(
+            background = colorScheme.background,
+            content = colorScheme.onBackground,
+            secondaryContent = colorScheme.onSurfaceVariant,
+            surfaceVariant = colorScheme.surfaceVariant,
+            outline = colorScheme.outline,
+            outlineVariant = colorScheme.outlineVariant,
+        )
+    }
 
     // [日志] 入参快照：收到了哪些章节、各章 elements 数量
     logD(tag = "Reader") {
@@ -117,19 +138,20 @@ fun ScrollModeContent(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize().background(readerThemeColors.background)) {
         if (!constraints.isZero) {
             // [日志] viewport 尺寸确认
             logD(tag = "Reader") {
                 "[ScrollMode] viewport ${constraints.maxWidth}x${constraints.maxHeight} density=$densityValue"
             }
             // 三章共用一个 engine（只依赖 settings / constraints / density，与章节内容无关）
-            val engine = remember(textMeasurer, settings, constraints, densityValue) {
+            val engine = remember(textMeasurer, settings, constraints, densityValue, readerThemeColors) {
                 ReaderEngine(
                     textMeasurer,
                     density,
                     Constraints.fixed(constraints.maxWidth, constraints.maxHeight),
-                    settings
+                    settings,
+                    readerThemeColors,
                 )
             }
 
