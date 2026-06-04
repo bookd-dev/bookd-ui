@@ -1,7 +1,7 @@
 # client-booksource-refresh-actions Specification
 
 ## Purpose
-TBD - created by archiving change add-client-booksource-refresh-actions. Update Purpose after archive.
+Define client book source refresh and search actions, including direct refresh entry points and refresh-all behavior.
 ## Requirements
 ### Requirement: Book source header exposes direct refresh and search actions
 The client SHALL expose refresh and search as direct book source header actions rather than requiring a menu interaction for search or refresh.
@@ -26,4 +26,3 @@ The client SHALL refresh the source list and locally cached first-page book data
 #### Scenario: Refresh is already active
 - **WHEN** a source or book load operation is already active
 - **THEN** the client SHALL prevent starting another all-source refresh operation.
-
