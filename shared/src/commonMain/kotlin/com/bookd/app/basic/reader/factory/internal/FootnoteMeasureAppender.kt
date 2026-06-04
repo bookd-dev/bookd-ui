@@ -87,7 +87,7 @@ private fun AnnotatedString.Builder.appendFootnoteImageInlineContent(
             alternateText = "\uFFFC" // Object Replacement Character
         )
         // 文本插入后，再获取
-        val end = start + length
+        val end = length
         inlineCollector[inlineId] = ParagraphInlineContentInfo(
             id = inlineId,
             src = footnote.footnoteImage,

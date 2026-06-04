@@ -165,6 +165,33 @@ class ReaderEngineTest {
     }
 
     @Test
+    fun `calculatePageAnchors - 图片脚注占位符后紧跟换行不应崩溃`() {
+        val engine = createEngine()
+        val elements = listOf(
+            ContentElement.Paragraph(
+                spans = listOf(
+                    TextSpan(text = "带图片脚注的正文", footnoteId = "fn1"),
+                    TextSpan(text = "\n下一行正文")
+                )
+            ),
+            ContentElement.Footnote(
+                footnoteId = "fn1",
+                footnoteImage = "fn1.png",
+                width = 16,
+                height = 16,
+                contentSpans = emptyList()
+            )
+        )
+
+        val anchors = engine.calculatePageAnchors(elements)
+        val commands = engine.prepareRenderCommands(anchors.first(), anchors.getOrNull(1), elements)
+        val textCommand = commands.filterIsInstance<RenderCommand.Text>().first()
+
+        assertTrue(anchors.isNotEmpty(), "含图片脚注的段落应能正常分页")
+        assertEquals(1, textCommand.textLayout.placeholderRects.size, "图片脚注应只生成 1 个占位符")
+    }
+
+    @Test
     fun `calculatePageAnchors - 多页时锚点pageIndex从0开始连续递增`() {
         val engine = createEngine(pageHeight = 200)
         // 多个段落，确保跨多页
