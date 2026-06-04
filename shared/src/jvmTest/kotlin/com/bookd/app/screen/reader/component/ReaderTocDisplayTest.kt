@@ -83,6 +83,82 @@ class ReaderTocDisplayTest {
         assertEquals(3, items.single { it.item.index == 2 }.item.imageCount)
     }
 
+    @Test
+    fun `given top list position when calculate locator offset then returns track top`() {
+        val offset = readerTocLocatorOffsetPx(
+            firstVisibleItemIndex = 0,
+            firstVisibleItemScrollOffset = 0,
+            firstVisibleItemSize = 80,
+            visibleItemCount = 4,
+            totalItemCount = 12,
+            trackHeightPx = 400f,
+        )
+
+        assertEquals(0f, offset, 0.01f)
+    }
+
+    @Test
+    fun `given partial list position when calculate locator offset then includes row scroll offset`() {
+        val offset = readerTocLocatorOffsetPx(
+            firstVisibleItemIndex = 4,
+            firstVisibleItemScrollOffset = 40,
+            firstVisibleItemSize = 80,
+            visibleItemCount = 4,
+            totalItemCount = 12,
+            trackHeightPx = 400f,
+        )
+
+        assertEquals(225f, offset, 0.01f)
+    }
+
+    @Test
+    fun `given bottom drag position when calculate locator target then clamps to last scrollable row`() {
+        val targetIndex = readerTocLocatorTargetIndex(
+            thumbOffsetPx = 999f,
+            trackHeightPx = 400f,
+            visibleItemCount = 4,
+            totalItemCount = 12,
+        )
+
+        assertEquals(8, targetIndex)
+    }
+
+    @Test
+    fun `given list fits viewport when calculate locator target then keeps first row`() {
+        val targetIndex = readerTocLocatorTargetIndex(
+            thumbOffsetPx = 200f,
+            trackHeightPx = 400f,
+            visibleItemCount = 12,
+            totalItemCount = 12,
+        )
+
+        assertEquals(0, targetIndex)
+    }
+
+    @Test
+    fun `given fresh drag after release when calculate drag offset then starts from current thumb`() {
+        val offset = readerTocLocatorDragOffsetPx(
+            currentDragOffsetPx = null,
+            currentThumbOffsetPx = 225f,
+            dragDeltaY = 15f,
+            trackHeightPx = 400f,
+        )
+
+        assertEquals(240f, offset, 0.01f)
+    }
+
+    @Test
+    fun `given active drag beyond track when calculate drag offset then clamps to track`() {
+        val offset = readerTocLocatorDragOffsetPx(
+            currentDragOffsetPx = 390f,
+            currentThumbOffsetPx = 225f,
+            dragDeltaY = 50f,
+            trackHeightPx = 400f,
+        )
+
+        assertEquals(400f, offset, 0.01f)
+    }
+
     private fun tocTree(): List<TocItem> {
         return listOf(
             TocItem(

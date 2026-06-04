@@ -13,20 +13,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
@@ -57,39 +61,41 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.back
-import app.composeapp.generated.resources.bookmarks
 import app.composeapp.generated.resources.bookmarks_count
 import app.composeapp.generated.resources.cancel
 import app.composeapp.generated.resources.close
 import app.composeapp.generated.resources.first_line_indent
-import app.composeapp.generated.resources.footnote
 import app.composeapp.generated.resources.font_size
+import app.composeapp.generated.resources.footnote
 import app.composeapp.generated.resources.line_height
 import app.composeapp.generated.resources.load_failed
 import app.composeapp.generated.resources.loading
+import app.composeapp.generated.resources.local_progress_info
 import app.composeapp.generated.resources.margin_horizontal
 import app.composeapp.generated.resources.margin_vertical
 import app.composeapp.generated.resources.next_chapter
@@ -101,7 +107,6 @@ import app.composeapp.generated.resources.paragraph_spacing
 import app.composeapp.generated.resources.previous_chapter
 import app.composeapp.generated.resources.progress_conflict_message
 import app.composeapp.generated.resources.progress_conflict_title
-import app.composeapp.generated.resources.reader_last_read_at
 import app.composeapp.generated.resources.reader_add_bookmark_current
 import app.composeapp.generated.resources.reader_add_bookmark_paragraph
 import app.composeapp.generated.resources.reader_bookmark_paragraph_fallback
@@ -109,6 +114,7 @@ import app.composeapp.generated.resources.reader_external_link
 import app.composeapp.generated.resources.reader_external_link_fallback
 import app.composeapp.generated.resources.reader_footnote_empty
 import app.composeapp.generated.resources.reader_image_preview
+import app.composeapp.generated.resources.reader_last_read_at
 import app.composeapp.generated.resources.reader_local_progress
 import app.composeapp.generated.resources.reader_open_link
 import app.composeapp.generated.resources.reader_paragraph_actions
@@ -126,7 +132,6 @@ import app.composeapp.generated.resources.reader_toc_order_desc
 import app.composeapp.generated.resources.reader_toc_read_percent
 import app.composeapp.generated.resources.reader_toc_summary
 import app.composeapp.generated.resources.remote_progress_info
-import app.composeapp.generated.resources.local_progress_info
 import app.composeapp.generated.resources.toc
 import app.composeapp.generated.resources.toc_chapter_fallback
 import app.composeapp.generated.resources.toc_current_reading
@@ -138,8 +143,8 @@ import app.composeapp.generated.resources.toc_word_count
 import app.composeapp.generated.resources.use_local_progress
 import app.composeapp.generated.resources.use_remote_progress
 import app.composeapp.generated.resources.view_book_detail
-import com.bookd.app.basic.extension.format
 import coil3.compose.AsyncImage
+import com.bookd.app.basic.extension.format
 import com.bookd.app.data.model.BookmarkResponse
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
@@ -154,13 +159,24 @@ import com.bookd.app.screen.reader.ReaderParagraphSelection
 import com.bookd.app.screen.reader.readerDisplayText
 import com.bookd.app.screen.reader.toggleReaderImagePreviewZoom
 import com.bookd.app.screen.reader.updateReaderImagePreviewTransform
-import kotlin.time.Instant
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.time.Instant
+
+private val ReaderTocLocatorWidth = 44.dp
+private val ReaderTocLocatorThumbWidth = 34.dp
+private val ReaderTocLocatorThumbHeight = 50.dp
+
+private data class ReaderTocLocatorSnapshot(
+    val firstVisibleItemIndex: Int = 0,
+    val firstVisibleItemScrollOffset: Int = 0,
+    val firstVisibleItemSize: Int = 0,
+    val visibleItemCount: Int = 1,
+)
 
 @Composable
 fun ReaderLoadingSurface(
@@ -842,28 +858,28 @@ private fun DiscreteSettingSlider(
                     )
                 },
         ) {
-            val trackStart = thumbRadius
             val trackEnd = size.width - thumbRadius
-            val trackWidth = (trackEnd - trackStart).coerceAtLeast(1f)
+            val trackWidth = (trackEnd - thumbRadius).coerceAtLeast(1f)
             val centerY = size.height / 2f
-            val activeEnd = trackStart + trackWidth * readerSettingValueFraction(snappedValue, valueRange)
+            val activeEnd =
+                thumbRadius + trackWidth * readerSettingValueFraction(snappedValue, valueRange)
 
             drawRoundRect(
                 color = inactiveTrackColor,
-                topLeft = Offset(trackStart, centerY - trackHeight / 2f),
+                topLeft = Offset(thumbRadius, centerY - trackHeight / 2f),
                 size = Size(trackWidth, trackHeight),
                 cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f),
             )
             drawRoundRect(
                 color = activeTrackColor,
-                topLeft = Offset(trackStart, centerY - trackHeight / 2f),
-                size = Size((activeEnd - trackStart).coerceAtLeast(0f), trackHeight),
+                topLeft = Offset(thumbRadius, centerY - trackHeight / 2f),
+                size = Size((activeEnd - thumbRadius).coerceAtLeast(0f), trackHeight),
                 cornerRadius = CornerRadius(trackHeight / 2f, trackHeight / 2f),
             )
 
             readerSettingInteriorTickIndices(tickCount).forEach { index ->
                 val fraction = if (tickCount == 1) 0f else index.toFloat() / (tickCount - 1)
-                val tickX = trackStart + trackWidth * fraction
+                val tickX = thumbRadius + trackWidth * fraction
                 drawCircle(
                     color = if (tickX <= activeEnd + 0.5f) activeTickColor else inactiveTickColor,
                     radius = tickRadius,
@@ -923,10 +939,9 @@ internal fun sliderXToReaderSettingValue(
     thumbRadius: Float,
     valueRange: ClosedFloatingPointRange<Float>,
 ): Float {
-    val trackStart = thumbRadius
     val trackEnd = width - thumbRadius
-    val trackWidth = (trackEnd - trackStart).coerceAtLeast(1f)
-    val fraction = ((x - trackStart) / trackWidth).coerceIn(0f, 1f)
+    val trackWidth = (trackEnd - thumbRadius).coerceAtLeast(1f)
+    val fraction = ((x - thumbRadius) / trackWidth).coerceIn(0f, 1f)
     return valueRange.start + (valueRange.endInclusive - valueRange.start) * fraction
 }
 
@@ -1064,7 +1079,7 @@ fun ReaderTocSheet(
                             )
                         }
                     } else {
-                        Box(
+                        BoxWithConstraints(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 240.dp, max = 560.dp),
@@ -1081,14 +1096,16 @@ fun ReaderTocSheet(
                                 }
                             }
                             if (currentItemIndex >= 0) {
-                                LocateCurrentChapterButton(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            listState.animateScrollToItem(currentItemIndex)
-                                        }
+                                ReaderTocLocator(
+                                    listState = listState,
+                                    currentItemIndex = currentItemIndex,
+                                    itemCount = displayItems.size,
+                                    onLocateCurrent = {
+                                        coroutineScope.launch { listState.animateScrollToItem(currentItemIndex) }
                                     },
                                     modifier = Modifier
-                                        .align(Alignment.CenterEnd)
+                                        .align(Alignment.TopEnd)
+                                        .fillMaxHeight()
                                         .padding(end = 2.dp),
                                 )
                             }
@@ -1170,6 +1187,111 @@ private fun ReaderTocToolbar(
 }
 
 @Composable
+private fun ReaderTocLocator(
+    listState: LazyListState,
+    currentItemIndex: Int,
+    itemCount: Int,
+    onLocateCurrent: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+    var dragThumbOffsetPx by remember { mutableStateOf<Float?>(null) }
+    var lastDragTargetIndex by remember(itemCount) { mutableStateOf(-1) }
+    var locatorSnapshot by remember { mutableStateOf(ReaderTocLocatorSnapshot()) }
+
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            ReaderTocLocatorSnapshot(
+                firstVisibleItemIndex = listState.firstVisibleItemIndex,
+                firstVisibleItemScrollOffset = listState.firstVisibleItemScrollOffset,
+                firstVisibleItemSize = visibleItems.firstOrNull()?.size ?: 0,
+                visibleItemCount = visibleItems.size.coerceAtLeast(1),
+            )
+        }.collect { snapshot ->
+            locatorSnapshot = snapshot
+        }
+    }
+
+    BoxWithConstraints(
+        modifier = modifier.width(ReaderTocLocatorWidth),
+        contentAlignment = Alignment.TopEnd,
+    ) {
+        val thumbHeightPx = with(density) { ReaderTocLocatorThumbHeight.toPx() }
+        val trackHeightPx = (constraints.maxHeight.toFloat() - thumbHeightPx).coerceAtLeast(0f)
+        val listThumbOffsetPx = readerTocLocatorOffsetPx(
+            firstVisibleItemIndex = locatorSnapshot.firstVisibleItemIndex,
+            firstVisibleItemScrollOffset = locatorSnapshot.firstVisibleItemScrollOffset,
+            firstVisibleItemSize = locatorSnapshot.firstVisibleItemSize,
+            visibleItemCount = locatorSnapshot.visibleItemCount,
+            totalItemCount = itemCount,
+            trackHeightPx = trackHeightPx,
+        )
+        val thumbOffsetPx = dragThumbOffsetPx ?: listThumbOffsetPx
+        val currentThumbOffsetPx by rememberUpdatedState(thumbOffsetPx)
+        val thumbOffsetDp = with(density) { thumbOffsetPx.toDp() }
+
+        fun scrollToThumbOffset(thumbOffset: Float) {
+            val targetIndex = readerTocLocatorTargetIndex(
+                thumbOffsetPx = thumbOffset,
+                trackHeightPx = trackHeightPx,
+                visibleItemCount = locatorSnapshot.visibleItemCount,
+                totalItemCount = itemCount,
+            )
+            if (targetIndex != lastDragTargetIndex) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                lastDragTargetIndex = targetIndex
+                coroutineScope.launch { listState.scrollToItem(targetIndex) }
+            }
+        }
+
+        LocateCurrentChapterButton(
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onLocateCurrent()
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(y = thumbOffsetDp)
+                .pointerInput(itemCount, locatorSnapshot.visibleItemCount, trackHeightPx, currentItemIndex) {
+                    detectDragGestures(
+                        onDragStart = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            dragThumbOffsetPx = currentThumbOffsetPx
+                            lastDragTargetIndex = readerTocLocatorTargetIndex(
+                                thumbOffsetPx = currentThumbOffsetPx,
+                                trackHeightPx = trackHeightPx,
+                                visibleItemCount = locatorSnapshot.visibleItemCount,
+                                totalItemCount = itemCount,
+                            )
+                        },
+                        onDragEnd = {
+                            dragThumbOffsetPx = null
+                            lastDragTargetIndex = -1
+                        },
+                        onDragCancel = {
+                            dragThumbOffsetPx = null
+                            lastDragTargetIndex = -1
+                        },
+                        onDrag = { _, dragAmount ->
+                            val nextOffset = readerTocLocatorDragOffsetPx(
+                                currentDragOffsetPx = dragThumbOffsetPx,
+                                currentThumbOffsetPx = currentThumbOffsetPx,
+                                dragDeltaY = dragAmount.y,
+                                trackHeightPx = trackHeightPx,
+                            )
+                            dragThumbOffsetPx = nextOffset
+                            scrollToThumbOffset(nextOffset)
+                        },
+                    )
+                },
+        )
+    }
+}
+
+@Composable
 private fun LocateCurrentChapterButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1179,8 +1301,7 @@ private fun LocateCurrentChapterButton(
     val strokeWidth = with(LocalDensity.current) { 1.5.dp.toPx() }
     Surface(
         modifier = modifier
-            .width(34.dp)
-            .height(50.dp)
+            .size(width = ReaderTocLocatorThumbWidth, height = ReaderTocLocatorThumbHeight)
             .clip(RoundedCornerShape(18.dp))
             .semantics { this.contentDescription = contentDescription }
             .clickable(onClick = onClick),
@@ -1658,6 +1779,65 @@ internal fun buildReaderTocDisplayItems(
 
 internal fun findReaderTocCurrentIndex(displayItems: List<ReaderTocDisplayItem>): Int {
     return displayItems.indexOfFirst { it.selected }
+}
+
+internal fun readerTocLocatorOffsetPx(
+    firstVisibleItemIndex: Int,
+    firstVisibleItemScrollOffset: Int,
+    firstVisibleItemSize: Int,
+    visibleItemCount: Int,
+    totalItemCount: Int,
+    trackHeightPx: Float,
+): Float {
+    val maxFirstVisibleIndex = readerTocMaxFirstVisibleIndex(
+        totalItemCount = totalItemCount,
+        visibleItemCount = visibleItemCount,
+    )
+    if (maxFirstVisibleIndex == 0 || trackHeightPx <= 0f) return 0f
+
+    val itemOffset = if (firstVisibleItemSize > 0) {
+        firstVisibleItemScrollOffset.toFloat() / firstVisibleItemSize.toFloat()
+    } else {
+        0f
+    }
+    val scrollPosition = (firstVisibleItemIndex + itemOffset)
+        .coerceIn(0f, maxFirstVisibleIndex.toFloat())
+
+    return trackHeightPx * (scrollPosition / maxFirstVisibleIndex.toFloat())
+}
+
+internal fun readerTocLocatorTargetIndex(
+    thumbOffsetPx: Float,
+    trackHeightPx: Float,
+    visibleItemCount: Int,
+    totalItemCount: Int,
+): Int {
+    val maxFirstVisibleIndex = readerTocMaxFirstVisibleIndex(
+        totalItemCount = totalItemCount,
+        visibleItemCount = visibleItemCount,
+    )
+    if (maxFirstVisibleIndex == 0 || trackHeightPx <= 0f) return 0
+
+    val progress = (thumbOffsetPx / trackHeightPx).coerceIn(0f, 1f)
+    return (progress * maxFirstVisibleIndex).roundToInt()
+        .coerceIn(0, maxFirstVisibleIndex)
+}
+
+internal fun readerTocLocatorDragOffsetPx(
+    currentDragOffsetPx: Float?,
+    currentThumbOffsetPx: Float,
+    dragDeltaY: Float,
+    trackHeightPx: Float,
+): Float {
+    return ((currentDragOffsetPx ?: currentThumbOffsetPx) + dragDeltaY)
+        .coerceIn(0f, trackHeightPx.coerceAtLeast(0f))
+}
+
+private fun readerTocMaxFirstVisibleIndex(
+    totalItemCount: Int,
+    visibleItemCount: Int,
+): Int {
+    return (totalItemCount - visibleItemCount.coerceAtLeast(1)).coerceAtLeast(0)
 }
 
 private fun formatTimestamp(timestamp: Long): String {

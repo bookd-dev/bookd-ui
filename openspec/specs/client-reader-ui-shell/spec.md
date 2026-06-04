@@ -29,6 +29,14 @@ The client SHALL provide reader chrome for navigation, current reading context, 
 - **AND** it SHALL list chapters with compact title text, word-count and image-count metadata, read status, read progress when available, and a clear current-chapter highlight.
 - **AND** it SHALL provide a floating icon control that scrolls the TOC list to the current chapter.
 
+#### Scenario: Reader table of contents locator is dragged
+- **WHEN** the reader table of contents contains enough chapters to scroll
+- **THEN** the floating current-chapter locator SHALL also behave as a draggable list progress thumb
+- **AND** its position SHALL follow the TOC list scroll position
+- **AND** dragging it SHALL scroll the TOC list proportionally without jumping back to a stale position between drags
+- **AND** tapping it SHALL still scroll the TOC list to the current chapter
+- **AND** tap, drag start, and crossed-row drag changes SHALL provide light haptic feedback on supported platforms.
+
 ### Requirement: Reader screen communicates loading and failure states
 The client SHALL show explicit reader loading and failure states instead of leaving the screen blank.
 
