@@ -6,8 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,6 +51,23 @@ import com.bookd.app.ui.theme.FormatPdf
 import com.bookd.app.ui.theme.FormatTxt
 import org.jetbrains.compose.resources.stringResource
 
+internal object BookshelfBookItemLayout {
+    val ListCoverWidth = 80.dp
+    val ListCoverHeight = 110.dp
+    val ListBottomRowHeight = 28.dp
+    val BottomRowContentGap = 4.dp
+    val ListTextBottomPadding = ListBottomRowHeight + BottomRowContentGap
+    val GridCoverWidth = 100.dp
+    val GridCoverHeight = 140.dp
+    val GridInfoWidth = 100.dp
+    val GridInfoHeight = 104.dp
+    val GridBottomRowHeight = 28.dp
+    val GridTextBottomPadding = GridBottomRowHeight + BottomRowContentGap
+    const val GridTitleMinLines = 1
+    const val GridTitleMaxLines = 2
+    val ContextMenuTouchTarget = 28.dp
+}
+
 /**
  * 书籍操作菜单类型
  */
@@ -89,68 +107,85 @@ fun BookshelfBookListItem(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
     ) {
         // 封面图片
         BookCover(
             coverUrl = book.coverPath,
             title = book.title,
-            modifier = Modifier.size(width = 80.dp, height = 110.dp)
+            modifier = Modifier.size(
+                width = BookshelfBookItemLayout.ListCoverWidth,
+                height = BookshelfBookItemLayout.ListCoverHeight
+            )
         )
         
         // 书籍信息
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = BookshelfBookItemLayout.ListCoverHeight)
         ) {
-            // 标题
-            Text(
-                text = book.title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            
-            // 阅读进度文本
-            Text(
-                text = stringResource(Res.string.reading_progress, progressPercent),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            // 作者
-            book.author?.let { author ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = BookshelfBookItemLayout.ListTextBottomPadding),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // 标题
                 Text(
-                    text = author,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = book.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // 阅读进度文本
+                Text(
+                    text = stringResource(Res.string.reading_progress, progressPercent),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+
+                // 作者
+                book.author?.let { author ->
+                    Text(
+                        text = author,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
+
             // 底部信息行：格式 + 章节数 + 三点菜单
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(BookshelfBookItemLayout.ListBottomRowHeight),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 格式标签
                 FormatTag(format = book.format)
-                
+
                 // 章节数
                 if (book.chaptersCount > 0) {
                     Text(
                         text = stringResource(Res.string.chapters_count, book.chaptersCount),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
+
+                Box(modifier = Modifier.weight(1f))
+
                 // 三点菜单（右下角）
                 BookContextMenu(
                     showMenu = showMenu,
@@ -189,61 +224,84 @@ fun BookshelfBookGridItem(
     
     Column(
         modifier = modifier
-            .width(120.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // 封面
         BookCover(
             coverUrl = book.coverPath,
             title = book.title,
-            modifier = Modifier.size(width = 100.dp, height = 140.dp)
+            modifier = Modifier.size(
+                width = BookshelfBookItemLayout.GridCoverWidth,
+                height = BookshelfBookItemLayout.GridCoverHeight
+            )
         )
-        
-        // 书名
-        Text(
-            text = book.title,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        // 阅读进度文本
-        Text(
-            text = stringResource(Res.string.reading_progress, progressPercent),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
-        // 底部行：作者 + 三点菜单
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+
+        Box(
+            modifier = Modifier
+                .width(BookshelfBookItemLayout.GridInfoWidth)
+                .height(BookshelfBookItemLayout.GridInfoHeight)
         ) {
-            // 作者
-            Text(
-                text = book.author ?: "",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            
-            // 三点菜单（右下角）
-            BookContextMenu(
-                showMenu = showMenu,
-                showMoveToBookshelf = showMoveToBookshelf,
-                onShowMenu = { showMenu = true },
-                onDismissMenu = { showMenu = false },
-                onMenuAction = { action ->
-                    showMenu = false
-                    onMenuAction(action)
-                }
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = BookshelfBookItemLayout.GridTextBottomPadding),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // 书名
+                Text(
+                    text = book.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    minLines = BookshelfBookItemLayout.GridTitleMinLines,
+                    maxLines = BookshelfBookItemLayout.GridTitleMaxLines,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 阅读进度文本
+                Text(
+                    text = stringResource(Res.string.reading_progress, progressPercent),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // 底部行：作者 + 三点菜单
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(BookshelfBookItemLayout.GridBottomRowHeight),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 作者
+                Text(
+                    text = book.author ?: "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // 三点菜单（右下角）
+                BookContextMenu(
+                    showMenu = showMenu,
+                    showMoveToBookshelf = showMoveToBookshelf,
+                    onShowMenu = { showMenu = true },
+                    onDismissMenu = { showMenu = false },
+                    onMenuAction = { action ->
+                        showMenu = false
+                        onMenuAction(action)
+                    }
+                )
+            }
         }
     }
 }
@@ -257,16 +315,20 @@ private fun BookContextMenu(
     showMoveToBookshelf: Boolean,
     onShowMenu: () -> Unit,
     onDismissMenu: () -> Unit,
-    onMenuAction: (BookMenuAction) -> Unit
+    onMenuAction: (BookMenuAction) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Box(contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .size(BookshelfBookItemLayout.ContextMenuTouchTarget)
+            .noRippleClickable { onShowMenu() },
+        contentAlignment = Alignment.Center
+    ) {
         // 三点图标
         Icon(
             imageVector = Icons.Default.MoreVert,
             contentDescription = null,
-            modifier = Modifier
-                .size(18.dp)
-                .noRippleClickable { onShowMenu() },
+            modifier = Modifier.size(18.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
