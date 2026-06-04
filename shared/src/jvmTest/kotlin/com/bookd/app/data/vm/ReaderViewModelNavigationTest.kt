@@ -103,6 +103,27 @@ class ReaderViewModelNavigationTest {
     }
 
     @Test
+    fun `given internal link target when jumpToInternalLink then emits anchor scroll request`() = runBlocking {
+        viewModel.loadBook(bookId = 1)
+        waitUntil { !viewModel.state.value.isLoading && viewModel.state.value.currentChapter != null }
+
+        val effect = async {
+            viewModel.effect
+                .filter { it is ReaderEffect.ScrollToPosition }
+                .first() as ReaderEffect.ScrollToPosition
+        }
+        delay(10)
+
+        viewModel.jumpToInternalLink(chapterIndex = 2, anchorId = "ch2-p1")
+
+        val scroll = withTimeout(3000) { effect.await() }
+        assertEquals(2, scroll.chapterIndex)
+        assertEquals("ch2-p1", scroll.anchorId)
+        assertEquals(0, scroll.paragraphIndex)
+        assertEquals(0, scroll.offset)
+    }
+
+    @Test
     fun `given current anchor position when addBookmarkAtCurrentPosition then appends returned bookmark`() = runBlocking {
         viewModel.loadBook(bookId = 1)
         waitUntil { !viewModel.state.value.isLoading && viewModel.state.value.currentChapter != null }

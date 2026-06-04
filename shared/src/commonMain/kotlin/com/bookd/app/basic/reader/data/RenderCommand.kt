@@ -27,6 +27,7 @@ sealed class RenderCommand {
     */
     data class Text(
         override val y: Int,
+        val elementIndex: Int,
         val textLayout: TextLayoutResult, // 已测量的文本布局
         val inlineContent: Map<String, RenderInlineContentInfo>? = null // 脚注占位符
     ) : RenderCommand()

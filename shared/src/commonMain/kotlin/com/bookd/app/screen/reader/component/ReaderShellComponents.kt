@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -62,6 +63,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,12 +76,16 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.back
 import app.composeapp.generated.resources.bookmarks
 import app.composeapp.generated.resources.bookmarks_count
 import app.composeapp.generated.resources.cancel
+import app.composeapp.generated.resources.close
 import app.composeapp.generated.resources.first_line_indent
+import app.composeapp.generated.resources.footnote
 import app.composeapp.generated.resources.font_size
 import app.composeapp.generated.resources.line_height
 import app.composeapp.generated.resources.load_failed
@@ -95,7 +103,16 @@ import app.composeapp.generated.resources.progress_conflict_message
 import app.composeapp.generated.resources.progress_conflict_title
 import app.composeapp.generated.resources.reader_last_read_at
 import app.composeapp.generated.resources.reader_add_bookmark_current
+import app.composeapp.generated.resources.reader_add_bookmark_paragraph
+import app.composeapp.generated.resources.reader_bookmark_paragraph_fallback
+import app.composeapp.generated.resources.reader_external_link
+import app.composeapp.generated.resources.reader_external_link_fallback
+import app.composeapp.generated.resources.reader_footnote_empty
+import app.composeapp.generated.resources.reader_image_preview
 import app.composeapp.generated.resources.reader_local_progress
+import app.composeapp.generated.resources.reader_open_link
+import app.composeapp.generated.resources.reader_paragraph_actions
+import app.composeapp.generated.resources.reader_paragraph_position
 import app.composeapp.generated.resources.reader_remote_progress
 import app.composeapp.generated.resources.reader_retry
 import app.composeapp.generated.resources.reader_settings
@@ -122,12 +139,21 @@ import app.composeapp.generated.resources.use_local_progress
 import app.composeapp.generated.resources.use_remote_progress
 import app.composeapp.generated.resources.view_book_detail
 import com.bookd.app.basic.extension.format
+import coil3.compose.AsyncImage
 import com.bookd.app.data.model.BookmarkResponse
+import com.bookd.app.data.model.ChapterContent
+import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.LocalReadingProgress
 import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.data.model.ReadingProgressResponse
 import com.bookd.app.data.model.TocItem
+import com.bookd.app.screen.reader.ReaderImagePreview
+import com.bookd.app.screen.reader.ReaderImagePreviewTransform
+import com.bookd.app.screen.reader.ReaderParagraphSelection
+import com.bookd.app.screen.reader.readerDisplayText
+import com.bookd.app.screen.reader.toggleReaderImagePreviewZoom
+import com.bookd.app.screen.reader.updateReaderImagePreviewTransform
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -325,6 +351,215 @@ fun ReaderStatusBar(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+fun ReaderImagePreviewDialog(
+    preview: ReaderImagePreview,
+    onDismiss: () -> Unit,
+) {
+    var transform by remember(preview.url) { mutableStateOf(ReaderImagePreviewTransform()) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .pointerInput(preview.url) {
+                    detectTapGestures(
+                        onTap = { onDismiss() },
+                        onDoubleTap = {
+                            transform = toggleReaderImagePreviewZoom(transform)
+                        },
+                    )
+                }
+                .pointerInput(preview.url) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        transform = updateReaderImagePreviewTransform(
+                            current = transform,
+                            zoomChange = zoom,
+                            panX = pan.x,
+                            panY = pan.y,
+                        )
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            AsyncImage(
+                model = preview.url,
+                contentDescription = preview.alt ?: stringResource(Res.string.reader_image_preview),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = transform.scale
+                        scaleY = transform.scale
+                        translationX = transform.offsetX
+                        translationY = transform.offsetY
+                    },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReaderFootnoteSheet(
+    footnote: ContentElement.Footnote,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.footnote),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            footnote.footnoteImage?.takeIf { it.isNotBlank() }?.let { imageUrl ->
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = stringResource(Res.string.footnote),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 360.dp),
+                )
+            }
+            val text = footnote.readerDisplayText()
+            Text(
+                text = text.ifBlank { stringResource(Res.string.reader_footnote_empty) },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text(stringResource(Res.string.close))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReaderExternalLinkFallbackSheet(
+    url: String,
+    onDismiss: () -> Unit,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.reader_external_link),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(Res.string.reader_external_link_fallback),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Text(
+                    text = url,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(12.dp),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(Res.string.close))
+                }
+                TextButton(onClick = onOpen) {
+                    Text(stringResource(Res.string.reader_open_link))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReaderParagraphActionsSheet(
+    selection: ReaderParagraphSelection,
+    onDismiss: () -> Unit,
+    onAddBookmark: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.reader_paragraph_actions),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(
+                    Res.string.reader_paragraph_position,
+                    selection.chapterIndex + 1,
+                    selection.paragraphIndex + 1,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onAddBookmark, modifier = Modifier.align(Alignment.End)) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(stringResource(Res.string.reader_add_bookmark_paragraph))
+            }
         }
     }
 }
@@ -746,6 +981,7 @@ fun ReaderTocSheet(
     progressPercent: Int,
     totalChapters: Int,
     bookmarks: List<BookmarkResponse>,
+    chapterContents: Map<Int, ChapterContent> = emptyMap(),
     onDismiss: () -> Unit,
     onChapterClick: (Int) -> Unit,
     onBookmarkClick: (BookmarkResponse) -> Unit,
@@ -862,6 +1098,8 @@ fun ReaderTocSheet(
                 ReaderTocSheetTab.Bookmarks -> {
                     ReaderBookmarkList(
                         bookmarks = bookmarks,
+                        tocItems = tocItems,
+                        chapterContents = chapterContents,
                         onAddBookmark = onAddBookmark,
                         onBookmarkClick = onBookmarkClick,
                         onDeleteBookmark = onDeleteBookmark,
@@ -1101,11 +1339,23 @@ private fun ReaderTocChapterRow(
 @Composable
 private fun ReaderBookmarkList(
     bookmarks: List<BookmarkResponse>,
+    tocItems: List<TocItem>,
+    chapterContents: Map<Int, ChapterContent>,
     onAddBookmark: () -> Unit,
     onBookmarkClick: (BookmarkResponse) -> Unit,
     onDeleteBookmark: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val displayItems = remember(bookmarks, tocItems, chapterContents) {
+        bookmarks.map { bookmark ->
+            buildReaderBookmarkDisplayItem(
+                bookmark = bookmark,
+                tocItems = tocItems,
+                chapterContents = chapterContents,
+            )
+        }
+    }
+
     Column(modifier = modifier) {
         TextButton(onClick = onAddBookmark, modifier = Modifier.align(Alignment.End)) {
             Icon(Icons.Default.Add, contentDescription = null)
@@ -1125,11 +1375,11 @@ private fun ReaderBookmarkList(
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(bookmarks, key = { it.id }) { bookmark ->
+                items(displayItems, key = { it.bookmark.id }) { displayItem ->
                     ReaderBookmarkRow(
-                        bookmark = bookmark,
-                        onClick = { onBookmarkClick(bookmark) },
-                        onDelete = { onDeleteBookmark(bookmark.id) },
+                        displayItem = displayItem,
+                        onClick = { onBookmarkClick(displayItem.bookmark) },
+                        onDelete = { onDeleteBookmark(displayItem.bookmark.id) },
                     )
                 }
             }
@@ -1139,12 +1389,21 @@ private fun ReaderBookmarkList(
 
 @Composable
 private fun ReaderBookmarkRow(
-    bookmark: BookmarkResponse,
+    displayItem: ReaderBookmarkDisplayItem,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val title = bookmark.title
+    val bookmark = displayItem.bookmark
+    val chapterTitle = displayItem.chapterTitle
         ?: stringResource(Res.string.toc_chapter_fallback, bookmark.chapterIndex + 1)
+    val subtitle = displayItem.paragraphText
+        ?: bookmark.note?.takeIf { it.isNotBlank() }
+        ?: if (displayItem.isParagraphBookmark) {
+            stringResource(Res.string.reader_bookmark_paragraph_fallback, (bookmark.paragraphIndex ?: 0) + 1)
+        } else {
+            null
+        }
+    val createdAtText = formatReaderBookmarkTimestamp(bookmark.createdAt)
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -1154,21 +1413,39 @@ private fun ReaderBookmarkRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = bookmark.note?.takeIf { it.isNotBlank() } ?: bookmark.createdAt,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = chapterTitle,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (createdAtText.isNotBlank()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = createdAtText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (!subtitle.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(
@@ -1179,6 +1456,78 @@ private fun ReaderBookmarkRow(
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
     }
+}
+
+internal data class ReaderBookmarkDisplayItem(
+    val bookmark: BookmarkResponse,
+    val chapterTitle: String?,
+    val paragraphText: String?,
+    val isParagraphBookmark: Boolean,
+)
+
+internal fun buildReaderBookmarkDisplayItem(
+    bookmark: BookmarkResponse,
+    tocItems: List<TocItem>,
+    chapterContents: Map<Int, ChapterContent>,
+): ReaderBookmarkDisplayItem {
+    val chapterTitle = bookmark.title?.takeIf { it.isNotBlank() }
+        ?: findReaderTocTitle(tocItems, bookmark.chapterIndex)
+    val isParagraphBookmark = !bookmark.anchorId.isNullOrBlank() ||
+        (bookmark.paragraphIndex ?: 0) > 0 ||
+        (bookmark.scrollOffset ?: 0) > 0
+    val paragraphText = if (isParagraphBookmark) {
+        resolveReaderBookmarkParagraphText(bookmark, chapterContents[bookmark.chapterIndex])
+    } else {
+        null
+    }
+    return ReaderBookmarkDisplayItem(
+        bookmark = bookmark,
+        chapterTitle = chapterTitle,
+        paragraphText = paragraphText,
+        isParagraphBookmark = isParagraphBookmark,
+    )
+}
+
+internal fun formatReaderBookmarkTimestamp(createdAt: String): String {
+    val value = createdAt.trim()
+    if (value.isBlank()) return ""
+
+    val separator = value.indexOfFirst { it == 'T' || it == ' ' }
+    if (separator >= 10 && value.length >= separator + 6) {
+        val monthDay = value.substring(5, 10)
+        val hourMinute = value.substring(separator + 1, separator + 6)
+        return "$monthDay $hourMinute"
+    }
+
+    return value
+}
+
+private fun findReaderTocTitle(tocItems: List<TocItem>, chapterIndex: Int): String? {
+    tocItems.forEach { item ->
+        if (item.index == chapterIndex && item.title.isNotBlank()) return item.title
+        findReaderTocTitle(item.children, chapterIndex)?.let { return it }
+    }
+    return null
+}
+
+private fun resolveReaderBookmarkParagraphText(
+    bookmark: BookmarkResponse,
+    chapter: ChapterContent?,
+): String? {
+    if (chapter == null) return null
+    val elements = buildList {
+        chapter.title?.let { title -> add(ContentElement.Heading(level = 1, text = title)) }
+        addAll(chapter.elements)
+    }
+    val target = bookmark.anchorId
+        ?.let { anchorId -> elements.firstOrNull { it.anchorId == anchorId } }
+        ?: bookmark.paragraphIndex?.let { index -> elements.getOrNull(index) }
+    return (target as? ContentElement.Paragraph)
+        ?.spans
+        ?.joinToString(separator = "") { it.text }
+        ?.replace(Regex("\\s+"), " ")
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
 }
 
 @Composable

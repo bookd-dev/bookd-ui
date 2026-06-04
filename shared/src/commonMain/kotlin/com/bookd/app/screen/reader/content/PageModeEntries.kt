@@ -83,6 +83,43 @@ internal fun findFirstChapterEntryIndex(
     return entries.indexOfFirst { it.chapterIndex == chapterIndex }
 }
 
+internal data class PageModeScrollTarget(
+    val pagerIndex: Int,
+    val chapterIndex: Int,
+    val pageIndex: Int,
+    val anchorId: String?,
+    val paragraphIndex: Int,
+)
+
+internal fun resolvePageModeScrollTarget(
+    entries: List<PageModeEntry>,
+    chapterElements: Map<Int, List<ContentElement>>,
+    chapterAnchors: Map<Int, List<PageAnchor>>,
+    request: ReaderScrollRequest,
+): PageModeScrollTarget? {
+    val elements = chapterElements[request.chapterIndex] ?: return null
+    val anchors = chapterAnchors[request.chapterIndex] ?: return null
+    val resolution = resolveReaderScrollAnchor(
+        elements = elements,
+        pageAnchors = anchors,
+        anchorId = request.anchorId,
+        fallbackIndex = request.paragraphIndex,
+    )
+    val pagerIndex = findPageModeEntryIndex(
+        entries = entries,
+        chapterIndex = request.chapterIndex,
+        pageIndex = resolution.anchorIndex,
+    )
+    if (pagerIndex < 0) return null
+    return PageModeScrollTarget(
+        pagerIndex = pagerIndex,
+        chapterIndex = request.chapterIndex,
+        pageIndex = resolution.anchorIndex,
+        anchorId = resolution.anchorId,
+        paragraphIndex = resolution.targetElementIndex,
+    )
+}
+
 internal fun pageModeChapterDirection(
     fromChapterIndex: Int,
     toChapterIndex: Int

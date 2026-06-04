@@ -229,4 +229,14 @@
     <string name="toc_chapter_fallback">第 %1$d 章</string>
     <string name="toc_delete_bookmark">删除书签</string>
     <string name="reader_add_bookmark_current">添加当前书签</string>
+    <string name="reader_image_preview">图片预览</string>
+    <string name="reader_footnote_empty">暂无注释内容</string>
+    <string name="reader_external_link">外部链接</string>
+    <string name="reader_external_link_fallback">无法自动打开此链接。</string>
+    <string name="reader_open_link">打开链接</string>
+    <string name="reader_internal_link_unavailable">无法跳转到此书内链接</string>
+    <string name="reader_paragraph_actions">段落操作</string>
+    <string name="reader_paragraph_position">第 %1$d 章 · 第 %2$d 段</string>
+    <string name="reader_add_bookmark_paragraph">添加书签</string>
+    <string name="reader_bookmark_paragraph_fallback">第 %1$d 段</string>
 </resources>

@@ -35,39 +35,38 @@ class ParagraphInlineContentCollector {
     }
 
     fun getAdjustPlaceholder(text: AnnotatedString, startOffset: Int): List<AnnotatedString.Range<Placeholder>> {
-        val placeholders = inlineContentPlaceholders.values.toList()
-        if (placeholders.isEmpty()) return emptyList()
+        return getAdjustedInlineContent(text, startOffset).map { it.range }
+    }
 
-        // 【关键步骤】计算适配当前 textToMeasure 的 placeholders
-        return if (startOffset == 0) {
-            placeholders.map { it.range }
-        } else {
-            // 如果截取了字符串，需要：
-            // 1. 过滤掉不在当前截取范围内的占位符
-            // 2. 将占位符的 start/end 减去 startOffset
-            placeholders.mapNotNull { info ->
-                if (info.range.start >= startOffset && info.range.end <= text.length) {
-                    AnnotatedString.Range(
-                        item = info.range.item,
-                        start = info.range.start - startOffset, // 平移坐标
-                        end = info.range.end - startOffset      // 平移坐标
-                    )
-                } else {
-                    null // 过滤掉已经被切掉的占位符
-                }
-            }
+    fun getAllInlineContent(text: AnnotatedString, startOffset: Int): Map<String, RenderInlineContentInfo>? {
+        val placeholders = getAdjustedInlineContent(text, startOffset)
+        if (placeholders.isEmpty()) return null
+
+        return placeholders.withIndex().associate { (index, info) ->
+            info.id to RenderInlineContentInfo(
+                id = info.id,
+                placeholder = info.range.item,
+                src = info.src,
+                index = index
+            )
         }
     }
 
-    fun getAllInlineContent(): Map<String, RenderInlineContentInfo>? {
-        if (inlineContentPlaceholders.isEmpty()) return null
+    private fun getAdjustedInlineContent(
+        text: AnnotatedString,
+        startOffset: Int
+    ): List<ParagraphInlineContentInfo> {
+        val placeholders = inlineContentPlaceholders.values.toList()
+        if (placeholders.isEmpty()) return emptyList()
 
-        return inlineContentPlaceholders.mapValues { (key, value) ->
-            RenderInlineContentInfo(
-                id = key,
-                placeholder = value.range.item,
-                src = value.src,
-                index = value.index
+        return placeholders.mapNotNull { info ->
+            if (info.range.start < startOffset || info.range.end > text.length) return@mapNotNull null
+            info.copy(
+                range = AnnotatedString.Range(
+                    item = info.range.item,
+                    start = info.range.start - startOffset,
+                    end = info.range.end - startOffset
+                )
             )
         }
     }

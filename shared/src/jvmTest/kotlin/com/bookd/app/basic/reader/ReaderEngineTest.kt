@@ -12,6 +12,7 @@ import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.data.model.TextSpan
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -189,6 +190,35 @@ class ReaderEngineTest {
 
         assertTrue(anchors.isNotEmpty(), "含图片脚注的段落应能正常分页")
         assertEquals(1, textCommand.textLayout.placeholderRects.size, "图片脚注应只生成 1 个占位符")
+    }
+
+    @Test
+    fun `calculatePageAnchors - 同段重复图片脚注应生成独立占位符`() {
+        val engine = createEngine()
+        val elements = listOf(
+            ContentElement.Paragraph(
+                spans = listOf(
+                    TextSpan(text = "[1]", footnoteId = "fn1"),
+                    TextSpan(text = "正文"),
+                    TextSpan(text = "[1]", footnoteId = "fn1"),
+                )
+            ),
+            ContentElement.Footnote(
+                footnoteId = "fn1",
+                footnoteImage = "fn1.png",
+                width = 16,
+                height = 16,
+                contentSpans = emptyList()
+            )
+        )
+
+        val anchors = engine.calculatePageAnchors(elements)
+        val commands = engine.prepareRenderCommands(anchors.first(), anchors.getOrNull(1), elements)
+        val textCommand = commands.filterIsInstance<RenderCommand.Text>().first()
+
+        assertEquals(2, textCommand.textLayout.placeholderRects.size, "重复图片脚注应生成 2 个占位符")
+        assertEquals(2, textCommand.inlineContent?.size, "重复图片脚注应保留 2 个可命中 marker")
+        assertFalse(textCommand.textLayout.layoutInput.text.text.contains("[1]"), "原始脚注文本不应残留在正文")
     }
 
     @Test

@@ -30,6 +30,8 @@ import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.data.repository.ReaderRepository
+import com.bookd.app.screen.reader.ReaderParagraphSelection
+import com.bookd.app.screen.reader.resolveReaderFootnote
 import com.bookd.app.screen.reader.component.ReaderPageCanvas
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -51,11 +53,13 @@ fun PageModeContent(
     currentPageIndex: Int,
     adjacentChapters: Map<Int, ChapterContent>,
     settings: ReaderSettings,
+    scrollRequest: ReaderScrollRequest?,
     onToggleMenu: () -> Unit,
     onImageClick: (url: String, alt: String?) -> Unit,
     onFootnoteClick: (ContentElement.Footnote) -> Unit,
     onLinkClick: (url: String) -> Unit,
-    onParagraphLongClick: (paragraphIndex: Int) -> Unit,
+    onParagraphLongClick: (ReaderParagraphSelection) -> Unit,
+    onScrollRequestCompleted: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
     onPagePositionChanged: (pageIndex: Int) -> Unit,
     onPagerChapterChanged: (chapterIndex: Int, direction: Int) -> Unit,
     modifier: Modifier = Modifier
@@ -80,8 +84,7 @@ fun PageModeContent(
     val footnoteHandlers: Map<Int, (String) -> Unit> = remember(chapterElements) {
         chapterElements.mapValues { (_, elements) ->
             { footnoteId: String ->
-                val footnote = elements.filterIsInstance<ContentElement.Footnote>()
-                    .firstOrNull { it.footnoteId == footnoteId }
+                val footnote = resolveReaderFootnote(elements, footnoteId)
                 if (footnote != null) onFootnoteClick(footnote)
             }
         }
@@ -163,7 +166,8 @@ fun PageModeContent(
             val pageEntriesState by rememberUpdatedState(pageEntries)
             val currentChapterIndexState by rememberUpdatedState(currentChapterIndex)
 
-            LaunchedEffect(pageEntries, currentChapterIndex, currentPageIndex) {
+            LaunchedEffect(pageEntries, currentChapterIndex, currentPageIndex, scrollRequest) {
+                if (scrollRequest != null) return@LaunchedEffect
                 val exactTarget = findPageModeEntryIndex(
                     entries = pageEntries,
                     chapterIndex = currentChapterIndex,
@@ -207,6 +211,30 @@ fun PageModeContent(
                     onPagerChapterChanged(entry.chapterIndex, direction)
                 }
                 onPagePositionChanged(entry.pageIndex)
+            }
+
+            LaunchedEffect(scrollRequest, pageEntries, chapterElements, chapterAnchors) {
+                val request = scrollRequest ?: return@LaunchedEffect
+                val target = resolvePageModeScrollTarget(
+                    entries = pageEntries,
+                    chapterElements = chapterElements,
+                    chapterAnchors = chapterAnchors,
+                    request = request,
+                ) ?: return@LaunchedEffect
+
+                if (
+                    target.pagerIndex != pagerState.currentPage &&
+                    target.pagerIndex in 0 until pagerState.pageCount
+                ) {
+                    pagerState.scrollToPage(target.pagerIndex)
+                }
+                onPagePositionChanged(target.pageIndex)
+                onScrollRequestCompleted(
+                    target.chapterIndex,
+                    target.anchorId,
+                    target.paragraphIndex,
+                    0,
+                )
             }
 
             Box(
@@ -267,6 +295,16 @@ fun PageModeContent(
                                 onLinkClick = onLinkClick,
                                 onFootnoteClick = footnoteHandler,
                                 onImageClick = onImageClick,
+                                onParagraphLongClick = { anchorId, paragraphIndex ->
+                                    onParagraphLongClick(
+                                        ReaderParagraphSelection(
+                                            chapterIndex = entry.chapterIndex,
+                                            anchorId = anchorId,
+                                            paragraphIndex = paragraphIndex,
+                                            scrollOffset = 0,
+                                        )
+                                    )
+                                },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

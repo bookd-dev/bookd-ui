@@ -18,7 +18,7 @@ import com.bookd.app.basic.reader.controller.ReaderStyleController
 import com.bookd.app.basic.reader.data.MeasureResult
 import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.data.RenderInlineContentInfo
-import com.bookd.app.basic.reader.factory.internal.autoAppendFootnoteInlineContent
+import com.bookd.app.basic.reader.factory.internal.appendFootnoteInlineContent
 import com.bookd.app.basic.reader.factory.internal.shouldAddTopSpacing
 import com.bookd.app.data.model.ContentElement
 
@@ -126,8 +126,9 @@ class ParagraphElementFactory(
 
         return RenderCommand.Text(
             y = y,
+            elementIndex = index,
             textLayout = textLayoutResult,
-            inlineContent = inlineContentCollector.getAllInlineContent()
+            inlineContent = inlineContentCollector.getAllInlineContent(text, startOffset)
         )
     }
 
@@ -164,8 +165,13 @@ class ParagraphElementFactory(
         val painter = imagePainters[info.src]
 
         if (painter != null) {
+            val topLeft = resolveFootnoteInlineContentTopLeft(
+                commandY = command.y,
+                placeholderLeft = placeholder.left,
+                placeholderTop = placeholder.top,
+            )
             drawScope.withTransform({
-                translate(placeholder.left, placeholder.top)
+                translate(topLeft.x, topLeft.y)
             }) {
                 // 利用 Painter 绘制，它内部处理了所有的 Crossfade 和状态
                 with(painter) {
@@ -174,7 +180,6 @@ class ParagraphElementFactory(
             }
         }
     }
-
 
     private fun ContentElement.Paragraph.toAnnotatedString(
         elements: List<ContentElement>,
@@ -193,6 +198,22 @@ class ParagraphElementFactory(
                 // 这里应该遍历 element.spans 来应用局部样式（如加粗）
                 // 简单起见，这里只 append 纯文本
                 spans.forEach { span ->
+                    if (!span.footnoteId.isNullOrBlank()) {
+                        val start = length
+                        val appended = appendFootnoteInlineContent(
+                            styleController = styleController,
+                            density = density,
+                            inlineCollector = inlineContentCollector,
+                            elements = elements,
+                            span = span
+                        )
+                        val end = length
+                        if (appended && end > start) {
+                            addStringAnnotation(tag = "footnote", annotation = span.footnoteId, start = start, end = end)
+                            return@forEach
+                        }
+                    }
+
                     val start = length
                     withStyle(styleController.buildMeasureSpanStyle(span)) {
                         append(span.text)
@@ -204,17 +225,19 @@ class ParagraphElementFactory(
                     if (!span.footnoteId.isNullOrBlank()) {
                         addStringAnnotation(tag = "footnote", annotation = span.footnoteId, start = start, end = end)
                     }
-                    // 会自动判定是否要添加脚注占位
-                    autoAppendFootnoteInlineContent(
-                        styleController = styleController,
-                        density = density,
-                        inlineCollector = inlineContentCollector,
-                        elements = elements,
-                        span = span
-                    )
                 }
             }
         }
     }
 }
 
+internal fun resolveFootnoteInlineContentTopLeft(
+    commandY: Int,
+    placeholderLeft: Float,
+    placeholderTop: Float,
+): Offset {
+    return Offset(
+        x = placeholderLeft,
+        y = commandY.toFloat() + placeholderTop,
+    )
+}

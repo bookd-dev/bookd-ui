@@ -93,6 +93,115 @@ class PageModeEntriesTest {
         assertEquals(0, pageModeChapterDirection(fromChapterIndex = 5, toChapterIndex = 5))
     }
 
+    @Test
+    fun `given bookmark anchor when resolve page mode scroll target then returns containing page`() {
+        val elements = listOf(
+            ContentElement.Paragraph(spans = listOf(TextSpan("first")), anchorId = "p-0"),
+            ContentElement.Paragraph(spans = listOf(TextSpan("second")), anchorId = "p-1"),
+            ContentElement.Paragraph(spans = listOf(TextSpan("third")), anchorId = "p-2"),
+        )
+        val anchors = listOf(
+            PageAnchor(elementIndex = 0, textOffset = 0, pageIndex = 0),
+            PageAnchor(elementIndex = 2, textOffset = 0, pageIndex = 1),
+        )
+        val entries = buildPageModeEntries(
+            orderedChapterIndices = listOf(6),
+            chapterElements = mapOf(6 to elements),
+            chapterAnchors = mapOf(6 to anchors),
+        )
+
+        val target = resolvePageModeScrollTarget(
+            entries = entries,
+            chapterElements = mapOf(6 to elements),
+            chapterAnchors = mapOf(6 to anchors),
+            request = ReaderScrollRequest(
+                sequence = 1L,
+                chapterIndex = 6,
+                anchorId = "p-2",
+                paragraphIndex = 0,
+                offset = 0,
+            ),
+        )
+
+        requireNotNull(target)
+        assertEquals(1, target.pagerIndex)
+        assertEquals(1, target.pageIndex)
+        assertEquals("p-2", target.anchorId)
+        assertEquals(2, target.paragraphIndex)
+    }
+
+    @Test
+    fun `given bookmark anchor inside page when resolve page mode scroll target then preserves target paragraph`() {
+        val elements = listOf(
+            ContentElement.Paragraph(spans = listOf(TextSpan("first")), anchorId = "p-0"),
+            ContentElement.Paragraph(spans = listOf(TextSpan("second")), anchorId = "p-1"),
+            ContentElement.Paragraph(spans = listOf(TextSpan("third")), anchorId = "p-2"),
+        )
+        val anchors = listOf(
+            PageAnchor(elementIndex = 0, textOffset = 0, pageIndex = 0),
+            PageAnchor(elementIndex = 2, textOffset = 0, pageIndex = 1),
+        )
+        val entries = buildPageModeEntries(
+            orderedChapterIndices = listOf(6),
+            chapterElements = mapOf(6 to elements),
+            chapterAnchors = mapOf(6 to anchors),
+        )
+
+        val target = resolvePageModeScrollTarget(
+            entries = entries,
+            chapterElements = mapOf(6 to elements),
+            chapterAnchors = mapOf(6 to anchors),
+            request = ReaderScrollRequest(
+                sequence = 1L,
+                chapterIndex = 6,
+                anchorId = "p-1",
+                paragraphIndex = 0,
+                offset = 0,
+            ),
+        )
+
+        requireNotNull(target)
+        assertEquals(0, target.pagerIndex)
+        assertEquals(0, target.pageIndex)
+        assertEquals("p-1", target.anchorId)
+        assertEquals(1, target.paragraphIndex)
+    }
+
+    @Test
+    fun `given missing bookmark anchor when resolve page mode scroll target then uses fallback page`() {
+        val elements = listOf(
+            ContentElement.Paragraph(spans = listOf(TextSpan("first")), anchorId = "p-0"),
+            ContentElement.Paragraph(spans = listOf(TextSpan("second")), anchorId = "p-1"),
+        )
+        val anchors = listOf(
+            PageAnchor(elementIndex = 0, textOffset = 0, pageIndex = 0),
+            PageAnchor(elementIndex = 1, textOffset = 0, pageIndex = 1),
+        )
+        val entries = buildPageModeEntries(
+            orderedChapterIndices = listOf(2),
+            chapterElements = mapOf(2 to elements),
+            chapterAnchors = mapOf(2 to anchors),
+        )
+
+        val target = resolvePageModeScrollTarget(
+            entries = entries,
+            chapterElements = mapOf(2 to elements),
+            chapterAnchors = mapOf(2 to anchors),
+            request = ReaderScrollRequest(
+                sequence = 1L,
+                chapterIndex = 2,
+                anchorId = "missing",
+                paragraphIndex = 9,
+                offset = 0,
+            ),
+        )
+
+        requireNotNull(target)
+        assertEquals(1, target.pagerIndex)
+        assertEquals(1, target.pageIndex)
+        assertEquals("p-1", target.anchorId)
+    }
+
     private fun paragraph(text: String): ContentElement {
         return ContentElement.Paragraph(spans = listOf(TextSpan(text)))
     }

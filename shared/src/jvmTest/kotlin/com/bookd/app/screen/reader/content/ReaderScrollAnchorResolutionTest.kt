@@ -19,6 +19,7 @@ class ReaderScrollAnchorResolutionTest {
 
         assertEquals(2, result.anchorIndex)
         assertEquals("p3", result.anchorId)
+        assertEquals(3, result.targetElementIndex)
     }
 
     @Test
@@ -34,7 +35,8 @@ class ReaderScrollAnchorResolutionTest {
         )
 
         assertEquals(0, result.anchorIndex)
-        assertEquals("h1", result.anchorId)
+        assertEquals("p2", result.anchorId)
+        assertEquals(2, result.targetElementIndex)
     }
 
     @Test
@@ -48,6 +50,7 @@ class ReaderScrollAnchorResolutionTest {
 
         assertEquals(2, result.anchorIndex)
         assertEquals("p3", result.anchorId)
+        assertEquals(3, result.targetElementIndex)
     }
 
     @Test
@@ -61,6 +64,7 @@ class ReaderScrollAnchorResolutionTest {
 
         assertEquals(0, result.anchorIndex)
         assertEquals(null, result.anchorId)
+        assertEquals(0, result.targetElementIndex)
     }
 
     private fun elements(): List<ContentElement> = listOf(

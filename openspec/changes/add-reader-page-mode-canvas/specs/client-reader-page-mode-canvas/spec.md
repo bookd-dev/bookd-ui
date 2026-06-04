@@ -39,3 +39,18 @@ The client SHALL update local and remote page progress from page-mode navigation
 - **WHEN** the visible page changes in page mode
 - **THEN** the reader SHALL update the current page index
 - **AND** it SHALL schedule progress persistence through the existing progress path.
+
+### Requirement: Page mode constrains image rendering
+The client SHALL constrain image render commands to the page content bounds in page mode.
+
+#### Scenario: Wide image starts a page
+- **WHEN** a chapter page starts with an image whose intrinsic width exceeds the content width
+- **THEN** the image render command SHALL scale the image proportionally
+- **AND** its width SHALL NOT exceed the page content width
+- **AND** its height SHALL NOT exceed the remaining page content height.
+
+#### Scenario: Wide image follows text on a page
+- **WHEN** an image follows rendered text on the same page
+- **AND** its intrinsic width exceeds the content width
+- **THEN** the image render command SHALL scale the image proportionally within the remaining content area
+- **AND** it SHALL move to the next page when the required scale would make the image narrower than the minimum readable width.

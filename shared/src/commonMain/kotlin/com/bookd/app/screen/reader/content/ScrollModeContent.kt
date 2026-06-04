@@ -15,11 +15,14 @@ import androidx.compose.ui.unit.Constraints
 import com.bookd.app.basic.extension.logD
 import com.bookd.app.basic.reader.ReaderEngine
 import com.bookd.app.basic.reader.data.PageAnchor
+import com.bookd.app.basic.reader.data.RenderCommand
 import com.bookd.app.basic.reader.extension.getCommandHeight
 import com.bookd.app.data.model.ChapterContent
 import com.bookd.app.data.model.ContentElement
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.data.repository.ReaderRepository
+import com.bookd.app.screen.reader.ReaderParagraphSelection
+import com.bookd.app.screen.reader.resolveReaderFootnote
 import com.bookd.app.screen.reader.component.ReaderPageCanvas
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -52,7 +55,7 @@ fun ScrollModeContent(
     onImageClick: (url: String, alt: String?) -> Unit,
     onFootnoteClick: (ContentElement.Footnote) -> Unit,
     onLinkClick: (url: String) -> Unit,
-    onParagraphLongClick: (paragraphIndex: Int) -> Unit,
+    onParagraphLongClick: (ReaderParagraphSelection) -> Unit,
     onScrollPositionChanged: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
     onScrollRequestCompleted: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
     onCurrentChapterChanged: (chapterIndex: Int) -> Unit,
@@ -108,8 +111,7 @@ fun ScrollModeContent(
     val footnoteHandlers: Map<Int, (String) -> Unit> = remember(chapterElements) {
         chapterElements.mapValues { (_, elements) ->
             { footnoteId: String ->
-                val footnote = elements.filterIsInstance<ContentElement.Footnote>()
-                    .firstOrNull { it.footnoteId == footnoteId }
+                val footnote = resolveReaderFootnote(elements, footnoteId)
                 if (footnote != null) onFootnoteClick(footnote)
             }
         }
@@ -227,7 +229,8 @@ fun ScrollModeContent(
                                     ReaderScrollItem(
                                         chapterIndex = idx,
                                         anchorIndex = anchorIdx,
-                                        anchorId = elementAnchorId
+                                        anchorId = elementAnchorId,
+                                        elementIndex = anchors[anchorIdx].elementIndex,
                                     )
                                 )
                             }
@@ -265,7 +268,7 @@ fun ScrollModeContent(
                         val mapIndex = (globalIndex - 1).coerceAtLeast(0)
                         val item = itemChapterMapState.getOrNull(mapIndex)
                             ?: return@collect
-                        val paragraphIndex = item.anchorIndex.coerceAtLeast(0)
+                        val paragraphIndex = item.elementIndex.coerceAtLeast(0)
                         onScrollPositionChanged(item.chapterIndex, item.anchorId, paragraphIndex, scrollOffset)
                     }
             }
@@ -284,16 +287,27 @@ fun ScrollModeContent(
                     it.chapterIndex == request.chapterIndex && it.anchorIndex == resolution.anchorIndex
                 }
                 if (mapIndex < 0) return@LaunchedEffect
+                val targetOffset = if (request.offset > 0) {
+                    request.offset
+                } else {
+                    resolveReaderCanvasElementOffset(
+                        readerEngine = engine,
+                        elements = elements,
+                        pageAnchors = anchors,
+                        anchorIndex = resolution.anchorIndex,
+                        elementIndex = resolution.targetElementIndex,
+                    )
+                }.coerceAtLeast(0)
 
                 listState.scrollToItem(
                     index = mapIndex + 1,
-                    scrollOffset = request.offset.coerceAtLeast(0)
+                    scrollOffset = targetOffset
                 )
                 onScrollRequestCompleted(
                     request.chapterIndex,
                     resolution.anchorId,
-                    resolution.anchorIndex,
-                    request.offset.coerceAtLeast(0)
+                    resolution.targetElementIndex,
+                    targetOffset
                 )
             }
 
@@ -425,6 +439,16 @@ fun ScrollModeContent(
                                 onLinkClick = onLinkClick,
                                 onFootnoteClick = footnoteHandler,
                                 onImageClick = onImageClick,
+                                onParagraphLongClick = { anchorId, paragraphIndex ->
+                                    onParagraphLongClick(
+                                        ReaderParagraphSelection(
+                                            chapterIndex = chapterIdx,
+                                            anchorId = anchorId,
+                                            paragraphIndex = paragraphIndex,
+                                            scrollOffset = 0,
+                                        )
+                                    )
+                                },
                                 verticalOffset = 0f,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -463,12 +487,14 @@ data class ReaderScrollRequest(
 internal data class ReaderScrollItem(
     val chapterIndex: Int,
     val anchorIndex: Int,
-    val anchorId: String?
+    val anchorId: String?,
+    val elementIndex: Int
 )
 
 internal data class ReaderScrollResolution(
     val anchorIndex: Int,
-    val anchorId: String?
+    val anchorId: String?,
+    val targetElementIndex: Int
 )
 
 internal fun resolveReaderScrollAnchor(
@@ -478,7 +504,7 @@ internal fun resolveReaderScrollAnchor(
     fallbackIndex: Int
 ): ReaderScrollResolution {
     if (pageAnchors.isEmpty()) {
-        return ReaderScrollResolution(anchorIndex = 0, anchorId = null)
+        return ReaderScrollResolution(anchorIndex = 0, anchorId = null, targetElementIndex = 0)
     }
 
     val targetElementIndex = anchorId
@@ -489,15 +515,42 @@ internal fun resolveReaderScrollAnchor(
         pageAnchors.indexOfLast { it.elementIndex <= targetElementIndex }
             .coerceAtLeast(0)
     } else {
-        fallbackIndex.coerceIn(0, pageAnchors.lastIndex)
+        val fallbackElementIndex = fallbackIndex.coerceIn(0, elements.lastIndex)
+        pageAnchors.indexOfLast { it.elementIndex <= fallbackElementIndex }
+            .coerceAtLeast(0)
     }
 
     val resolvedAnchor = pageAnchors[resolvedAnchorIndex]
-    val resolvedAnchorId = elements.getOrNull(resolvedAnchor.elementIndex)?.anchorId
+    val resolvedElementIndex = targetElementIndex
+        ?: fallbackIndex.coerceIn(0, elements.lastIndex)
+    val resolvedAnchorId = elements.getOrNull(resolvedElementIndex)?.anchorId
+        ?: elements.getOrNull(resolvedAnchor.elementIndex)?.anchorId
     return ReaderScrollResolution(
         anchorIndex = resolvedAnchorIndex,
-        anchorId = resolvedAnchorId
+        anchorId = resolvedAnchorId,
+        targetElementIndex = resolvedElementIndex
     )
+}
+
+internal fun resolveReaderCanvasElementOffset(
+    readerEngine: ReaderEngine,
+    elements: List<ContentElement>,
+    pageAnchors: List<PageAnchor>,
+    anchorIndex: Int,
+    elementIndex: Int
+): Int {
+    val pageAnchor = pageAnchors.getOrNull(anchorIndex) ?: return 0
+    val nextPageAnchor = pageAnchors.getOrNull(anchorIndex + 1)
+    val commands = readerEngine.prepareRenderCommands(
+        startAnchor = pageAnchor,
+        endAnchor = nextPageAnchor,
+        elements = elements
+    )
+    return commands
+        .filterIsInstance<RenderCommand.Text>()
+        .firstOrNull { it.elementIndex == elementIndex }
+        ?.y
+        ?: 0
 }
 
 /**

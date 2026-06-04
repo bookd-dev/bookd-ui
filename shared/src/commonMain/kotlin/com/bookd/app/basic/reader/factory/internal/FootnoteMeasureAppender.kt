@@ -19,41 +19,34 @@ internal const val FOOTNOTE_INDEX_KEY = 3
 /**
  * 脚注渲染，比较特殊不会继承 [com.bookd.app.basic.reader.factory.IContentMeasureFactory]
  */
-internal fun AnnotatedString.Builder.autoAppendFootnoteInlineContent(
+internal fun AnnotatedString.Builder.appendFootnoteInlineContent(
     styleController: ReaderStyleController,
     density: Density,
     inlineCollector: ParagraphInlineContentCollector,
     elements: List<ContentElement>,
     span: TextSpan,
-) {
-    if (span.footnoteId.isNullOrBlank()) return /* 不参与文本占位计算 */
+): Boolean {
+    if (span.footnoteId.isNullOrBlank()) return false
 
     /* 获取对应的脚注 */
-    val footnotes: List<ContentElement.Footnote> = elements
+    val footnote = elements
         .filterIsInstance<ContentElement.Footnote>()
-        .filter { it.footnoteId == span.footnoteId }
+        .firstOrNull { it.footnoteId == span.footnoteId }
+        ?: return false
 
-    if (footnotes.isEmpty()) return /* 不参与文本占位计算 */
-
-    footnotes.forEachIndexed { index, footnote ->
-        val image = footnote.footnoteImage
-
-        if (image != null) {
-            //脚注有图片
-            appendFootnoteImageInlineContent(
-                styleController = styleController,
-                density = density,
-                inlineCollector = inlineCollector,
-                index = index,
-                footnote = footnote
-            )
-        } else {
-            //脚注没有图片，使用脚注文本处理
-            appendFootnoteTextContent(
-                styleController = styleController,
-                footnote = footnote
-            )
-        }
+    return if (!footnote.footnoteImage.isNullOrBlank()) {
+        appendFootnoteImageInlineContent(
+            styleController = styleController,
+            density = density,
+            inlineCollector = inlineCollector,
+            footnote = footnote
+        )
+        true
+    } else {
+        appendFootnoteTextContent(
+            styleController = styleController,
+            footnote = footnote
+        )
     }
 }
 
@@ -61,60 +54,53 @@ private fun AnnotatedString.Builder.appendFootnoteImageInlineContent(
     styleController: ReaderStyleController,
     density: Density,
     inlineCollector: ParagraphInlineContentCollector,
-    index: Int,
     footnote: ContentElement.Footnote,
 ) {
+    val placeholder = buildFootnotePlaceholder(
+        footnote = footnote,
+        density = density,
+        styleController = styleController
+    )
 
-    // InlineContent 的唯一 key（必须稳定）
-    val inlineId = "footnote:${footnote.footnoteId}:${footnote.footnoteImage}:${index}"
+    // 同一段可能重复引用同一脚注；key 带出现位置，避免后续引用退回原始 [n] 文本。
+    val start = length
+    val inlineId = "footnote:${footnote.footnoteId}:$start:${footnote.footnoteImage}"
 
-    // 避免重复注册（同一页多次引用）
-    if (!inlineCollector.contains(inlineId)) {
-
-        val placeholder = buildFootnotePlaceholder(
-            footnote = footnote,
-            density = density,
-            styleController = styleController
+    // 插入inlineContent占位，为什么不使用直接add是为了方便到时候替换成我需要的脚注
+    // 真正插入文本占位
+    appendInlineContent(
+        id = inlineId,
+        alternateText = "\uFFFC" // Object Replacement Character
+    )
+    // 文本插入后，再获取
+    val end = length
+    inlineCollector[inlineId] = ParagraphInlineContentInfo(
+        id = inlineId,
+        src = footnote.footnoteImage,
+        index = 0,
+        range = AnnotatedString.Range(
+            start = start,
+            end = end,
+            item = placeholder
         )
-
-        // 当前没插入占位时的文本长度就是start
-        val start = length
-
-        // 插入inlineContent占位，为什么不使用直接add是为了方便到时候替换成我需要的脚注
-        // 真正插入文本占位
-        appendInlineContent(
-            id = inlineId,
-            alternateText = "\uFFFC" // Object Replacement Character
-        )
-        // 文本插入后，再获取
-        val end = length
-        inlineCollector[inlineId] = ParagraphInlineContentInfo(
-            id = inlineId,
-            src = footnote.footnoteImage,
-            index = index,
-            range = AnnotatedString.Range(
-                start = start,
-                end = end,
-                item = placeholder
-            )
-        )
-    }
+    )
 }
 
 private fun AnnotatedString.Builder.appendFootnoteTextContent(
     styleController: ReaderStyleController,
     footnote: ContentElement.Footnote,
-) {
-    val textSpan = footnote.footnoteSpan ?: return //如果是空的就不渲染了
+): Boolean {
+    val textSpan = footnote.footnoteSpan ?: return false //如果是空的就不渲染了
 
     withStyle(
         style = styleController.buildMeasureSpanStyle(
-            span = footnote.footnoteSpan,
+            span = textSpan,
             style = styleController.textStyles.footnoteTextStyle
         )
     ) {
         append(textSpan.text)
     }
+    return true
 }
 
 private fun buildFootnotePlaceholder(

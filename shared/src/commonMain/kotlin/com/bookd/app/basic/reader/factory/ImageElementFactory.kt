@@ -19,29 +19,10 @@ import com.bookd.app.data.model.ContentElement
 
 
 /**
- * 图片测量工厂，它符合如下原则:
- * 行高: lineSpacing
- * 页面宽度、剩余高度、已使用高度: contentW、availableH、usedH
- * alt 文本测量高度、文本和图片之间的间隔: altMeasureH、altSpacing (altSpacing=lineSpacing/2)
- * 图片宽高、宽高比: imageW, imageH, imageAspectRatio
- * 图片有个最小宽度: imageMinW (只在页面非以当前图片为开始是使用, imageMinW = contentW * 2 / 3)
+ * 图片测量工厂。
  *
- *
- * # usedH > 0:
- * 页面可用高度为 remainingH = availableH - lineSpacing - altMeasureH - altSpacing, 如果 remainingH <= 0，直接换页面
- * 1. 如果 imageH < remainingH, 页面满足图片需求
- * 2. 如果 imageH > remainingH, 尝试用 remainingH + imageAspectRatio 计算出新的 imageW
- *    - 如果新的imageH >= imageMinW， 当前页面满足图片需求
- *    - 如果新的imageH < imageMinW, 页面不满足需求换到下一页
- *
- * # usedH = 0
- * 页面可用高度为 remainingH = availableH - altMeasureH - altSpacing (不需要减行间距)
- * 1. 如果 imageH <= remainingH
- *    - 如果 imageH <= contentW, 页面满足图片需求
- *    - 如果 imageH > contentW, 图片按照 contentW + imageAspectRatio 重新计算 imageH, 用 contentW + 新imageH 作为图片占用大小
- * 2. 如果 imageH > remainingH, 尝试用 remainingH + imageAspectRatio 计算出新的 imageW
- *    - 如果新的 imageW <= contentW, 页面满足图片需求
- *    - 如果新的 imageW > contentW, 用 contentW + imageAspectRatio 重新计算出新的 imageH, 用 contentW + 新imageH 作为图片占用大小
+ * 图片会按原始宽高比收敛到内容区域宽度和当前页剩余高度内。页面已有内容时，如果
+ * 图片必须缩得小于最小可读宽度，则推迟到下一页渲染。
  */
 class ImageElementFactory(
     private val contentWidth: Int,
@@ -110,34 +91,13 @@ class ImageElementFactory(
         val availableHeight = if (remainingHeight > 0) remainingHeight else 1
 
         val (imageWidth, imageHeight, aspectRatio) = getImageInfo(element, availableHeight)
-
-        val (finalWidth, finalHeight) = if (currentY > 0) {
-            if (imageHeight <= remainingHeight) {
-                imageWidth to imageHeight
-            } else {
-                val scaledWidth = (availableHeight * aspectRatio).toInt()
-                if (scaledWidth >= imageMinScaleWidth) {
-                    scaledWidth to availableHeight
-                } else {
-                    imageWidth to imageHeight
-                }
-            }
-        } else {
-            if (imageHeight <= remainingHeight) {
-                if (imageHeight <= contentWidth) {
-                    imageWidth to imageHeight
-                } else {
-                    contentWidth to (contentWidth / aspectRatio).toInt()
-                }
-            } else {
-                val scaledWidth = (availableHeight * aspectRatio).toInt()
-                if (scaledWidth <= contentWidth) {
-                    scaledWidth to availableHeight
-                } else {
-                    contentWidth to (contentWidth / aspectRatio).toInt()
-                }
-            }
-        }
+        val (finalWidth, finalHeight) = fitImageWithinBounds(
+            width = imageWidth,
+            height = imageHeight,
+            aspectRatio = aspectRatio,
+            maxWidth = contentWidth,
+            maxHeight = availableHeight
+        )
 
 
         return RenderCommand.Image(
@@ -212,20 +172,25 @@ class ImageElementFactory(
             return MeasureResult.NEXT
         }
         
-        // 获取图片信息
         val (imageWidth, imageHeight, aspectRatio) = getImageInfo(element, remainingHeight)
+        val (finalWidth, finalHeight) = fitImageWithinBounds(
+            width = imageWidth,
+            height = imageHeight,
+            aspectRatio = aspectRatio,
+            maxWidth = contentWidth,
+            maxHeight = remainingHeight
+        )
         
-        // 1. 如果 imageH < remainingH，页面满足图片需求
+        // 1. 如果 imageH < remainingH，页面满足图片需求。宽度仍需受内容区域约束。
         if (imageHeight <= remainingHeight) {
-            val totalHeight = imageHeight + imageToAltSpacing + altTextHeight
+            val totalHeight = finalHeight + imageToAltSpacing + altTextHeight
             return MeasureResult(totalHeight, false, 0)
         }
         
         // 2. 如果 imageH > remainingH，尝试按比例缩放
-        val scaledWidth = (remainingHeight * aspectRatio).toInt()
-        if (scaledWidth >= imageMinScaleWidth) {
+        if (finalWidth >= imageMinScaleWidth) {
             // 新的宽度满足最小宽度要求，使用缩放后的尺寸
-            val totalHeight = remainingHeight + imageToAltSpacing + altTextHeight
+            val totalHeight = finalHeight + imageToAltSpacing + altTextHeight
             return MeasureResult(totalHeight, false, 0)
         }
         
@@ -248,35 +213,16 @@ class ImageElementFactory(
             return MeasureResult.SKIP
         }
         
-        // 获取图片信息
         val (imageWidth, imageHeight, aspectRatio) = getImageInfo(element, remainingHeight)
-        
-        // 1. 如果 imageH <= remainingH
-        if (imageHeight <= remainingHeight) {
-            if (imageHeight <= contentWidth) {
-                // 图片高度小于等于页面宽度，直接使用
-                val totalHeight = imageHeight + imageToAltSpacing + altTextHeight
-                return MeasureResult(totalHeight, false, 0)
-            } else {
-                // 图片高度大于页面宽度，按比例缩放到页面宽度
-                val scaledHeight = (contentWidth / aspectRatio).toInt()
-                val totalHeight = scaledHeight + imageToAltSpacing + altTextHeight
-                return MeasureResult(totalHeight, false, 0)
-            }
-        }
-        
-        // 2. 如果 imageH > remainingH，尝试按比例缩放
-        val scaledWidth = (remainingHeight * aspectRatio).toInt()
-        if (scaledWidth <= contentWidth) {
-            // 缩放后的宽度小于等于页面宽度，使用缩放后的尺寸
-            val totalHeight = remainingHeight + imageToAltSpacing + altTextHeight
-            return MeasureResult(totalHeight, false, 0)
-        } else {
-            // 缩放后的宽度仍然大于页面宽度，按页面宽度再缩放一次
-            val scaledHeight = (contentWidth / aspectRatio).toInt()
-            val totalHeight = scaledHeight + imageToAltSpacing + altTextHeight
-            return MeasureResult(totalHeight, false, 0)
-        }
+        val (_, finalHeight) = fitImageWithinBounds(
+            width = imageWidth,
+            height = imageHeight,
+            aspectRatio = aspectRatio,
+            maxWidth = contentWidth,
+            maxHeight = remainingHeight
+        )
+        val totalHeight = finalHeight + imageToAltSpacing + altTextHeight
+        return MeasureResult(totalHeight, false, 0)
     }
     
     /**
@@ -350,5 +296,30 @@ class ImageElementFactory(
         val width = contentWidth
         val aspectRatio = width.toDouble() / availableHeight
         return Triple(width, availableHeight, aspectRatio)
+    }
+
+    private fun fitImageWithinBounds(
+        width: Int,
+        height: Int,
+        aspectRatio: Double,
+        maxWidth: Int,
+        maxHeight: Int
+    ): Pair<Int, Int> {
+        val safeWidth = width.coerceAtLeast(1)
+        val safeHeight = height.coerceAtLeast(1)
+        val safeMaxWidth = maxWidth.coerceAtLeast(1)
+        val safeMaxHeight = maxHeight.coerceAtLeast(1)
+        val safeAspectRatio = when {
+            aspectRatio.isFinite() && aspectRatio > 0.0 -> aspectRatio
+            else -> safeWidth.toDouble() / safeHeight
+        }
+        val scale = minOf(
+            safeMaxWidth.toDouble() / safeWidth,
+            safeMaxHeight.toDouble() / safeHeight,
+            1.0
+        )
+        val fittedWidth = (safeWidth * scale).toInt().coerceIn(1, safeMaxWidth)
+        val fittedHeight = (fittedWidth / safeAspectRatio).toInt().coerceIn(1, safeMaxHeight)
+        return fittedWidth to fittedHeight
     }
 }

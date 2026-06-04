@@ -679,6 +679,31 @@ class ReaderViewModel(
         )
     }
 
+    fun jumpToInternalLink(chapterIndex: Int, anchorId: String?) {
+        val state = _state.value
+        if (chapterIndex < 0 || chapterIndex >= state.chapterCount) return
+
+        _state.update {
+            it.copy(
+                currentAnchorId = anchorId,
+                currentParagraphIndex = 0,
+                scrollOffset = 0,
+                currentPageIndex = 0
+            )
+        }
+
+        if (chapterIndex != state.currentChapterIndex) {
+            loadChapter(chapterIndex)
+        }
+
+        requestScrollToPosition(
+            chapterIndex = chapterIndex,
+            anchorId = anchorId,
+            paragraphIndex = 0,
+            offset = 0
+        )
+    }
+
     fun onProgrammaticScrollCompleted(
         chapterIndex: Int,
         anchorId: String?,
