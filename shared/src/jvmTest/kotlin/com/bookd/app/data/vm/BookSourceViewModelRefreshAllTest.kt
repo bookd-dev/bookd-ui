@@ -135,6 +135,9 @@ private class FakeBookApi : BookApi {
         return responses.getValue(sourceId)
     }
 
+    override suspend fun searchBooks(query: String, sourceId: Int?, limit: Int, offset: Long): AppBooksResponse =
+        throw UnsupportedOperationException()
+
     override suspend fun getBookDetail(id: Int): BookDetailResponse =
         throw UnsupportedOperationException()
 }

@@ -20,6 +20,7 @@ import com.bookd.app.data.vm.BookshelfViewModel
 import com.bookd.app.data.vm.BookSourceViewModel
 import com.bookd.app.data.vm.SignInViewModel
 import com.bookd.app.data.vm.ReaderViewModel
+import com.bookd.app.data.vm.SearchBookViewModel
 import com.bookd.app.data.vm.SettingsViewModel
 import com.bookd.app.settings
 import com.russhwolf.settings.Settings
@@ -117,6 +118,7 @@ val viewModelModule = module {
     viewModel { SignInViewModel(get()) }
     viewModel { SettingsViewModel(get(), get()) }
     viewModel { ReaderViewModel(get()) }
+    viewModel { SearchBookViewModel(get()) }
 }
 
 val appNavigation = module {

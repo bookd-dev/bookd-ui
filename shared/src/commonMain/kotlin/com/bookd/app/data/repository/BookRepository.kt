@@ -78,32 +78,7 @@ class BookRepository(
                 offset = offset
             )
             
-            // 保存到缓存
-            response.books.forEach { book ->
-                queries.insertOrReplace(
-                    id = book.id.toLong(),
-                    title = book.title,
-                    author = book.author,
-                    format = book.format,
-                    filePath = book.filePath,
-                    fileSize = book.fileSize,
-                    coverPath = book.coverPath,
-                    isbn = book.isbn,
-                    publisher = book.publisher,
-                    description = book.description,
-                    sourceId = book.sourceId?.toLong(),
-                    chapterCount = book.chapterCount.toLong(),
-                    totalWordCount = book.totalWordCount.toLong(),
-                    totalImageCount = book.totalImageCount.toLong(),
-                    chaptersParsed = if (book.chaptersParsed) 1L else 0L,
-                    chaptersCount = book.chaptersCount.toLong(),
-                    lastParsedAt = book.lastParsedAt,
-                    parseStatus = book.parseStatus,
-                    parseProgress = book.parseProgress.toLong(),
-                    createdAt = book.createdAt,
-                    updatedAt = book.updatedAt
-                )
-            }
+            response.books.forEach { upsertBook(it) }
             
             Result.success(response)
         } catch (e: Exception) {
@@ -145,6 +120,38 @@ class BookRepository(
     suspend fun refresh(sourceId: Int): Result<AppBooksResponse> {
         return getBooks(sourceId, offset = 0, forceRefresh = true)
     }
+
+    suspend fun searchBooks(
+        query: String,
+        sourceId: Int? = null,
+        offset: Long = 0
+    ): Result<AppBooksResponse> {
+        val trimmedQuery = query.trim()
+        if (trimmedQuery.isBlank()) {
+            return Result.success(emptySearchResponse(offset))
+        }
+
+        val normalizedQuery = trimmedQuery.lowercase()
+        if (!apiProvider.isConfigured) {
+            return cachedSearchOrFailure(normalizedQuery, sourceId, offset, NoNetworkConfigException())
+        }
+
+        return try {
+            val api = apiProvider.getBookApiOrNull()
+                ?: return cachedSearchOrFailure(normalizedQuery, sourceId, offset, NoNetworkConfigException())
+
+            val response = api.searchBooks(
+                query = trimmedQuery,
+                sourceId = sourceId,
+                limit = PAGE_SIZE,
+                offset = offset
+            )
+            response.books.forEach { upsertBook(it) }
+            Result.success(response)
+        } catch (e: Exception) {
+            cachedSearchOrFailure(normalizedQuery, sourceId, offset, e)
+        }
+    }
     
     /**
      * 根据 ID 获取书籍
@@ -182,36 +189,80 @@ class BookRepository(
             
             val response = api.getBookDetail(bookId)
             
-            // 更新本地缓存中的书籍信息
-            val book = response.book
-            queries.insertOrReplace(
-                id = book.id.toLong(),
-                title = book.title,
-                author = book.author,
-                format = book.format,
-                filePath = book.filePath,
-                fileSize = book.fileSize,
-                coverPath = book.coverPath,
-                isbn = book.isbn,
-                publisher = book.publisher,
-                description = book.description,
-                sourceId = book.sourceId?.toLong(),
-                chapterCount = book.chapterCount.toLong(),
-                totalWordCount = book.totalWordCount.toLong(),
-                totalImageCount = book.totalImageCount.toLong(),
-                chaptersParsed = if (book.chaptersParsed) 1L else 0L,
-                chaptersCount = book.chaptersCount.toLong(),
-                lastParsedAt = book.lastParsedAt,
-                parseStatus = book.parseStatus,
-                parseProgress = book.parseProgress.toLong(),
-                createdAt = book.createdAt,
-                updatedAt = book.updatedAt
-            )
+            upsertBook(response.book)
             
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun cachedSearchOrFailure(
+        normalizedQuery: String,
+        sourceId: Int?,
+        offset: Long,
+        failure: Exception
+    ): Result<AppBooksResponse> {
+        val cached = queries.searchCached(
+            query = normalizedQuery,
+            sourceId = sourceId?.toLong(),
+            limit = PAGE_SIZE.toLong(),
+            offset = offset
+        ).executeAsList()
+
+        if (cached.isEmpty()) {
+            return Result.failure(failure)
+        }
+
+        val books = cached.map { it.toBook() }
+        val total = queries.countSearchCached(
+            query = normalizedQuery,
+            sourceId = sourceId?.toLong()
+        ).executeAsOne().toInt()
+        return Result.success(
+            AppBooksResponse(
+                books = books,
+                total = total,
+                limit = PAGE_SIZE,
+                offset = offset,
+                hasMore = offset + books.size < total
+            )
+        )
+    }
+
+    private fun emptySearchResponse(offset: Long): AppBooksResponse =
+        AppBooksResponse(
+            books = emptyList(),
+            total = 0,
+            limit = PAGE_SIZE,
+            offset = offset,
+            hasMore = false
+        )
+
+    private suspend fun upsertBook(book: Book) {
+        queries.insertOrReplace(
+            id = book.id.toLong(),
+            title = book.title,
+            author = book.author,
+            format = book.format,
+            filePath = book.filePath,
+            fileSize = book.fileSize,
+            coverPath = book.coverPath,
+            isbn = book.isbn,
+            publisher = book.publisher,
+            description = book.description,
+            sourceId = book.sourceId?.toLong(),
+            chapterCount = book.chapterCount.toLong(),
+            totalWordCount = book.totalWordCount.toLong(),
+            totalImageCount = book.totalImageCount.toLong(),
+            chaptersParsed = if (book.chaptersParsed) 1L else 0L,
+            chaptersCount = book.chaptersCount.toLong(),
+            lastParsedAt = book.lastParsedAt,
+            parseStatus = book.parseStatus,
+            parseProgress = book.parseProgress.toLong(),
+            createdAt = book.createdAt,
+            updatedAt = book.updatedAt
+        )
     }
 }
 

@@ -24,6 +24,22 @@ interface BookApi {
         @Query("limit") limit: Int = 20,
         @Query("offset") offset: Long = 0
     ): AppBooksResponse
+
+    /**
+     * 搜索书籍（分页）
+     *
+     * @param query 搜索关键词
+     * @param sourceId 可选书源 ID
+     * @param limit 每页数量，默认 20
+     * @param offset 偏移量，默认 0
+     */
+    @GET("api/app/books/search")
+    suspend fun searchBooks(
+        @Query("q") query: String,
+        @Query("sourceId") sourceId: Int? = null,
+        @Query("limit") limit: Int = 20,
+        @Query("offset") offset: Long = 0
+    ): AppBooksResponse
     
     /**
      * 获取书籍详情

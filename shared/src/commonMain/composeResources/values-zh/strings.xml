@@ -64,6 +64,10 @@
     <string name="no_more_data">没有更多了</string>
     <string name="source_no_books">此书源暂无书籍</string>
     <string name="chapters_count">%1$d 章</string>
+    <string name="search_book_hint">关键词</string>
+    <string name="search_book_initial">开始搜索</string>
+    <string name="search_book_empty">没有匹配书籍</string>
+    <string name="search_book_load_failed">搜索失败</string>
 
     <!-- Bookshelf Screen -->
     <string name="bookshelf_empty">暂无书架</string>

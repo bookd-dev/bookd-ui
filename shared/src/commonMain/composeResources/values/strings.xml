@@ -64,6 +64,10 @@
     <string name="no_more_data">No more data</string>
     <string name="source_no_books">No books in this source</string>
     <string name="chapters_count">%1$d chapters</string>
+    <string name="search_book_hint">Keyword</string>
+    <string name="search_book_initial">Start searching</string>
+    <string name="search_book_empty">No matching books</string>
+    <string name="search_book_load_failed">Search failed</string>
 
     <!-- Bookshelf Screen -->
     <string name="bookshelf_empty">No bookshelves yet</string>

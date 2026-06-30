@@ -37,6 +37,30 @@ SELECT * FROM BookEntity WHERE sourceId = :sourceId LIMIT :limit OFFSET :offset;
 countBySourceId:
 SELECT COUNT(*) FROM BookEntity WHERE sourceId = ?;
 
+-- 搜索本地缓存书籍
+searchCached:
+SELECT * FROM BookEntity
+WHERE (:sourceId IS NULL OR sourceId = :sourceId)
+AND (
+    LOWER(title) LIKE '%' || :query || '%'
+    OR LOWER(author) LIKE '%' || :query || '%'
+    OR LOWER(isbn) LIKE '%' || :query || '%'
+    OR LOWER(publisher) LIKE '%' || :query || '%'
+)
+ORDER BY title ASC, id ASC
+LIMIT :limit OFFSET :offset;
+
+-- 搜索本地缓存书籍数量
+countSearchCached:
+SELECT COUNT(*) FROM BookEntity
+WHERE (:sourceId IS NULL OR sourceId = :sourceId)
+AND (
+    LOWER(title) LIKE '%' || :query || '%'
+    OR LOWER(author) LIKE '%' || :query || '%'
+    OR LOWER(isbn) LIKE '%' || :query || '%'
+    OR LOWER(publisher) LIKE '%' || :query || '%'
+);
+
 -- 根据 ID 获取书籍
 selectById:
 SELECT * FROM BookEntity WHERE id = ?;
