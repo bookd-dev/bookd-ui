@@ -7,6 +7,9 @@ import com.bookd.app.basic.reader.data.PageAnchor
 import com.bookd.app.data.api.ApiProvider
 import com.bookd.app.data.api.NoNetworkConfigException
 import com.bookd.app.data.model.*
+import com.russhwolf.settings.Settings
+import com.russhwolf.settings.get
+import com.russhwolf.settings.set
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 
@@ -21,7 +24,8 @@ import kotlin.time.Clock
  */
 class ReaderRepository(
     private val database: Database,
-    private val apiProvider: ApiProvider
+    private val apiProvider: ApiProvider,
+    private val settingsStore: Settings,
 ) {
     private val chapterCacheQueries = database.chapterCacheQueries
     private val pageAnchorCacheQueries = database.pageAnchorCacheQueries
@@ -373,30 +377,52 @@ class ReaderRepository(
     
     /**
      * 获取阅读器设置
-     * 如果网络不可用，返回默认设置
+     * 本地存在待同步设置时优先返回本地值，避免服务端旧值覆盖用户刚修改的设置。
      */
     suspend fun getReaderSettings(): ReaderSettings {
+        val localSettings = getLocalReaderSettings()
+        if (localSettings != null && hasPendingReaderSettingsSync()) {
+            return localSettings
+        }
+
         return try {
             val api = apiProvider.getReaderApiOrNull()
-                ?: return ReaderSettings()
+                ?: return localSettings ?: ReaderSettings()
             
             val dto = api.getReaderSettings()
-            ReaderSettings.fromDTO(dto)
+            ReaderSettings.fromDTO(dto).also { cacheSyncedReaderSettings(it) }
         } catch (_: Exception) {
-            ReaderSettings()
+            localSettings ?: ReaderSettings()
         }
     }
+
+    /**
+     * 同步保存到本地，确保快速退出阅读器时设置不会丢失。
+     */
+    fun saveLocalReaderSettings(settings: ReaderSettings) {
+        settingsStore[KEY_READER_SETTINGS] = json.encodeToString(settings.toDTO())
+        settingsStore[KEY_READER_SETTINGS_SYNC_PENDING] = true
+    }
+
+    fun hasPendingReaderSettingsSync(): Boolean =
+        settingsStore[KEY_READER_SETTINGS_SYNC_PENDING, false] && getLocalReaderSettings() != null
     
     /**
      * 更新阅读器设置
      */
     suspend fun updateReaderSettings(settings: ReaderSettings): Result<ReaderSettings> {
+        saveLocalReaderSettings(settings)
+
         return try {
             val api = apiProvider.getReaderApiOrNull()
                 ?: return Result.failure(NoNetworkConfigException())
             
             val dto = api.updateReaderSettings(settings.toDTO())
-            Result.success(ReaderSettings.fromDTO(dto))
+            val syncedSettings = ReaderSettings.fromDTO(dto)
+            if (getLocalReaderSettings() == settings) {
+                cacheSyncedReaderSettings(syncedSettings)
+            }
+            Result.success(syncedSettings)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -415,6 +441,22 @@ class ReaderRepository(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun getLocalReaderSettings(): ReaderSettings? {
+        val encoded = settingsStore.getStringOrNull(KEY_READER_SETTINGS) ?: return null
+        return try {
+            ReaderSettings.fromDTO(json.decodeFromString<ReaderSettingsDTO>(encoded))
+        } catch (_: Exception) {
+            settingsStore.remove(KEY_READER_SETTINGS)
+            settingsStore.remove(KEY_READER_SETTINGS_SYNC_PENDING)
+            null
+        }
+    }
+
+    private fun cacheSyncedReaderSettings(settings: ReaderSettings) {
+        settingsStore[KEY_READER_SETTINGS] = json.encodeToString(settings.toDTO())
+        settingsStore[KEY_READER_SETTINGS_SYNC_PENDING] = false
     }
 
 
@@ -438,6 +480,11 @@ class ReaderRepository(
         val settingsFingerprint = "${settings.fontSize}|${settings.lineHeight}|${settings.letterSpacing}|${settings.paragraphSpacing}|${settings.firstLineIndent}|${settings.marginHorizontal}|${settings.marginVertical}|${settings.fontFamily}|${settings.fontWeight}"
         val contentHash = elements.fold(elements.size) { acc, el -> acc * 31 + el.hashCode() }.toString()
         return "${bookId}|${chapterIndex}|${settingsFingerprint}|${viewportWidth}x${viewportHeight}@${density}|${contentHash}"
+    }
+
+    private companion object {
+        const val KEY_READER_SETTINGS = "reader_settings_cache"
+        const val KEY_READER_SETTINGS_SYNC_PENDING = "reader_settings_sync_pending"
     }
 
     /**

@@ -223,6 +223,9 @@ class ReaderViewModel(
                 // 1. 加载阅读器设置
                 val settings = readerRepository.getReaderSettings()
                 _state.update { it.copy(readerSettings = settings) }
+                if (readerRepository.hasPendingReaderSettingsSync()) {
+                    syncSettings(settings)
+                }
                 
                 // 2. 尝试获取带进度的 manifest
                 val manifestResult = readerRepository.getBookManifestWithProgress(bookId)
@@ -979,6 +982,7 @@ class ReaderViewModel(
     
     fun updateSettings(settings: ReaderSettings) {
         _state.update { it.copy(readerSettings = settings) }
+        readerRepository.saveLocalReaderSettings(settings)
         syncSettings(settings)
     }
     

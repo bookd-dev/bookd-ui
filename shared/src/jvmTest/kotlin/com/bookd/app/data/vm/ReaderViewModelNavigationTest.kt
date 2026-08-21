@@ -1,3 +1,5 @@
+@file:OptIn(com.russhwolf.settings.ExperimentalSettingsImplementation::class)
+
 package com.bookd.app.data.vm
 
 import app.cash.sqldelight.async.coroutines.synchronous
@@ -20,6 +22,7 @@ import com.bookd.app.data.model.ReadingProgressResponse
 import com.bookd.app.data.model.TextSpan
 import com.bookd.app.data.model.TocItem
 import com.bookd.app.data.repository.ReaderRepository
+import com.russhwolf.settings.PropertiesSettings
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
@@ -28,6 +31,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.Test
+import java.util.Properties
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -39,6 +43,7 @@ class ReaderViewModelNavigationTest {
     private lateinit var fakeApi: ReaderNavigationFakeApi
     private lateinit var repository: ReaderRepository
     private lateinit var viewModel: ReaderViewModel
+    private lateinit var settingsStore: PropertiesSettings
 
     @Before
     fun setUp() {
@@ -46,8 +51,23 @@ class ReaderViewModelNavigationTest {
         Database.Schema.synchronous().create(driver)
         database = Database(driver)
         fakeApi = ReaderNavigationFakeApi()
-        repository = ReaderRepository(database, ReaderNavigationFakeApiProvider(fakeApi))
+        settingsStore = PropertiesSettings(Properties())
+        repository = ReaderRepository(database, ReaderNavigationFakeApiProvider(fakeApi), settingsStore)
         viewModel = ReaderViewModel(repository)
+    }
+
+    @Test
+    fun `given font size changed when reader exits before debounce then reopened reader restores local value`() = runBlocking {
+        viewModel.updateFontSize(24)
+
+        val reopenedRepository = ReaderRepository(
+            database,
+            ReaderNavigationFakeApiProvider(fakeApi),
+            settingsStore,
+        )
+
+        assertEquals(24, reopenedRepository.getReaderSettings().fontSize)
+        assertTrue(reopenedRepository.hasPendingReaderSettingsSync())
     }
 
     @Test

@@ -1,3 +1,5 @@
+@file:OptIn(com.russhwolf.settings.ExperimentalSettingsImplementation::class)
+
 package com.bookd.app.data.repository
 
 import app.cash.sqldelight.async.coroutines.synchronous
@@ -18,11 +20,13 @@ import com.bookd.app.data.model.ReaderSettingsDTO
 import com.bookd.app.data.model.ReadingProgressDTO
 import com.bookd.app.data.model.ReadingProgressResponse
 import com.bookd.app.data.model.TextSpan
+import com.russhwolf.settings.PropertiesSettings
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.junit.Test
+import java.util.Properties
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -54,7 +58,7 @@ class ReaderRepositoryChapterCacheTest {
         database = Database(driver)
 
         fakeApi = FakeReaderApi()
-        repository = ReaderRepository(database, FakeApiProvider(fakeApi))
+        repository = ReaderRepository(database, FakeApiProvider(fakeApi), PropertiesSettings(Properties()))
     }
 
     // ============ 辅助构造函数 ============
@@ -175,7 +179,11 @@ class ReaderRepositoryChapterCacheTest {
     @Test
     fun `given no network configured and no cache when getChapterContent then returns failure`() {
         val bookId = 5
-        repository = ReaderRepository(database, FakeApiProvider(fakeApi, networkConfigured = false))
+        repository = ReaderRepository(
+            database,
+            FakeApiProvider(fakeApi, networkConfigured = false),
+            PropertiesSettings(Properties()),
+        )
 
         val result = runBlocking { repository.getChapterContent(bookId, 1) }
 
@@ -189,7 +197,11 @@ class ReaderRepositoryChapterCacheTest {
         val staleChapter = chapterWithEmptyElements(index = 1)
         insertCacheDirectly(bookId, staleChapter)
         // 空缓存视为无效，但网络未配置
-        repository = ReaderRepository(database, FakeApiProvider(fakeApi, networkConfigured = false))
+        repository = ReaderRepository(
+            database,
+            FakeApiProvider(fakeApi, networkConfigured = false),
+            PropertiesSettings(Properties()),
+        )
 
         val result = runBlocking { repository.getChapterContent(bookId, staleChapter.index) }
 
@@ -235,7 +247,11 @@ class ReaderRepositoryChapterCacheTest {
             parameters = 0,
         )
         Database.Schema.synchronous().migrate(driver, 3, 4)
-        val migratedRepository = ReaderRepository(Database(driver), FakeApiProvider(fakeApi))
+        val migratedRepository = ReaderRepository(
+            Database(driver),
+            FakeApiProvider(fakeApi),
+            PropertiesSettings(Properties()),
+        )
 
         val restored = migratedRepository.getLocalProgress(11)
 

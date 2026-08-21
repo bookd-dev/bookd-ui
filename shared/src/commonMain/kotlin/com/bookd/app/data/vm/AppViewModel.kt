@@ -1,15 +1,24 @@
 package com.bookd.app.data.vm
 
 import com.bookd.app.basic.lifecycle.BaseViewModel
+import com.bookd.app.basic.extension.logE
 import com.bookd.app.data.api.ApiProvider
 import com.bookd.app.data.repository.NetworkSwitcher
 import com.bookd.app.data.repository.UserRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
+
+internal class AppErrorEventQueue {
+    private val channel = Channel<Throwable>(Channel.BUFFERED)
+
+    val events = channel.receiveAsFlow()
+
+    fun send(exception: Throwable) = channel.trySend(exception)
+}
 
 
 class AppViewModel(
@@ -25,8 +34,9 @@ class AppViewModel(
     private val _isInitialized = MutableStateFlow(false)
     val isInitialized = _isInitialized.asStateFlow()
     
-    private val _error = MutableStateFlow<Result<Any>?>(null)
-    val error = _error.asStateFlow()
+    // 错误属于一次性 UI 事件：缓冲等待 UI 收集，但消费后不因页面重建而重放。
+    private val errorEventQueue = AppErrorEventQueue()
+    val errorEvents = errorEventQueue.events
 
     init {
         initialize()
@@ -63,7 +73,9 @@ class AppViewModel(
 
 
     override fun handleException(context: CoroutineContext, exception: Throwable) {
-        _error.value = Result.failure(exception)
-        exception.printStackTrace()
+        val result = errorEventQueue.send(exception)
+        if (result.isFailure) {
+            logE(tag = "AppViewModel") { "全局错误事件发送失败: $exception" }
+        }
     }
 }
