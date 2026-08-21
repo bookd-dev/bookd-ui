@@ -91,6 +91,27 @@ internal data class PageModeScrollTarget(
     val paragraphIndex: Int,
 )
 
+internal data class ReaderPagePosition(
+    val chapterIndex: Int,
+    val pageIndex: Int,
+    val anchorId: String?,
+    val paragraphIndex: Int,
+)
+
+internal fun resolvePageReadingPosition(entry: ContentPageEntry): ReaderPagePosition {
+    val elementIndex = if (entry.elements.isEmpty()) {
+        0
+    } else {
+        entry.anchor.elementIndex.coerceIn(0, entry.elements.lastIndex)
+    }
+    return ReaderPagePosition(
+        chapterIndex = entry.chapterIndex,
+        pageIndex = entry.pageIndex,
+        anchorId = entry.elements.getOrNull(elementIndex)?.anchorId,
+        paragraphIndex = elementIndex,
+    )
+}
+
 internal fun resolvePageModeScrollTarget(
     entries: List<PageModeEntry>,
     chapterElements: Map<Int, List<ContentElement>>,
@@ -105,6 +126,29 @@ internal fun resolvePageModeScrollTarget(
         anchorId = request.anchorId,
         fallbackIndex = request.paragraphIndex,
     )
+    val exactPagerIndex = request.pageIndex?.let { pageIndex ->
+        findPageModeEntryIndex(
+            entries = entries,
+            chapterIndex = request.chapterIndex,
+            pageIndex = pageIndex,
+        ).takeIf { it >= 0 }
+    }
+    val exactEntry = exactPagerIndex?.let { entries[it] as? ContentPageEntry }
+    val exactPosition = exactEntry?.let(::resolvePageReadingPosition)
+    val exactPageMatchesAnchor = when {
+        exactPosition == null -> false
+        request.anchorId != null -> exactPosition.anchorId == request.anchorId
+        else -> exactPosition.paragraphIndex == request.paragraphIndex
+    }
+    if (exactPagerIndex != null && exactPosition != null && exactPageMatchesAnchor) {
+        return PageModeScrollTarget(
+            pagerIndex = exactPagerIndex,
+            chapterIndex = exactPosition.chapterIndex,
+            pageIndex = exactPosition.pageIndex,
+            anchorId = exactPosition.anchorId,
+            paragraphIndex = exactPosition.paragraphIndex,
+        )
+    }
     val pagerIndex = findPageModeEntryIndex(
         entries = entries,
         chapterIndex = request.chapterIndex,

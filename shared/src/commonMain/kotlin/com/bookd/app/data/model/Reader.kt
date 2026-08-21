@@ -391,3 +391,60 @@ data class LocalReadingProgress(
     val progress: Double,
     val lastReadAt: Long
 )
+
+/**
+ * 与排版无关的阅读位置坐标。锚点优先，索引、偏移和页码用于兼容回退。
+ */
+data class ReadingPosition(
+    val chapterIndex: Int,
+    val anchorId: String?,
+    val paragraphIndex: Int,
+    val scrollOffset: Int,
+    val pageIndex: Int,
+)
+
+/**
+ * 一次本地持久化或云同步使用的不可变进度快照。
+ */
+data class ReadingProgressSnapshot(
+    val bookId: Int,
+    val position: ReadingPosition,
+    val progress: Double,
+    val totalChapters: Int,
+    val chapterTotalPages: Int? = null,
+    val chapterScrollPercent: Double? = null,
+    val updatedAt: Long,
+) {
+    fun toLocalProgress(): LocalReadingProgress = LocalReadingProgress(
+        bookId = bookId,
+        chapterIndex = position.chapterIndex,
+        anchorId = position.anchorId,
+        paragraphIndex = position.paragraphIndex,
+        scrollOffset = position.scrollOffset,
+        pageIndex = position.pageIndex,
+        progress = progress,
+        lastReadAt = updatedAt,
+    )
+
+    fun toDTO(): ReadingProgressDTO = ReadingProgressDTO(
+        bookId = bookId,
+        progress = progress,
+        currentPage = position.chapterIndex,
+        totalPages = totalChapters,
+        chapterIndex = position.chapterIndex,
+        anchorId = position.anchorId,
+        paragraphIndex = position.paragraphIndex,
+        scrollOffset = position.scrollOffset,
+        chapterPageIndex = position.pageIndex,
+        chapterTotalPages = chapterTotalPages,
+        chapterScrollPercent = chapterScrollPercent,
+    )
+}
+
+fun LocalReadingProgress.toReadingPosition(): ReadingPosition = ReadingPosition(
+    chapterIndex = chapterIndex,
+    anchorId = anchorId,
+    paragraphIndex = paragraphIndex,
+    scrollOffset = scrollOffset,
+    pageIndex = pageIndex,
+)

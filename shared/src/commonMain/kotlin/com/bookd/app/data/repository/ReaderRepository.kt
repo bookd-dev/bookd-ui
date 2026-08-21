@@ -202,6 +202,13 @@ class ReaderRepository(
             Result.failure(e)
         }
     }
+
+    /**
+     * 将同一个不可变快照发送到云端，避免异步期间重新读取变化中的阅读状态。
+     */
+    suspend fun syncProgressSnapshot(snapshot: ReadingProgressSnapshot): Result<ReadingProgressResponse> {
+        return saveRemoteProgress(snapshot.bookId, snapshot.toDTO())
+    }
     
     /**
      * 更新远程阅读进度（便捷方法）
@@ -257,6 +264,10 @@ class ReaderRepository(
             progress = progress.progress,
             lastReadAt = progress.lastReadAt
         )
+    }
+
+    suspend fun saveLocalProgress(snapshot: ReadingProgressSnapshot) {
+        saveLocalProgress(snapshot.toLocalProgress())
     }
     
     /**

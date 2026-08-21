@@ -26,6 +26,14 @@ data class ReadingProgressResponse(
     val chapterScrollPercent: Double? = null
 )
 
+fun ReadingProgressResponse.toReadingPosition(): ReadingPosition = ReadingPosition(
+    chapterIndex = chapterIndex,
+    anchorId = anchorId,
+    paragraphIndex = paragraphIndex ?: 0,
+    scrollOffset = scrollOffset ?: 0,
+    pageIndex = chapterPageIndex ?: 0,
+)
+
 /**
  * 书籍详情响应
  * 

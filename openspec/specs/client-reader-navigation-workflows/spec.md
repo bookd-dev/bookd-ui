@@ -92,3 +92,37 @@ The client SHALL distinguish programmatic reader jumps from user scrolling until
 #### Scenario: Programmatic jump is pending
 - **WHEN** the reader is waiting for a programmatic jump target to become renderable
 - **THEN** it SHALL NOT save an unrelated intermediate scroll position as the selected target.
+
+### Requirement: Reader captures anchor-first positions in every reading mode
+The client SHALL report the currently visible content anchor and fallback element position in both scroll and page modes.
+
+#### Scenario: Scroll viewport advances within a render page
+- **WHEN** the viewport top crosses into a later renderable text element inside the same render page
+- **THEN** the reader SHALL report that element's stable anchor and fallback index
+- **AND** it SHALL report an offset relative to the resolved element rather than only a render-page offset.
+
+#### Scenario: Page mode settles on a page
+- **WHEN** the page-mode pager settles on a content page
+- **THEN** the reader SHALL report the chapter, page index, page-start element anchor, and fallback element index as one position update.
+
+#### Scenario: Captured anchor is restored after relayout
+- **WHEN** a saved position anchor resolves to an element whose render-page placement changed
+- **THEN** the reader SHALL find the new render page containing that element
+- **AND** it SHALL apply the saved anchor-relative offset from that element's rendered position.
+
+### Requirement: Reader restores saved positions without initialization overwrite
+The client SHALL retain a saved-position restoration request until the render layer atomically applies the requested chapter and position.
+
+#### Scenario: Reader reopens on a saved page-mode position
+- **WHEN** saved progress contains a chapter page index and a matching page-start anchor or fallback element
+- **THEN** the reader SHALL restore the exact saved page even when multiple pages share the same paragraph anchor
+- **AND** it SHALL fall back to anchor or element resolution when the saved page no longer matches the current layout.
+
+#### Scenario: Pager reports its initial position during restoration
+- **WHEN** the pager reports its default page or an adjacent chapter before the saved target is applied
+- **THEN** the client SHALL ignore that intermediate position for progress persistence and chapter selection
+- **AND** it SHALL keep the restoration request available until the matching render operation completes.
+
+#### Scenario: An older restoration completes after a newer request
+- **WHEN** a completion callback carries an older restoration sequence
+- **THEN** the client SHALL NOT clear or overwrite the newer pending restoration target.

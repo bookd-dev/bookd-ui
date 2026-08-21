@@ -9,8 +9,11 @@ import com.bookd.app.data.model.LocalReadingProgress
 import com.bookd.app.data.model.PageAnimationType
 import com.bookd.app.data.model.PageMode
 import com.bookd.app.data.model.ReadingProgressResponse
+import com.bookd.app.data.model.ReadingProgressSnapshot
+import com.bookd.app.data.model.ReadingPosition
 import com.bookd.app.data.model.ReaderSettings
 import com.bookd.app.data.model.TocItem
+import com.bookd.app.data.model.toReadingPosition
 import com.bookd.app.data.repository.ReaderRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,6 +28,16 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 // ============= State =============
+
+@Immutable
+data class ReaderPositionRequest(
+    val sequence: Long,
+    val chapterIndex: Int,
+    val pageIndex: Int?,
+    val anchorId: String?,
+    val paragraphIndex: Int,
+    val offset: Int,
+)
 
 /**
  * 阅读器页面状态
@@ -59,7 +72,7 @@ data class ReaderState(
     val scrollOffset: Int = 0,
     val currentPageIndex: Int = 0,
     val calculatedProgress: Double = 0.0,
-    val isProgrammaticJumpPending: Boolean = false,
+    val pendingPositionRequest: ReaderPositionRequest? = null,
     
     // 进度冲突
     val hasProgressConflict: Boolean = false,
@@ -101,6 +114,9 @@ data class ReaderState(
      */
     val progressPercent: Int
         get() = (calculatedProgress * 100).toInt()
+
+    val isProgrammaticJumpPending: Boolean
+        get() = pendingPositionRequest != null
     
     /**
      * 是否有上一章
@@ -141,15 +157,6 @@ sealed interface ReaderEffect {
     /** 跳转书籍详情 */
     data class NavigateToBookDetail(val bookId: Int) : ReaderEffect
     
-    /** 滚动到指定位置 */
-    data class ScrollToPosition(
-        val sequence: Long,
-        val chapterIndex: Int,
-        val anchorId: String?,
-        val paragraphIndex: Int,
-        val offset: Int
-    ) : ReaderEffect
-    
     /** 翻页到指定页 */
     data class ScrollToPage(val pageIndex: Int) : ReaderEffect
     
@@ -180,8 +187,13 @@ class ReaderViewModel(
     private val _effect = MutableSharedFlow<ReaderEffect>()
     val effect: SharedFlow<ReaderEffect> = _effect.asSharedFlow()
     
-    // 进度保存防抖 Job
-    private var progressSaveJob: Job? = null
+    // 本地进度与云同步都使用单飞最新值队列，避免较旧异步请求最后落盘。
+    private var localProgressSaveJob: Job? = null
+    private var pendingLocalSnapshot: ReadingProgressSnapshot? = null
+    private var progressSyncDebounceJob: Job? = null
+    private var progressSyncJob: Job? = null
+    private var pendingRemoteSnapshot: ReadingProgressSnapshot? = null
+    private var lastSyncedPosition: ReadingPosition? = null
     private var scrollRequestSequence: Long = 0L
 
     // 阅读设置保存防抖 Job
@@ -189,13 +201,11 @@ class ReaderViewModel(
     private var settingsSyncJob: Job? = null
     private var pendingReaderSettings: ReaderSettings? = null
     
-    // 自动同步 Job
-    private var autoSyncJob: Job? = null
-    
     // ============= 初始化 =============
     
     fun loadBook(bookId: Int, startChapterIndex: Int? = null) {
         scope.launch {
+            resetProgressPipelines()
             // 清理旧书籍的状态，避免使用旧缓存
             _state.update { 
                 it.copy(
@@ -234,6 +244,7 @@ class ReaderViewModel(
                 // 4. 尝试加载远程进度
                 val remoteProgressResult = readerRepository.getRemoteProgress(bookId)
                 val remoteProgress = remoteProgressResult.getOrNull()
+                lastSyncedPosition = remoteProgress?.toReadingPosition()
                 
                 // 5. 检测进度冲突
                 val hasConflict = detectProgressConflict(localProgress, remoteProgress)
@@ -269,6 +280,11 @@ class ReaderViewModel(
                     } else {
                         0
                     }
+                    val initialPageIndex = if (startChapterIndex == null) {
+                        localProgress?.pageIndex ?: remoteProgress?.chapterPageIndex ?: 0
+                    } else {
+                        0
+                    }
                     
                     _state.update { 
                         it.copy(
@@ -278,7 +294,7 @@ class ReaderViewModel(
                             currentAnchorId = initialAnchorId,
                             currentParagraphIndex = initialParagraphIndex,
                             scrollOffset = initialScrollOffset,
-                            currentPageIndex = localProgress?.pageIndex ?: 0,
+                            currentPageIndex = initialPageIndex,
                             isLoading = false
                         )
                     }
@@ -286,9 +302,15 @@ class ReaderViewModel(
                     // 加载章节内容
                     loadChapter(chapterIndex)
 
-                    if (initialAnchorId != null || initialParagraphIndex > 0 || initialScrollOffset > 0) {
+                    if (
+                        initialAnchorId != null ||
+                        initialParagraphIndex > 0 ||
+                        initialScrollOffset > 0 ||
+                        initialPageIndex > 0
+                    ) {
                         requestScrollToPosition(
                             chapterIndex = chapterIndex,
+                            pageIndex = initialPageIndex,
                             anchorId = initialAnchorId,
                             paragraphIndex = initialParagraphIndex,
                             offset = initialScrollOffset
@@ -347,8 +369,8 @@ class ReaderViewModel(
                     )
                 }
                 
-                // 更新本地进度
-                updateLocalProgress()
+                // 章节内容就绪后刷新本地快照；初始加载不主动制造一次云端写入。
+                recordCurrentProgress(scheduleCloudSync = false)
                 
                 // 预加载更远的章节
                 preloadFurtherChapters(chapterIndex)
@@ -401,55 +423,165 @@ class ReaderViewModel(
     
     fun updateScrollPosition(chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) {
         if (_state.value.isProgrammaticJumpPending) return
+        val chapterChanged = chapterIndex != _state.value.currentChapterIndex
         _state.update {
             it.copy(
                 currentChapterIndex = chapterIndex,
+                currentChapter = it.adjacentChapters[chapterIndex] ?: it.currentChapter,
                 currentAnchorId = anchorId,
                 currentParagraphIndex = paragraphIndex,
                 scrollOffset = scrollOffset
             )
         }
-        scheduleProgressSave()
+        recordCurrentProgress(immediateCloudSync = chapterChanged)
     }
     
-    fun updatePagePosition(pageIndex: Int) {
-        _state.update { it.copy(currentPageIndex = pageIndex) }
-        scheduleProgressSave()
-    }
-    
-    private fun scheduleProgressSave() {
-        progressSaveJob?.cancel()
-        progressSaveJob = scope.launch {
-            delay(3000) // 3秒防抖
-            updateLocalProgress()
-            syncProgressIfNeeded()
+    fun updatePagePosition(
+        chapterIndex: Int,
+        pageIndex: Int,
+        anchorId: String?,
+        paragraphIndex: Int,
+    ) {
+        if (_state.value.isProgrammaticJumpPending) return
+        val chapterChanged = chapterIndex != _state.value.currentChapterIndex
+        _state.update {
+            it.copy(
+                currentChapterIndex = chapterIndex,
+                currentChapter = it.adjacentChapters[chapterIndex] ?: it.currentChapter,
+                currentPageIndex = pageIndex,
+                currentAnchorId = anchorId,
+                currentParagraphIndex = paragraphIndex,
+                scrollOffset = 0,
+            )
         }
+        recordCurrentProgress(immediateCloudSync = chapterChanged)
     }
-    
-    private fun updateLocalProgress() {
+
+    private fun recordCurrentProgress(
+        immediateCloudSync: Boolean = false,
+        scheduleCloudSync: Boolean = true,
+    ): ReadingProgressSnapshot {
+        val snapshot = captureCurrentProgressSnapshot()
+        _state.update {
+            it.copy(
+                calculatedProgress = snapshot.progress,
+                localProgress = snapshot.toLocalProgress(),
+            )
+        }
+        enqueueLocalProgress(snapshot)
+        if (scheduleCloudSync) enqueueRemoteProgress(snapshot, immediateCloudSync)
+        return snapshot
+    }
+
+    private fun captureCurrentProgressSnapshot(): ReadingProgressSnapshot {
         val state = _state.value
-        val progress = calculateProgress()
-        
-        _state.update { it.copy(calculatedProgress = progress) }
-        
-        val localProgress = LocalReadingProgress(
+        val progress = calculateProgress(state)
+        val elementCount = state.currentChapter?.elements?.size ?: 0
+        return ReadingProgressSnapshot(
             bookId = state.bookId,
-            chapterIndex = state.currentChapterIndex,
-            anchorId = state.currentAnchorId,
-            paragraphIndex = state.currentParagraphIndex,
-            scrollOffset = state.scrollOffset,
-            pageIndex = state.currentPageIndex,
+            position = ReadingPosition(
+                chapterIndex = state.currentChapterIndex,
+                anchorId = state.currentAnchorId,
+                paragraphIndex = state.currentParagraphIndex,
+                scrollOffset = state.scrollOffset,
+                pageIndex = state.currentPageIndex,
+            ),
             progress = progress,
-            lastReadAt = Clock.System.now().toEpochMilliseconds()
+            totalChapters = state.totalChapters,
+            chapterScrollPercent = if (
+                state.readerSettings.pageMode == PageMode.SCROLL && elementCount > 0
+            ) {
+                state.currentParagraphIndex.toDouble() / elementCount
+            } else {
+                null
+            },
+            updatedAt = Clock.System.now().toEpochMilliseconds(),
         )
-        
-        scope.launch {
-            readerRepository.saveLocalProgress(localProgress)
+    }
+
+    private fun enqueueLocalProgress(snapshot: ReadingProgressSnapshot) {
+        pendingLocalSnapshot = snapshot
+        startLocalProgressSaveIfNeeded()
+    }
+
+    private fun startLocalProgressSaveIfNeeded() {
+        if (localProgressSaveJob?.isActive == true) return
+        localProgressSaveJob = scope.launch {
+            try {
+                while (true) {
+                    val snapshot = pendingLocalSnapshot ?: break
+                    pendingLocalSnapshot = null
+                    readerRepository.saveLocalProgress(snapshot)
+                }
+            } finally {
+                localProgressSaveJob = null
+                if (pendingLocalSnapshot != null) startLocalProgressSaveIfNeeded()
+            }
         }
     }
-    
-    private fun calculateProgress(): Double {
-        val state = _state.value
+
+    private fun enqueueRemoteProgress(snapshot: ReadingProgressSnapshot, immediate: Boolean) {
+        if (
+            snapshot.position == lastSyncedPosition &&
+            progressSyncJob?.isActive != true &&
+            pendingRemoteSnapshot == null
+        ) return
+        pendingRemoteSnapshot = snapshot
+        progressSyncDebounceJob?.cancel()
+        if (immediate) {
+            startProgressSyncIfNeeded()
+        } else {
+            progressSyncDebounceJob = scope.launch {
+                delay(PROGRESS_SYNC_DEBOUNCE_MS)
+                startProgressSyncIfNeeded()
+            }
+        }
+    }
+
+    private fun startProgressSyncIfNeeded() {
+        if (progressSyncJob?.isActive == true) return
+        progressSyncJob = scope.launch {
+            var failed = false
+            try {
+                while (true) {
+                    val snapshot = pendingRemoteSnapshot ?: break
+                    pendingRemoteSnapshot = null
+                    val result = readerRepository.syncProgressSnapshot(snapshot)
+                    result.onSuccess { response ->
+                        lastSyncedPosition = response.toReadingPosition()
+                        _state.update { it.copy(remoteProgress = response) }
+                    }.onFailure {
+                        pendingRemoteSnapshot = pendingRemoteSnapshot ?: snapshot
+                        failed = true
+                    }
+                    if (failed) break
+                }
+            } finally {
+                progressSyncJob = null
+                if (!failed && pendingRemoteSnapshot != null) startProgressSyncIfNeeded()
+            }
+        }
+    }
+
+    private suspend fun flushProgress(snapshot: ReadingProgressSnapshot): Boolean {
+        pendingLocalSnapshot = snapshot
+        startLocalProgressSaveIfNeeded()
+        localProgressSaveJob?.join()
+
+        progressSyncDebounceJob?.cancel()
+        if (
+            snapshot.position != lastSyncedPosition ||
+            progressSyncJob?.isActive == true ||
+            pendingRemoteSnapshot != null
+        ) {
+            pendingRemoteSnapshot = snapshot
+            startProgressSyncIfNeeded()
+            progressSyncJob?.join()
+        }
+        return snapshot.position == lastSyncedPosition
+    }
+
+    private fun calculateProgress(state: ReaderState = _state.value): Double {
         val manifest = state.manifest ?: return 0.0
         val currentChapter = state.currentChapter ?: return 0.0
         
@@ -479,58 +611,11 @@ class ReaderViewModel(
         }
     }
     
-    private fun syncProgressIfNeeded() {
-        val state = _state.value
-        val lastProgress = state.localProgress?.progress ?: 0.0
-        val currentProgress = state.calculatedProgress
-        
-        // 进度变化超过 5% 时同步
-        if (kotlin.math.abs(currentProgress - lastProgress) >= 0.05) {
-            scope.launch {
-                try {
-                    readerRepository.updateRemoteProgress(
-                        bookId = state.bookId,
-                        progress = currentProgress,
-                        currentChapter = state.currentChapterIndex,
-                        totalChapters = state.totalChapters,
-                        anchorId = state.currentAnchorId,
-                        paragraphIndex = state.currentParagraphIndex,
-                        scrollOffset = state.scrollOffset,
-                        chapterPageIndex = state.currentPageIndex,
-                        chapterScrollPercent = if (state.readerSettings.pageMode == PageMode.SCROLL) {
-                            state.currentParagraphIndex.toDouble() / (state.currentChapter?.elements?.size ?: 1)
-                        } else null
-                    )
-                } catch (_: Exception) {
-                    // 同步失败静默处理
-                }
-            }
-        }
-    }
-    
     fun saveProgress() {
-        progressSaveJob?.cancel()
         scope.launch {
-            updateLocalProgress()
-            
-            val state = _state.value
-            try {
-                readerRepository.updateRemoteProgress(
-                    bookId = state.bookId,
-                    progress = state.calculatedProgress,
-                    currentChapter = state.currentChapterIndex,
-                    totalChapters = state.totalChapters,
-                    anchorId = state.currentAnchorId,
-                    paragraphIndex = state.currentParagraphIndex,
-                    scrollOffset = state.scrollOffset,
-                    chapterPageIndex = state.currentPageIndex,
-                    chapterScrollPercent = if (state.readerSettings.pageMode == PageMode.SCROLL) {
-                        state.currentParagraphIndex.toDouble() / (state.currentChapter?.elements?.size ?: 1)
-                    } else null
-                )
+            val snapshot = recordCurrentProgress(scheduleCloudSync = false)
+            if (flushProgress(snapshot)) {
                 _effect.emit(ReaderEffect.ProgressSaved)
-            } catch (_: Exception) {
-                // 保存失败静默处理
             }
         }
     }
@@ -543,9 +628,9 @@ class ReaderViewModel(
     ): Boolean {
         if (local == null || remote == null) return false
         
-        return local.chapterIndex != remote.chapterIndex &&
-               local.progress > 0 && 
-               remote.progress > 0
+        return local.progress > 0 &&
+            remote.progress > 0 &&
+            local.toReadingPosition() != remote.toReadingPosition()
     }
     
     fun useLocalProgress() {
@@ -566,29 +651,21 @@ class ReaderViewModel(
         loadChapter(localProgress.chapterIndex)
         requestScrollToPosition(
             chapterIndex = localProgress.chapterIndex,
+            pageIndex = localProgress.pageIndex,
             anchorId = localProgress.anchorId,
             paragraphIndex = localProgress.paragraphIndex,
             offset = localProgress.scrollOffset
         )
         
-        // 用本地进度覆盖远程
-        scope.launch {
-            try {
-                readerRepository.updateRemoteProgress(
-                    bookId = state.bookId,
-                    progress = localProgress.progress,
-                    currentChapter = localProgress.chapterIndex,
-                    totalChapters = state.totalChapters,
-                    anchorId = localProgress.anchorId,
-                    paragraphIndex = localProgress.paragraphIndex,
-                    scrollOffset = localProgress.scrollOffset,
-                    chapterPageIndex = localProgress.pageIndex,
-                    chapterScrollPercent = null
-                )
-            } catch (_: Exception) {
-                // 静默处理
-            }
-        }
+        val snapshot = ReadingProgressSnapshot(
+            bookId = state.bookId,
+            position = localProgress.toReadingPosition(),
+            progress = localProgress.progress,
+            totalChapters = state.totalChapters,
+            updatedAt = Clock.System.now().toEpochMilliseconds(),
+        )
+        enqueueLocalProgress(snapshot)
+        enqueueRemoteProgress(snapshot, immediate = true)
     }
     
     fun useRemoteProgress() {
@@ -604,22 +681,41 @@ class ReaderViewModel(
                 currentAnchorId = remoteProgress.anchorId,
                 currentParagraphIndex = remoteProgress.paragraphIndex ?: 0,
                 scrollOffset = remoteProgress.scrollOffset ?: 0,
-                currentPageIndex = 0
+                currentPageIndex = remoteProgress.chapterPageIndex ?: 0
             )
         }
         
         loadChapter(chapterIndex)
         requestScrollToPosition(
             chapterIndex = chapterIndex,
+            pageIndex = remoteProgress.chapterPageIndex,
             anchorId = remoteProgress.anchorId,
             paragraphIndex = remoteProgress.paragraphIndex ?: 0,
             offset = remoteProgress.scrollOffset ?: 0
         )
         
-        // 删除本地进度
-        scope.launch {
-            readerRepository.deleteLocalProgress(state.bookId)
-        }
+        val localProgress = LocalReadingProgress(
+            bookId = state.bookId,
+            chapterIndex = chapterIndex,
+            anchorId = remoteProgress.anchorId,
+            paragraphIndex = remoteProgress.paragraphIndex ?: 0,
+            scrollOffset = remoteProgress.scrollOffset ?: 0,
+            pageIndex = remoteProgress.chapterPageIndex ?: 0,
+            progress = remoteProgress.progress,
+            lastReadAt = Clock.System.now().toEpochMilliseconds(),
+        )
+        _state.update { it.copy(localProgress = localProgress) }
+        enqueueLocalProgress(
+            ReadingProgressSnapshot(
+                bookId = state.bookId,
+                position = localProgress.toReadingPosition(),
+                progress = remoteProgress.progress,
+                totalChapters = state.totalChapters,
+                chapterTotalPages = remoteProgress.chapterTotalPages,
+                chapterScrollPercent = remoteProgress.chapterScrollPercent,
+                updatedAt = localProgress.lastReadAt,
+            )
+        )
     }
     
     fun dismissProgressConflict() {
@@ -708,37 +804,45 @@ class ReaderViewModel(
         chapterIndex: Int,
         anchorId: String?,
         paragraphIndex: Int,
-        scrollOffset: Int
+        scrollOffset: Int,
+        pageIndex: Int? = null,
+        sequence: Long? = null,
     ) {
+        if (
+            sequence != null &&
+            _state.value.pendingPositionRequest?.sequence != sequence
+        ) return
         _state.update {
             it.copy(
                 currentChapterIndex = chapterIndex,
+                currentPageIndex = pageIndex ?: it.currentPageIndex,
                 currentAnchorId = anchorId,
                 currentParagraphIndex = paragraphIndex,
                 scrollOffset = scrollOffset,
-                isProgrammaticJumpPending = false
+                pendingPositionRequest = null,
             )
         }
-        updateLocalProgress()
+        recordCurrentProgress()
     }
 
     private fun requestScrollToPosition(
         chapterIndex: Int,
+        pageIndex: Int? = null,
         anchorId: String?,
         paragraphIndex: Int,
         offset: Int
     ) {
         scrollRequestSequence += 1
         val sequence = scrollRequestSequence
-        _state.update { it.copy(isProgrammaticJumpPending = true) }
-        scope.launch {
-            _effect.emit(
-                ReaderEffect.ScrollToPosition(
+        _state.update {
+            it.copy(
+                pendingPositionRequest = ReaderPositionRequest(
                     sequence = sequence,
                     chapterIndex = chapterIndex,
+                    pageIndex = pageIndex,
                     anchorId = anchorId,
                     paragraphIndex = paragraphIndex,
-                    offset = offset
+                    offset = offset,
                 )
             )
         }
@@ -750,6 +854,8 @@ class ReaderViewModel(
      * @param direction 滑动方向：1=向前（下一章），-1=向后（上一章）
      */
     fun onPagerChapterChanged(newChapterIndex: Int, direction: Int) {
+        if (_state.value.isProgrammaticJumpPending) return
+
         val currentIndex = _state.value.currentChapterIndex
         if (newChapterIndex == currentIndex) return
         
@@ -761,12 +867,15 @@ class ReaderViewModel(
                 currentChapterIndex = newChapterIndex,
                 currentChapter = state.adjacentChapters[newChapterIndex],
                 currentPageIndex = 0,
+                currentAnchorId = null,
+                currentParagraphIndex = 0,
+                scrollOffset = 0,
                 pagerSlideDirection = direction
             )
         }
         
-        // 更新本地进度
-        updateLocalProgress()
+        // 章节边界立即同步；随后 Pager 的精确页位置会再合并为最新快照。
+        recordCurrentProgress(immediateCloudSync = true)
         
         // 异步加载新的相邻章节
         loadAdjacentChaptersForPager(newChapterIndex)
@@ -853,13 +962,14 @@ class ReaderViewModel(
             state.copy(
                 currentChapterIndex = newChapterIndex,
                 currentChapter = state.adjacentChapters[newChapterIndex],
+                currentAnchorId = null,
                 currentParagraphIndex = 0,
                 scrollOffset = 0
             )
         }
 
-        // 更新本地进度
-        updateLocalProgress()
+        // 章节边界立即同步；后续视口位置事件会补齐精确段落。
+        recordCurrentProgress(immediateCloudSync = true)
 
         // 异步补充加载新的相邻章节
         loadAdjacentChaptersForPager(newChapterIndex)
@@ -1000,28 +1110,9 @@ class ReaderViewModel(
     // ============= 退出 =============
     
     fun back() {
-        // 保存进度后退出
-        progressSaveJob?.cancel()
         scope.launch {
-            updateLocalProgress()
-            
-            val state = _state.value
-            try {
-                readerRepository.updateRemoteProgress(
-                    bookId = state.bookId,
-                    progress = state.calculatedProgress,
-                    currentChapter = state.currentChapterIndex,
-                    totalChapters = state.totalChapters,
-                    anchorId = state.currentAnchorId,
-                    paragraphIndex = state.currentParagraphIndex,
-                    scrollOffset = state.scrollOffset,
-                    chapterPageIndex = state.currentPageIndex,
-                    chapterScrollPercent = null
-                )
-            } catch (_: Exception) {
-                // 静默处理
-            }
-            
+            val snapshot = recordCurrentProgress(scheduleCloudSync = false)
+            flushProgress(snapshot)
             _effect.emit(ReaderEffect.NavigateBack)
         }
     }
@@ -1034,9 +1125,26 @@ class ReaderViewModel(
     
     override fun onCleared() {
         super.onCleared()
-        progressSaveJob?.cancel()
+        localProgressSaveJob?.cancel()
+        progressSyncDebounceJob?.cancel()
+        progressSyncJob?.cancel()
         settingsDebounceJob?.cancel()
         settingsSyncJob?.cancel()
-        autoSyncJob?.cancel()
+    }
+
+    private fun resetProgressPipelines() {
+        localProgressSaveJob?.cancel()
+        progressSyncDebounceJob?.cancel()
+        progressSyncJob?.cancel()
+        localProgressSaveJob = null
+        progressSyncDebounceJob = null
+        progressSyncJob = null
+        pendingLocalSnapshot = null
+        pendingRemoteSnapshot = null
+        lastSyncedPosition = null
+    }
+
+    private companion object {
+        const val PROGRESS_SYNC_DEBOUNCE_MS = 600L
     }
 }

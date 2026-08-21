@@ -60,7 +60,14 @@ fun ScrollModeContent(
     onLinkClick: (url: String) -> Unit,
     onParagraphLongClick: (ReaderParagraphSelection) -> Unit,
     onScrollPositionChanged: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
-    onScrollRequestCompleted: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
+    onScrollRequestCompleted: (
+        sequence: Long,
+        chapterIndex: Int,
+        pageIndex: Int?,
+        anchorId: String?,
+        paragraphIndex: Int,
+        scrollOffset: Int,
+    ) -> Unit,
     onCurrentChapterChanged: (chapterIndex: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -247,12 +254,27 @@ fun ScrollModeContent(
                                 val elementAnchorId = chapterElements[idx]
                                     ?.getOrNull(anchors[anchorIdx].elementIndex)
                                     ?.anchorId
+                                val elements = chapterElements[idx].orEmpty()
+                                val nextAnchor = anchors.getOrNull(anchorIdx + 1)
+                                val elementOffsets = if (elements.isEmpty()) {
+                                    emptyList()
+                                } else {
+                                    buildReaderElementOffsets(
+                                        pageAnchor = anchors[anchorIdx],
+                                        renderCommands = engine.prepareRenderCommands(
+                                            startAnchor = anchors[anchorIdx],
+                                            endAnchor = nextAnchor,
+                                            elements = elements,
+                                        ),
+                                    )
+                                }
                                 add(
                                     ReaderScrollItem(
                                         chapterIndex = idx,
                                         anchorIndex = anchorIdx,
                                         anchorId = elementAnchorId,
                                         elementIndex = anchors[anchorIdx].elementIndex,
+                                        elementOffsets = elementOffsets,
                                     )
                                 )
                             }
@@ -278,6 +300,7 @@ fun ScrollModeContent(
             // 而 Effect 本身只随 listState 变化重建（listState 生命周期与 Composable 相同）。
             val itemChapterMapState by rememberUpdatedState(itemChapterMap)
             val currentChapterIndexState by rememberUpdatedState(currentChapterIndex)
+            val chapterElementsState by rememberUpdatedState(chapterElements)
 
             // 进度追踪：300ms 防抖，上报当前可见的章节 + anchor 位置
             LaunchedEffect(listState) {
@@ -290,8 +313,20 @@ fun ScrollModeContent(
                         val mapIndex = (globalIndex - 1).coerceAtLeast(0)
                         val item = itemChapterMapState.getOrNull(mapIndex)
                             ?: return@collect
-                        val paragraphIndex = item.elementIndex.coerceAtLeast(0)
-                        onScrollPositionChanged(item.chapterIndex, item.anchorId, paragraphIndex, scrollOffset)
+                        val elements = chapterElementsState[item.chapterIndex]
+                            ?: return@collect
+                        val position = resolveVisibleReaderPosition(
+                            elements = elements,
+                            pageAnchorElementIndex = item.elementIndex,
+                            elementOffsets = item.elementOffsets,
+                            pageScrollOffset = scrollOffset,
+                        )
+                        onScrollPositionChanged(
+                            item.chapterIndex,
+                            position.anchorId,
+                            position.paragraphIndex,
+                            position.anchorOffset,
+                        )
                     }
             }
 
@@ -309,24 +344,24 @@ fun ScrollModeContent(
                     it.chapterIndex == request.chapterIndex && it.anchorIndex == resolution.anchorIndex
                 }
                 if (mapIndex < 0) return@LaunchedEffect
-                val targetOffset = if (request.offset > 0) {
-                    request.offset
-                } else {
+                val targetOffset = (
                     resolveReaderCanvasElementOffset(
                         readerEngine = engine,
                         elements = elements,
                         pageAnchors = anchors,
                         anchorIndex = resolution.anchorIndex,
                         elementIndex = resolution.targetElementIndex,
-                    )
-                }.coerceAtLeast(0)
+                    ) + request.offset
+                ).coerceAtLeast(0)
 
                 listState.scrollToItem(
                     index = mapIndex + 1,
                     scrollOffset = targetOffset
                 )
                 onScrollRequestCompleted(
+                    request.sequence,
                     request.chapterIndex,
+                    null,
                     resolution.anchorId,
                     resolution.targetElementIndex,
                     targetOffset
@@ -503,14 +538,27 @@ data class ReaderScrollRequest(
     val chapterIndex: Int,
     val anchorId: String?,
     val paragraphIndex: Int,
-    val offset: Int
+    val offset: Int,
+    val pageIndex: Int? = null,
 )
 
 internal data class ReaderScrollItem(
     val chapterIndex: Int,
     val anchorIndex: Int,
     val anchorId: String?,
-    val elementIndex: Int
+    val elementIndex: Int,
+    val elementOffsets: List<ReaderElementOffset> = emptyList(),
+)
+
+internal data class ReaderElementOffset(
+    val elementIndex: Int,
+    val y: Int,
+)
+
+internal data class ReaderVisiblePosition(
+    val anchorId: String?,
+    val paragraphIndex: Int,
+    val anchorOffset: Int,
 )
 
 internal data class ReaderScrollResolution(
@@ -573,6 +621,48 @@ internal fun resolveReaderCanvasElementOffset(
         .firstOrNull { it.elementIndex == elementIndex }
         ?.y
         ?: 0
+}
+
+internal fun buildReaderElementOffsets(
+    pageAnchor: PageAnchor,
+    renderCommands: List<RenderCommand>,
+): List<ReaderElementOffset> {
+    return buildList {
+        add(ReaderElementOffset(pageAnchor.elementIndex, 0))
+        renderCommands
+            .filterIsInstance<RenderCommand.Text>()
+            .forEach { command ->
+                add(ReaderElementOffset(command.elementIndex, command.y))
+            }
+    }.distinctBy { it.elementIndex to it.y }
+}
+
+internal fun resolveVisibleReaderPosition(
+    elements: List<ContentElement>,
+    pageAnchorElementIndex: Int,
+    elementOffsets: List<ReaderElementOffset>,
+    pageScrollOffset: Int,
+): ReaderVisiblePosition {
+    if (elements.isEmpty()) {
+        return ReaderVisiblePosition(anchorId = null, paragraphIndex = 0, anchorOffset = 0)
+    }
+
+    val safePageAnchorIndex = pageAnchorElementIndex.coerceIn(0, elements.lastIndex)
+    val candidates = elementOffsets
+        .filter { it.elementIndex in elements.indices }
+        .ifEmpty { listOf(ReaderElementOffset(safePageAnchorIndex, 0)) }
+    val visibleTop = pageScrollOffset.coerceAtLeast(0)
+    val resolved = candidates
+        .filter { it.y <= visibleTop }
+        .maxByOrNull { it.y }
+        ?: candidates.minBy { it.y }
+    val elementIndex = resolved.elementIndex.coerceIn(0, elements.lastIndex)
+
+    return ReaderVisiblePosition(
+        anchorId = elements[elementIndex].anchorId,
+        paragraphIndex = elementIndex,
+        anchorOffset = (visibleTop - resolved.y).coerceAtLeast(0),
+    )
 }
 
 /**

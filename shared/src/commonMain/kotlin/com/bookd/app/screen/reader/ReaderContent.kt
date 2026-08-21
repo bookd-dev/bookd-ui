@@ -26,9 +26,16 @@ fun ReaderContent(
     onLinkClick: (url: String) -> Unit,
     onParagraphLongClick: (ReaderParagraphSelection) -> Unit,
     onScrollPositionChanged: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
-    onScrollRequestCompleted: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
+    onScrollRequestCompleted: (
+        sequence: Long,
+        chapterIndex: Int,
+        pageIndex: Int?,
+        anchorId: String?,
+        paragraphIndex: Int,
+        scrollOffset: Int,
+    ) -> Unit,
     onCurrentChapterChanged: (chapterIndex: Int) -> Unit,
-    onPagePositionChanged: (pageIndex: Int) -> Unit,
+    onPagePositionChanged: (chapterIndex: Int, pageIndex: Int, anchorId: String?, paragraphIndex: Int) -> Unit,
     onPagerChapterChanged: (chapterIndex: Int, direction: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
