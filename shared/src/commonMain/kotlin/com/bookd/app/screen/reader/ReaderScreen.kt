@@ -69,12 +69,21 @@ fun ReaderScreen(
     var isSettingsVisible by remember { mutableStateOf(false) }
     var isTocVisible by remember { mutableStateOf(false) }
     var currentTime by remember { mutableStateOf(getCurrentTimeString()) }
-    var pendingScrollRequest by remember { mutableStateOf<ReaderScrollRequest?>(null) }
     var imagePreview by remember { mutableStateOf<ReaderImagePreview?>(null) }
     var footnotePreview by remember { mutableStateOf<ContentElement.Footnote?>(null) }
     var externalLinkFallbackUrl by remember { mutableStateOf<String?>(null) }
     var paragraphSelection by remember { mutableStateOf<ReaderParagraphSelection?>(null) }
     val shellUiState = buildReaderShellUiState(state)
+    val pendingScrollRequest = state.pendingPositionRequest?.let { request ->
+        ReaderScrollRequest(
+            sequence = request.sequence,
+            chapterIndex = request.chapterIndex,
+            anchorId = request.anchorId,
+            paragraphIndex = request.paragraphIndex,
+            offset = request.offset,
+            pageIndex = request.pageIndex,
+        )
+    }
 
     // 预加载国际化字符串
     val fallbackTitle = stringResource(Res.string.app_name)
@@ -114,15 +123,6 @@ fun ReaderScreen(
                 }
                 is ReaderEffect.ProgressSaved -> {
                     snackbarHostState.showSnackbar(progressSavedMsg)
-                }
-                is ReaderEffect.ScrollToPosition -> {
-                    pendingScrollRequest = ReaderScrollRequest(
-                        sequence = effect.sequence,
-                        chapterIndex = effect.chapterIndex,
-                        anchorId = effect.anchorId,
-                        paragraphIndex = effect.paragraphIndex,
-                        offset = effect.offset
-                    )
                 }
                 is ReaderEffect.ScrollToPage -> {
                     // 翻页模式跳页（翻页模式实现时处理）
@@ -210,13 +210,14 @@ fun ReaderScreen(
                             onScrollPositionChanged = { chapterIndex, anchorId, paragraphIndex, scrollOffset ->
                                 viewModel.updateScrollPosition(chapterIndex, anchorId, paragraphIndex, scrollOffset)
                             },
-                            onScrollRequestCompleted = { chapterIndex, anchorId, paragraphIndex, scrollOffset ->
-                                pendingScrollRequest = null
+                            onScrollRequestCompleted = { sequence, chapterIndex, pageIndex, anchorId, paragraphIndex, scrollOffset ->
                                 viewModel.onProgrammaticScrollCompleted(
                                     chapterIndex = chapterIndex,
                                     anchorId = anchorId,
                                     paragraphIndex = paragraphIndex,
-                                    scrollOffset = scrollOffset
+                                    scrollOffset = scrollOffset,
+                                    pageIndex = pageIndex,
+                                    sequence = sequence,
                                 )
                             },
                             onCurrentChapterChanged = { newChapterIndex ->

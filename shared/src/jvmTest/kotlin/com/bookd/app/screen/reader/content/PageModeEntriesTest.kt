@@ -131,6 +131,28 @@ class PageModeEntriesTest {
     }
 
     @Test
+    fun `given settled content page when resolve reading position then returns chapter page and stable anchor together`() {
+        val elements = listOf(
+            ContentElement.Paragraph(spans = listOf(TextSpan("first")), anchorId = "p-0"),
+            ContentElement.Paragraph(spans = listOf(TextSpan("second")), anchorId = "p-1"),
+        )
+        val entry = ContentPageEntry(
+            chapterIndex = 4,
+            pageIndex = 2,
+            anchor = PageAnchor(elementIndex = 1, textOffset = 0, pageIndex = 2),
+            nextAnchor = null,
+            elements = elements,
+        )
+
+        val position = resolvePageReadingPosition(entry)
+
+        assertEquals(4, position.chapterIndex)
+        assertEquals(2, position.pageIndex)
+        assertEquals("p-1", position.anchorId)
+        assertEquals(1, position.paragraphIndex)
+    }
+
+    @Test
     fun `given bookmark anchor inside page when resolve page mode scroll target then preserves target paragraph`() {
         val elements = listOf(
             ContentElement.Paragraph(spans = listOf(TextSpan("first")), anchorId = "p-0"),
@@ -200,6 +222,46 @@ class PageModeEntriesTest {
         assertEquals(1, target.pagerIndex)
         assertEquals(1, target.pageIndex)
         assertEquals("p-1", target.anchorId)
+    }
+
+    @Test
+    fun `given saved second page sharing paragraph anchor when restore then keeps exact saved page`() {
+        val elements = listOf(
+            ContentElement.Paragraph(
+                spans = listOf(TextSpan("a very long paragraph")),
+                anchorId = "p-0",
+            ),
+        )
+        val anchors = listOf(
+            PageAnchor(elementIndex = 0, textOffset = 0, pageIndex = 0),
+            PageAnchor(elementIndex = 0, textOffset = 80, pageIndex = 1),
+            PageAnchor(elementIndex = 0, textOffset = 160, pageIndex = 2),
+        )
+        val entries = buildPageModeEntries(
+            orderedChapterIndices = listOf(2),
+            chapterElements = mapOf(2 to elements),
+            chapterAnchors = mapOf(2 to anchors),
+        )
+
+        val target = resolvePageModeScrollTarget(
+            entries = entries,
+            chapterElements = mapOf(2 to elements),
+            chapterAnchors = mapOf(2 to anchors),
+            request = ReaderScrollRequest(
+                sequence = 1L,
+                chapterIndex = 2,
+                anchorId = "p-0",
+                paragraphIndex = 0,
+                offset = 0,
+                pageIndex = 1,
+            ),
+        )
+
+        requireNotNull(target)
+        assertEquals(1, target.pagerIndex)
+        assertEquals(1, target.pageIndex)
+        assertEquals("p-0", target.anchorId)
+        assertEquals(0, target.paragraphIndex)
     }
 
     private fun paragraph(text: String): ContentElement {

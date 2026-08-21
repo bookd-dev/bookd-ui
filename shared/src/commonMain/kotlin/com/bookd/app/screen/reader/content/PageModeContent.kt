@@ -62,8 +62,15 @@ fun PageModeContent(
     onFootnoteClick: (ContentElement.Footnote) -> Unit,
     onLinkClick: (url: String) -> Unit,
     onParagraphLongClick: (ReaderParagraphSelection) -> Unit,
-    onScrollRequestCompleted: (chapterIndex: Int, anchorId: String?, paragraphIndex: Int, scrollOffset: Int) -> Unit,
-    onPagePositionChanged: (pageIndex: Int) -> Unit,
+    onScrollRequestCompleted: (
+        sequence: Long,
+        chapterIndex: Int,
+        pageIndex: Int?,
+        anchorId: String?,
+        paragraphIndex: Int,
+        scrollOffset: Int,
+    ) -> Unit,
+    onPagePositionChanged: (chapterIndex: Int, pageIndex: Int, anchorId: String?, paragraphIndex: Int) -> Unit,
     onPagerChapterChanged: (chapterIndex: Int, direction: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -221,7 +228,13 @@ fun PageModeContent(
                             val direction = pageModeChapterDirection(current, entry.chapterIndex)
                             onPagerChapterChanged(entry.chapterIndex, direction)
                         }
-                        onPagePositionChanged(entry.pageIndex)
+                        val position = resolvePageReadingPosition(entry)
+                        onPagePositionChanged(
+                            position.chapterIndex,
+                            position.pageIndex,
+                            position.anchorId,
+                            position.paragraphIndex,
+                        )
                     }
             }
 
@@ -232,7 +245,13 @@ fun PageModeContent(
                     val direction = pageModeChapterDirection(currentChapterIndex, entry.chapterIndex)
                     onPagerChapterChanged(entry.chapterIndex, direction)
                 }
-                onPagePositionChanged(entry.pageIndex)
+                val position = resolvePageReadingPosition(entry)
+                onPagePositionChanged(
+                    position.chapterIndex,
+                    position.pageIndex,
+                    position.anchorId,
+                    position.paragraphIndex,
+                )
             }
 
             LaunchedEffect(scrollRequest, pageEntries, chapterElements, chapterAnchors) {
@@ -250,9 +269,16 @@ fun PageModeContent(
                 ) {
                     pagerState.scrollToPage(target.pagerIndex)
                 }
-                onPagePositionChanged(target.pageIndex)
-                onScrollRequestCompleted(
+                onPagePositionChanged(
                     target.chapterIndex,
+                    target.pageIndex,
+                    target.anchorId,
+                    target.paragraphIndex,
+                )
+                onScrollRequestCompleted(
+                    request.sequence,
+                    target.chapterIndex,
+                    target.pageIndex,
                     target.anchorId,
                     target.paragraphIndex,
                     0,
