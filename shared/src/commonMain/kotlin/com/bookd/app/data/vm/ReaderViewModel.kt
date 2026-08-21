@@ -982,7 +982,6 @@ class ReaderViewModel(
     
     fun updateSettings(settings: ReaderSettings) {
         _state.update { it.copy(readerSettings = settings) }
-        readerRepository.saveLocalReaderSettings(settings)
         syncSettings(settings)
     }
     

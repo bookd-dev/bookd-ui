@@ -57,8 +57,9 @@ class ReaderViewModelNavigationTest {
     }
 
     @Test
-    fun `given font size changed when reader exits before debounce then reopened reader restores local value`() = runBlocking {
+    fun `given font size changed when debounce completes then repository persists synced value`() = runBlocking {
         viewModel.updateFontSize(24)
+        waitUntil { fakeApi.readerSettingsUpdates.size == 1 }
 
         val reopenedRepository = ReaderRepository(
             database,
@@ -67,7 +68,7 @@ class ReaderViewModelNavigationTest {
         )
 
         assertEquals(24, reopenedRepository.getReaderSettings().fontSize)
-        assertTrue(reopenedRepository.hasPendingReaderSettingsSync())
+        assertFalse(reopenedRepository.hasPendingReaderSettingsSync())
     }
 
     @Test
@@ -344,6 +345,8 @@ private class ReaderNavigationFakeApi : ReaderApi {
     var remoteProgress: ReadingProgressResponse? = null
     var progressUpdateDelayMs: Long = 0L
     val progressUpdates = mutableListOf<ReadingProgressDTO>()
+    val readerSettingsUpdates = mutableListOf<ReaderSettingsDTO>()
+    private var readerSettings = ReaderSettingsDTO()
 
     override suspend fun getBookManifest(bookId: Int): BookManifest = manifest(bookId)
 
@@ -420,9 +423,13 @@ private class ReaderNavigationFakeApi : ReaderApi {
     override suspend fun deleteBookmark(bookmarkId: Int) {
     }
 
-    override suspend fun getReaderSettings(): ReaderSettingsDTO = ReaderSettingsDTO()
+    override suspend fun getReaderSettings(): ReaderSettingsDTO = readerSettings
 
-    override suspend fun updateReaderSettings(settings: ReaderSettingsDTO): ReaderSettingsDTO = settings
+    override suspend fun updateReaderSettings(settings: ReaderSettingsDTO): ReaderSettingsDTO {
+        readerSettingsUpdates += settings
+        readerSettings = settings
+        return settings
+    }
 
     override suspend fun patchReaderSettings(settings: ReaderSettingsDTO): ReaderSettingsDTO = settings
 
