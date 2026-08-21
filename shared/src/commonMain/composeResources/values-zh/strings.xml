@@ -1,0 +1,246 @@
+<resources>
+    <string name="app_name">Bookd</string>
+
+    <string name="bookshelf">书架</string>
+    <string name="booksource">书源</string>
+    <string name="settings">设置</string>
+    <string name="booklist">书单</string>
+    <string name="goto">前往</string>
+    <string name="cancel">取消</string>
+    <string name="ok">好</string>
+    <string name="confirm">确认</string>
+    <string name="test">测试</string>
+    <string name="success">成功</string>
+    <string name="failed">失败</string>
+    <string name="pending">等待中</string>
+    <string name="refresh">刷新</string>
+    <string name="search">搜索</string>
+
+    <string name="network_config">网络配置</string>
+    <string name="remote_url">远程地址: </string>
+    <string name="local_url">本地地址: </string>
+    <string name="remote_url_config">远程地址配置</string>
+    <string name="local_url_config">本地地址配置</string>
+
+    <string name="remote_url_config_input">输入您的远程网络地址</string>
+    <string name="local_url_config_input">输入您的内网地址</string>
+
+    <string name="error_no_network_config">未配置网络地址，请先设置服务器地址</string>
+    <string name="error_token_expired">凭证过期，请重新登录</string>
+    <string name="error_not_authenticated">未登录，请先登录</string>
+    <string name="error_network">网络发送错误，请重试</string>
+    <string name="error_unknown">发生未知错误</string>
+
+    <!-- Sign In / Register Screen -->
+    <string name="sign_in">登录</string>
+    <string name="register">注册</string>
+    <string name="login">登录</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="email">邮箱（可选）</string>
+    <string name="invite_code">邀请码</string>
+    <string name="guest_register">访客注册</string>
+    <string name="invite_register">邀请码注册</string>
+
+    <!-- Button States -->
+    <string name="signing_in">登录中...</string>
+    <string name="registering">注册中...</string>
+
+    <!-- Validation Errors -->
+    <string name="error_username_too_short">用户名至少 3 个字符</string>
+    <string name="error_username_too_long">用户名最多 20 个字符</string>
+    <string name="error_username_invalid_chars">用户名只能包含字母、数字和下划线</string>
+    <string name="error_password_too_short">密码至少 6 个字符</string>
+    <string name="error_password_too_long">密码最多 32 个字符</string>
+    <string name="error_email_invalid">邮箱格式不正确</string>
+    <string name="error_invite_code_invalid">邀请码格式不正确</string>
+
+    <!-- Success Messages -->
+    <string name="login_success">登录成功</string>
+    <string name="register_success">注册成功</string>
+
+    <!-- BookSource Screen -->
+    <string name="no_book_source">暂无书源</string>
+    <string name="no_more_data">没有更多了</string>
+    <string name="source_no_books">此书源暂无书籍</string>
+    <string name="chapters_count">%1$d 章</string>
+    <string name="search_book_hint">关键词</string>
+    <string name="search_book_initial">开始搜索</string>
+    <string name="search_book_empty">没有匹配书籍</string>
+    <string name="search_book_load_failed">搜索失败</string>
+
+    <!-- Bookshelf Screen -->
+    <string name="bookshelf_empty">暂无书架</string>
+    <string name="bookshelf_no_books">此书架暂无书籍</string>
+    <string name="bookshelf_create">创建书架</string>
+    <string name="bookshelf_edit">编辑书架</string>
+    <string name="bookshelf_delete">删除书架</string>
+    <string name="bookshelf_delete_confirm">确定要删除此书架吗？</string>
+    <string name="bookshelf_name">书架名称</string>
+    <string name="bookshelf_description">描述（可选）</string>
+    <string name="bookshelf_created">书架创建成功</string>
+    <string name="bookshelf_updated">书架更新成功</string>
+    <string name="bookshelf_deleted">书架删除成功</string>
+    <string name="book_removed">已从书架移除</string>
+    <string name="reading_progress">已读 %1$d%</string>
+    <string name="list_view">列表视图</string>
+    <string name="grid_view">网格视图</string>
+    <string name="add_bookshelf">添加书架</string>
+    <string name="manage_bookshelves">管理书架</string>
+    <string name="bookshelf_system_default_readonly">系统默认书架名称不可修改</string>
+    <string name="bookshelf_delete_info">「%1$s」（%2$d 本书籍）</string>
+    <string name="bookshelf_delete_note">注意：删除书架不会删除其中的书籍</string>
+
+    <!-- Book Context Menu -->
+    <string name="book_detail">书籍详情</string>
+    <string name="add_to_bookshelves">添加到书架</string>
+    <string name="move_to_bookshelf">移动到书架</string>
+    <string name="remove_from_all_bookshelves">移除</string>
+
+    <!-- Add to Bookshelves Dialog -->
+    <string name="add_to_bookshelves_title">添加到书架</string>
+    <string name="bookshelves_updated">书架已更新</string>
+    <string name="no_available_bookshelves">没有可添加的书架</string>
+    <string name="book_added_to_bookshelves">已添加到书架</string>
+
+    <!-- Move to Bookshelf Dialog -->
+    <string name="move_to_bookshelf_title">移动到书架</string>
+    <string name="move_to_bookshelf_description">选择目标书架（将从当前书架移除）</string>
+    <string name="book_moved_to_bookshelf">已移动到书架</string>
+    <string name="no_other_bookshelves">没有其他可用书架</string>
+    
+    <!-- Remove from All Bookshelves Dialog -->
+    <string name="remove_from_all_title">从所有书架移除</string>
+    <string name="remove_from_all_message">确定要从所有书架移除「%1$s」吗？\n\n书籍文件不会被删除，仍可通过搜索找到。</string>
+    <string name="book_removed_from_all">已从所有书架移除</string>
+
+    <!-- Add to Bookshelf Dialog (BookDetail) -->
+    <string name="select_bookshelves_hint">选择要添加到的书架</string>
+    <string name="no_bookshelves_create_first">暂无可用书架，请先创建书架</string>
+    <string name="books_count">%1$d 本</string>
+
+    <!-- Book Detail Info Section -->
+    <string name="detail_info">详细信息</string>
+    <string name="publisher_label">出版社</string>
+    <string name="isbn_label">ISBN</string>
+    <string name="chapters_label">章节数</string>
+    <string name="word_count_label">总字数</string>
+    <string name="image_count_label">图片数</string>
+    <string name="word_count_value">%1$d 字</string>
+    <string name="word_count_wan">%1$s 万字</string>
+    <string name="word_count_yi">%1$s 亿字</string>
+    <string name="chapters_value">%1$d 章</string>
+    <string name="images_value">%1$d 张</string>
+
+    <!-- Book Detail Screen -->
+    <string name="start_reading">开始阅读</string>
+    <string name="add_to_default_bookshelf">添加到书架</string>
+    <string name="remove_from_default_bookshelf">从书架移除</string>
+    <string name="add_to_other_bookshelf">书架</string>
+    <string name="back">返回</string>
+    <string name="added_to_bookshelf">已添加到书架</string>
+    <string name="removed_from_bookshelf">已从书架移除</string>
+    <string name="added_to_default_bookshelf">已添加到默认书架</string>
+    <string name="removed_from_default_bookshelf">已从默认书架移除</string>
+    <string name="file_size_bytes">%1$d B</string>
+    <string name="file_size_kb">%1$d KB</string>
+    <string name="file_size_mb">%1$s MB</string>
+    <string name="file_size_gb">%1$s GB</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_network">网络设置</string>
+    <string name="settings_cache">缓存管理</string>
+    <string name="settings_logout">退出登录</string>
+    <string name="settings_about">关于</string>
+
+    <!-- Cache -->
+    <string name="cache_calculating">计算中...</string>
+    <string name="cache_clear_confirm_title">清除缓存？</string>
+    <string name="cache_clear_confirm_message">这将删除所有缓存的图片，是否继续？</string>
+    <string name="cache_cleared">缓存已清除</string>
+
+    <!-- Logout -->
+    <string name="logout_confirm_title">退出登录？</string>
+    <string name="logout_confirm_message">确定要退出登录吗？</string>
+    <string name="logout_success">已退出登录</string>
+
+    <!-- Version -->
+    <string name="app_version">版本 %1$s</string>
+
+    <!-- Reader Screen -->
+    <string name="bookmark_added">书签已添加</string>
+    <string name="bookmark_deleted">书签已删除</string>
+    <string name="progress_saved">阅读进度已保存</string>
+    <string name="loading">加载中...</string>
+    <string name="load_failed">加载失败</string>
+    <string name="toc">目录</string>
+    <string name="bookmarks">书签</string>
+    <string name="reader_settings">设置</string>
+    <string name="view_book_detail">查看详情</string>
+    <string name="chapter_progress">第 %1$d/%2$d 章</string>
+    <string name="page_progress">第 %1$d/%2$d 页</string>
+    <string name="previous_chapter">上一章</string>
+    <string name="next_chapter">下一章</string>
+    <string name="font_size">字体大小</string>
+    <string name="line_height">行高</string>
+    <string name="paragraph_spacing">段落间距</string>
+    <string name="margin_horizontal">左右边距</string>
+    <string name="margin_vertical">上下边距</string>
+    <string name="first_line_indent">首行缩进</string>
+    <string name="page_mode">阅读模式</string>
+    <string name="page_mode_scroll">滚动模式</string>
+    <string name="page_mode_page">翻页模式</string>
+    <string name="page_animation">翻页动画</string>
+    <string name="page_animation_none">无动画</string>
+    <string name="page_animation_slide">滑动</string>
+    <string name="page_animation_realistic">仿真翻页</string>
+    <string name="page_animation_coming_soon">即将推出</string>
+    <string name="toc_sort_asc">排序：正序</string>
+    <string name="toc_sort_desc">排序：倒序</string>
+    <string name="no_bookmarks">暂无书签</string>
+    <string name="progress_conflict_title">阅读进度冲突</string>
+    <string name="progress_conflict_message">本地与云端阅读进度不一致，请选择使用哪个进度？</string>
+    <string name="use_local_progress">使用本地</string>
+    <string name="use_remote_progress">使用云端</string>
+    <string name="local_progress_info">第 %1$d 章，已读 %2$d%</string>
+    <string name="remote_progress_info">第 %1$d 章，已读 %2$d%</string>
+    <string name="footnote">注释</string>
+    <string name="close">关闭</string>
+    <string name="reader_chapter_no_content">本章暂无内容</string>
+    <string name="reader_loading_chapter">章节加载中...</string>
+    <string name="reader_retry">重试</string>
+    <string name="reader_toc_empty">暂无目录</string>
+    <string name="reader_last_read_at">最后阅读：%1$s</string>
+    <string name="reader_local_progress">本地进度</string>
+    <string name="reader_remote_progress">云端进度</string>
+    <string name="reader_settings_typography">排版</string>
+    <string name="reader_settings_preferences">阅读偏好</string>
+    <string name="page_animation_native">原生</string>
+    <string name="bookmarks_count">书签（%1$d）</string>
+    <string name="toc_current_reading">正在阅读</string>
+    <string name="reader_toc_summary">共 %1$d 章 · 已读 %2$d%</string>
+    <string name="reader_toc_order_asc">正序</string>
+    <string name="reader_toc_order_desc">倒序</string>
+    <string name="reader_toc_read_percent">读到%1$d%</string>
+    <string name="reader_toc_image_count">%1$d 张图</string>
+    <string name="reader_toc_locate_current">定位当前章节</string>
+    <string name="toc_read_status_read">已读</string>
+    <string name="toc_read_status_reading">阅读中</string>
+    <string name="toc_read_status_unread">未读</string>
+    <string name="toc_word_count_wan">%1$d 万字</string>
+    <string name="toc_word_count_qian">%1$d 千字</string>
+    <string name="toc_word_count">%1$d 字</string>
+    <string name="toc_chapter_fallback">第 %1$d 章</string>
+    <string name="toc_delete_bookmark">删除书签</string>
+    <string name="reader_add_bookmark_current">添加当前书签</string>
+    <string name="reader_image_preview">图片预览</string>
+    <string name="reader_footnote_empty">暂无注释内容</string>
+    <string name="reader_external_link">外部链接</string>
+    <string name="reader_external_link_fallback">无法自动打开此链接。</string>
+    <string name="reader_open_link">打开链接</string>
+    <string name="reader_internal_link_unavailable">无法跳转到此书内链接</string>
+    <string name="reader_paragraph_actions">段落操作</string>
+    <string name="reader_paragraph_position">第 %1$d 章 · 第 %2$d 段</string>
+    <string name="reader_add_bookmark_paragraph">添加书签</string>
+    <string name="reader_bookmark_paragraph_fallback">第 %1$d 段</string>
+</resources>

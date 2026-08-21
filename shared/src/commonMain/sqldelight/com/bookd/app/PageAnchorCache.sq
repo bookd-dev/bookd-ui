@@ -1,0 +1,38 @@
+-- PageAnchorCache 表：缓存页面锚点位置（LRU 淘汰）
+CREATE TABLE PageAnchorCacheEntity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    cacheKey TEXT NOT NULL,
+    anchorsJson TEXT NOT NULL,
+    cachedAt INTEGER NOT NULL,
+    lastAccessedAt INTEGER NOT NULL,
+    UNIQUE(cacheKey)
+);
+
+CREATE INDEX page_anchor_cache_key_index ON PageAnchorCacheEntity(cacheKey);
+CREATE INDEX page_anchor_cache_lru_index ON PageAnchorCacheEntity(lastAccessedAt);
+
+-- 根据缓存键查询
+selectByCacheKey:
+SELECT * FROM PageAnchorCacheEntity
+WHERE cacheKey = :cacheKey;
+
+-- 插入或替换页面锚点缓存（初始 lastAccessedAt 与 cachedAt 相同）
+insertOrReplace:
+INSERT OR REPLACE INTO PageAnchorCacheEntity (cacheKey, anchorsJson, cachedAt, lastAccessedAt)
+VALUES (?, ?, ?, ?);
+
+-- 更新最近访问时间（LRU：每次命中时调用）
+updateLastAccessedAt:
+UPDATE PageAnchorCacheEntity SET lastAccessedAt = :lastAccessedAt WHERE cacheKey = :cacheKey;
+
+-- 删除最久未访问的记录（LRU 淘汰）
+deleteOldEntries:
+DELETE FROM PageAnchorCacheEntity WHERE id IN (SELECT id FROM PageAnchorCacheEntity ORDER BY lastAccessedAt ASC LIMIT :count);
+
+-- 删除所有页面锚点缓存
+deleteAll:
+DELETE FROM PageAnchorCacheEntity;
+
+-- 获取缓存统计：总数量
+countAll:
+SELECT COUNT(*) FROM PageAnchorCacheEntity;

@@ -1,0 +1,87 @@
+-- Book 表：缓存书籍列表
+CREATE TABLE BookEntity (
+    id INTEGER NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    author TEXT,
+    format TEXT NOT NULL,
+    filePath TEXT NOT NULL,
+    fileSize INTEGER NOT NULL,
+    coverPath TEXT,
+    isbn TEXT,
+    publisher TEXT,
+    description TEXT,
+    sourceId INTEGER,
+    chapterCount INTEGER NOT NULL DEFAULT 0,
+    totalWordCount INTEGER NOT NULL DEFAULT 0,
+    totalImageCount INTEGER NOT NULL DEFAULT 0,
+    chaptersParsed INTEGER NOT NULL DEFAULT 0,
+    chaptersCount INTEGER NOT NULL DEFAULT 0,
+    lastParsedAt TEXT,
+    parseStatus TEXT,
+    parseProgress INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT,
+    updatedAt TEXT
+);
+
+CREATE INDEX book_source_id_index ON BookEntity(sourceId);
+
+-- 获取所有书籍
+selectAll:
+SELECT * FROM BookEntity;
+
+-- 根据 sourceId 获取书籍（分页）
+selectBySourceId:
+SELECT * FROM BookEntity WHERE sourceId = :sourceId LIMIT :limit OFFSET :offset;
+
+-- 根据 sourceId 获取书籍数量
+countBySourceId:
+SELECT COUNT(*) FROM BookEntity WHERE sourceId = ?;
+
+-- 搜索本地缓存书籍
+searchCached:
+SELECT * FROM BookEntity
+WHERE (:sourceId IS NULL OR sourceId = :sourceId)
+AND (
+    LOWER(title) LIKE '%' || :query || '%'
+    OR LOWER(author) LIKE '%' || :query || '%'
+    OR LOWER(isbn) LIKE '%' || :query || '%'
+    OR LOWER(publisher) LIKE '%' || :query || '%'
+)
+ORDER BY title ASC, id ASC
+LIMIT :limit OFFSET :offset;
+
+-- 搜索本地缓存书籍数量
+countSearchCached:
+SELECT COUNT(*) FROM BookEntity
+WHERE (:sourceId IS NULL OR sourceId = :sourceId)
+AND (
+    LOWER(title) LIKE '%' || :query || '%'
+    OR LOWER(author) LIKE '%' || :query || '%'
+    OR LOWER(isbn) LIKE '%' || :query || '%'
+    OR LOWER(publisher) LIKE '%' || :query || '%'
+);
+
+-- 根据 ID 获取书籍
+selectById:
+SELECT * FROM BookEntity WHERE id = ?;
+
+-- 插入或替换书籍
+insertOrReplace:
+INSERT OR REPLACE INTO BookEntity (
+    id, title, author, format, filePath, fileSize, coverPath,
+    isbn, publisher, description, sourceId, chapterCount,
+    totalWordCount, totalImageCount, chaptersParsed, chaptersCount,
+    lastParsedAt, parseStatus, parseProgress, createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 删除指定 sourceId 的所有书籍（用于刷新）
+deleteBySourceId:
+DELETE FROM BookEntity WHERE sourceId = ?;
+
+-- 删除所有书籍
+deleteAll:
+DELETE FROM BookEntity;
+
+-- 获取书籍总数
+count:
+SELECT COUNT(*) FROM BookEntity;

@@ -1,35 +1,50 @@
 [versions]
-agp = "8.12.3"
-android-compileSdk = "36"
+agp = "9.2.1"
+android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "36"
-androidx-activity = "1.12.2"
+androidx-activity = "1.13.0"
 androidx-appcompat = "1.7.1"
-androidx-core = "1.17.0"
+androidx-core = "1.18.0"
 androidx-espresso = "3.7.0"
-androidx-lifecycle = "2.9.6"
+androidx-lifecycle = "2.10.0"
 androidx-testExt = "1.3.0"
-androidx-datastore = "1.2.0"
-composeHotReload = "1.0.0"
-composeMultiplatform = "1.9.3"
+androidx-datastore = "1.2.1"
+composeHotReload = "1.1.1"
+composeMultiplatform = "1.11.0"
+composeMaterial3 = "1.9.0"
+composeMaterialIcons = "1.7.3"
 junit = "4.13.2"
-kotlin = "2.3.0"
-kotlinx-coroutines = "1.10.2"
-ktor = "3.3.3"
-ksp = "2.3.4"
-nav3-multiplatform-ui = "1.0.0-alpha06"
-compose-multiplatform-adaptive = "1.3.0-alpha03"
-compose-multiplatform-lifecycle = "2.10.0-alpha07"
-compose-multiplatform-navigation3-browser = "0.2.0"
-koin = "4.2.0-beta2"
-koin-annoations = "2.3.1"
-coil = "3.3.0"
+kotlin = "2.3.21"
+kotlinx-coroutines = "1.11.0"
+kotlinx-datetime = "0.8.0"
+ktor = "3.5.0"
+ksp = "2.3.8"
+nav3-multiplatform-ui = "1.1.1"
+compose-multiplatform-adaptive = "1.3.0-beta01"
+compose-multiplatform-lifecycle = "2.10.0"
+compose-multiplatform-navigation3-browser = "0.3.1"
+koin = "4.2.1"
+koin-annoations = "4.2.1"
+coil = "3.4.0"
 settings-multiplatform = "1.3.0"
-sqldelight = "2.2.1"
-ktorfit = "2.7.2"
+sqldelight = "2.3.2"
+ktorfit = "2.7.3"
+kermit = "2.1.0"
+skiko = "0.144.6"
 
 
 [libraries]
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
+compose-ui-test-junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "composeMultiplatform" }
+compose-material3-adaptive-navigation-suite = { module = "org.jetbrains.compose.material3:material3-adaptive-navigation-suite", version.ref = "composeMaterial3" }
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "composeMaterialIcons" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -42,6 +57,8 @@ androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecyc
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+#time
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 # datastore
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidx-datastore" }
@@ -57,6 +74,7 @@ ktor-serialization-kotlinxJson = { module = "io.ktor:ktor-serialization-kotlinx-
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 
 ktorfit = { module = "de.jensklingenberg.ktorfit:ktorfit-lib", version.ref = "ktorfit" }
+ktorfit-ksp = { module = "de.jensklingenberg.ktorfit:ktorfit-ksp", version.ref = "ktorfit" }
 ktorfit-converters-response = { module = "de.jensklingenberg.ktorfit:ktorfit-converters-response", version.ref = "ktorfit" }
 ktorfit-converters-call = { module = "de.jensklingenberg.ktorfit:ktorfit-converters-call", version.ref = "ktorfit" }
 ktorfit-converters-flow = { module = "de.jensklingenberg.ktorfit:ktorfit-converters-flow", version.ref = "ktorfit" }
@@ -91,14 +109,18 @@ sqldelight-native = { module = "app.cash.sqldelight:native-driver", version.ref 
 sqldelight-jvm = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 sqldelight-js = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
 
+#logger
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

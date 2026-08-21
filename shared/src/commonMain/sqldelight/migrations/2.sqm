@@ -1,0 +1,12 @@
+CREATE TABLE PageAnchorCacheEntity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    cacheKey TEXT NOT NULL,
+    anchorsJson TEXT NOT NULL,
+    cachedAt INTEGER NOT NULL,
+    lastAccessedAt INTEGER NOT NULL,
+    UNIQUE(cacheKey)
+);
+
+CREATE INDEX page_anchor_cache_key_index ON PageAnchorCacheEntity(cacheKey);
+
+CREATE INDEX page_anchor_cache_lru_index ON PageAnchorCacheEntity(lastAccessedAt);

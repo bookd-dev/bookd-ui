@@ -1,0 +1,80 @@
+CREATE TABLE BookEntity (
+    id INTEGER NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    author TEXT,
+    format TEXT NOT NULL,
+    filePath TEXT NOT NULL,
+    fileSize INTEGER NOT NULL,
+    coverPath TEXT,
+    isbn TEXT,
+    publisher TEXT,
+    description TEXT,
+    sourceId INTEGER,
+    chapterCount INTEGER NOT NULL DEFAULT 0,
+    totalWordCount INTEGER NOT NULL DEFAULT 0,
+    totalImageCount INTEGER NOT NULL DEFAULT 0,
+    chaptersParsed INTEGER NOT NULL DEFAULT 0,
+    chaptersCount INTEGER NOT NULL DEFAULT 0,
+    lastParsedAt TEXT,
+    parseStatus TEXT,
+    parseProgress INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT,
+    updatedAt TEXT
+);
+
+CREATE INDEX book_source_id_index ON BookEntity(sourceId);
+
+CREATE TABLE BookshelfEntity (
+    id INTEGER NOT NULL PRIMARY KEY,
+    userId INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    sortOrder INTEGER NOT NULL DEFAULT 0,
+    bookCount INTEGER NOT NULL DEFAULT 0,
+    isSystemDefault INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);
+
+CREATE TABLE BookshelfBookEntity (
+    bookshelfId INTEGER NOT NULL,
+    bookId INTEGER NOT NULL,
+    progressId INTEGER,
+    progress REAL,
+    currentPage INTEGER,
+    totalPages INTEGER,
+    lastReadAt TEXT,
+    sortIndex INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (bookshelfId, bookId)
+);
+
+CREATE INDEX bookshelf_userId_index ON BookshelfEntity(userId);
+CREATE INDEX bookshelf_book_bookshelfId_index ON BookshelfBookEntity(bookshelfId);
+
+CREATE TABLE BookSourceEntity (
+    id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    path TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE ChapterCacheEntity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    bookId INTEGER NOT NULL,
+    chapterIndex INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    cachedAt INTEGER NOT NULL,
+    UNIQUE(bookId, chapterIndex)
+);
+
+CREATE INDEX chapter_cache_book_id_index ON ChapterCacheEntity(bookId);
+
+CREATE TABLE LocalReadingProgressEntity (
+    bookId INTEGER NOT NULL PRIMARY KEY,
+    chapterIndex INTEGER NOT NULL,
+    paragraphIndex INTEGER NOT NULL DEFAULT 0,
+    scrollOffset INTEGER NOT NULL DEFAULT 0,
+    pageIndex INTEGER NOT NULL DEFAULT 0,
+    progress REAL NOT NULL DEFAULT 0.0,
+    lastReadAt INTEGER NOT NULL
+);
