@@ -9,6 +9,11 @@ import kotlin.test.assertTrue
 class ReaderTocDisplayTest {
 
     @Test
+    fun `given scrollable toc when sheet is shown then sheet drag gestures stay disabled`() {
+        assertFalse(READER_TOC_SHEET_GESTURES_ENABLED)
+    }
+
+    @Test
     fun `given nested toc when build display items then flattens in reading order`() {
         val items = buildReaderTocDisplayItems(
             tocItems = tocTree(),

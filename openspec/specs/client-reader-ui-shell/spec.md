@@ -49,12 +49,27 @@ The client SHALL show explicit reader loading and failure states instead of leav
 - **THEN** the reader SHALL display an error state with a retry or back navigation action.
 
 ### Requirement: Reader settings are editable from the shell
-The client SHALL let users open reader settings from the reader shell and update existing reader setting fields.
+The client SHALL let users open reader settings from the reader shell, update existing reader setting fields, persist each accepted value locally before returning from the update action, and synchronize the latest value to the configured server.
 
 #### Scenario: Reader setting is changed
 - **WHEN** the user changes a supported reader setting from the settings surface
 - **THEN** the reader SHALL update the `ReaderSettings` state
-- **AND** it SHALL persist the setting through the existing settings update path.
+- **AND** it SHALL persist the accepted value locally without waiting for delayed remote synchronization
+- **AND** it SHALL synchronize the latest pending settings through the existing remote settings path
+
+#### Scenario: Reader is exited immediately after a setting change
+- **WHEN** the user changes a reader setting and exits the book before remote synchronization begins or completes
+- **THEN** reopening the reader SHALL restore the locally persisted setting
+- **AND** a stale server value SHALL NOT overwrite the pending local setting
+
+#### Scenario: Remote settings synchronization fails
+- **WHEN** the latest local reader settings cannot be synchronized because the server is unavailable or the request fails
+- **THEN** the client SHALL keep the local setting active across reader and application recreation
+- **AND** it SHALL retain the setting as pending for a later synchronization attempt
+
+#### Scenario: Older synchronization completes after a newer local change
+- **WHEN** a remote response for an older reader settings snapshot completes after a newer local setting has been accepted
+- **THEN** the older response SHALL NOT overwrite the newer local setting
 
 #### Scenario: Reader settings surface follows Material Design
 - **WHEN** the user opens the reader settings surface

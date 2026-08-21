@@ -11,7 +11,6 @@ import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation3.rememberSupportingPaneSceneStrategy
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -49,8 +48,6 @@ fun AppScreen() {
 
     val noNetworkConfigMessage = stringResource(Res.string.error_no_network_config)
     val noNetworkActionLabel = stringResource(Res.string.goto)
-
-    val error by viewModel.error.collectAsStateWithLifecycle()
 
     val navigator = rememberNavigationInterceptor(
         backStack = backStack,
@@ -91,7 +88,7 @@ fun AppScreen() {
         LocalNavigator provides navigator,
         LocalSnackbarHostState provides snackbarHostState,
     ) {
-       SnackbarHostScaffold(error) {
+       SnackbarHostScaffold(viewModel.errorEvents) {
            NavDisplay(
                backStack = backStack,
                transitionSpec = transitionSpec<NavKey>(),

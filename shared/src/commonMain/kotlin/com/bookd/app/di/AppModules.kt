@@ -104,7 +104,7 @@ val repositoryModule = module {
     single { BookRepository(get(), get()) }
     single { BookshelfRepository(get(), get()) }
     single { BookshelfPreferenceRepository(get()) }
-    single { ReaderRepository(get(), get()) }
+    single { ReaderRepository(get(), get(), get()) }
 }
 
 /**

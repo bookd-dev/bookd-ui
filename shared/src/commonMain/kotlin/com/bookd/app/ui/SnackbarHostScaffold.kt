@@ -14,11 +14,12 @@ import com.bookd.app.data.api.NoNetworkConfigException
 import com.bookd.app.data.api.NotAuthenticatedException
 import com.bookd.app.data.api.TokenExpiredException
 import com.bookd.app.screen.LocalSnackbarHostState
+import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun SnackbarHostScaffold(
-    error: Result<Any>?,
+    errorEvents: Flow<Throwable>,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val snackbarHostState = LocalSnackbarHostState.current
@@ -28,8 +29,8 @@ fun SnackbarHostScaffold(
     val networkErrorMessage = stringResource(Res.string.error_network)
     val unknownErrorMessage = stringResource(Res.string.error_unknown)
 
-    LaunchedEffect(error) {
-        error?.onFailure { throwable ->
+    LaunchedEffect(errorEvents) {
+        errorEvents.collect { throwable ->
             val message = when (throwable) {
                 is NoNetworkConfigException -> noNetworkConfigMessage
                 is TokenExpiredException -> tokenExpiredMessage

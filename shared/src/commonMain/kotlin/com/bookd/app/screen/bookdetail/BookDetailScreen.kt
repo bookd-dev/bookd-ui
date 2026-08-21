@@ -1,5 +1,6 @@
 package com.bookd.app.screen.bookdetail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,15 +17,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.composeapp.generated.resources.Res
 import app.composeapp.generated.resources.added_to_bookshelf
@@ -75,7 +77,7 @@ fun BookDetailScreen(
     LaunchedEffect(bookId) {
         viewModel.onIntent(BookDetailIntent.LoadBookDetail(bookId))
     }
-    
+
     // 处理一次性效果
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
@@ -134,113 +136,138 @@ private fun BookDetailContent(
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
     val scrollState = rememberScrollState()
-    
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        text = state.book?.title ?: "",
-                        maxLines = 1
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.back)
-                        )
-                    }
-                }
-            )
+    val backgroundCoverPath = resolveBookDetailBackgroundCoverPath(state.book?.coverPath)
+    val hasImageBackground = backgroundCoverPath != null
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        if (backgroundCoverPath != null) {
+            BookDetailBackground(coverPath = backgroundCoverPath)
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                // 加载中
-                state.isLoading && state.book == null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                
-                // 加载错误
-                state.error != null && state.book == null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+
+        Scaffold(
+            containerColor = if (hasImageBackground) {
+                Color.Transparent
+            } else {
+                MaterialTheme.colorScheme.background
+            },
+            topBar = {
+                TopAppBar(
+                    title = {
                         Text(
-                            text = state.error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyLarge
+                            text = state.book?.title ?: "",
+                            maxLines = 1
                         )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(Res.string.back)
+                            )
+                        }
+                    },
+                    colors = if (hasImageBackground) {
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                        )
+                    } else {
+                        TopAppBarDefaults.topAppBarColors()
                     }
-                }
-                
-                // 有数据
-                state.book != null -> {
-                    PullToRefreshBox(
-                        isRefreshing = state.isRefreshing,
-                        onRefresh = onRefresh,
-                        state = pullToRefreshState,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(scrollState)
-                                .padding(16.dp)
+                )
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                when {
+                    // 加载中
+                    state.isLoading && state.book == null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            // 书籍头部信息（封面、标题、作者）
-                            BookDetailHeaderSection(book = state.book)
-                            
-                            // 阅读进度
-                            if (state.readingProgress != null) {
-                                BookDetailProgressSection(
-                                    progress = state.readingProgress,
-                                    modifier = Modifier.padding(top = 16.dp)
-                                )
-                            }
-                            
-                            // 操作按钮
-                            BookDetailActionSection(
-                                inDefaultBookshelf = state.inDefaultBookshelf,
-                                onStartReading = onStartReading,
-                                onToggleDefaultBookshelf = onToggleDefaultBookshelf,
-                                onAddToBookshelf = onShowAddToBookshelfDialog,
-                                modifier = Modifier.padding(top = 16.dp)
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    // 加载错误
+                    state.error != null && state.book == null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = state.error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
                             )
-                            
-                            // 标签
-                            if (state.tags.isNotEmpty()) {
-                                BookDetailTagsSection(
-                                    tags = state.tags,
+                        }
+                    }
+
+                    // 有数据
+                    state.book != null -> {
+                        PullToRefreshBox(
+                            isRefreshing = state.isRefreshing,
+                            onRefresh = onRefresh,
+                            state = pullToRefreshState,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(scrollState)
+                                    .padding(16.dp)
+                            ) {
+                                // 书籍头部信息（封面、标题、作者）
+                                BookDetailHeaderSection(book = state.book)
+
+                                // 阅读进度
+                                if (state.readingProgress != null) {
+                                    BookDetailProgressSection(
+                                        progress = state.readingProgress,
+                                        modifier = Modifier.padding(top = 16.dp)
+                                    )
+                                }
+
+                                // 操作按钮
+                                BookDetailActionSection(
+                                    inDefaultBookshelf = state.inDefaultBookshelf,
+                                    onStartReading = onStartReading,
+                                    onToggleDefaultBookshelf = onToggleDefaultBookshelf,
+                                    onAddToBookshelf = onShowAddToBookshelfDialog,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                )
+
+                                // 标签
+                                if (state.tags.isNotEmpty()) {
+                                    BookDetailTagsSection(
+                                        tags = state.tags,
+                                        modifier = Modifier.padding(top = 16.dp)
+                                    )
+                                }
+
+                                // 所在书架
+                                if (state.bookshelves.isNotEmpty()) {
+                                    BookDetailShelvesSection(
+                                        bookshelves = state.bookshelves,
+                                        onRemoveFromBookshelf = onRemoveFromBookshelf,
+                                        modifier = Modifier.padding(top = 16.dp)
+                                    )
+                                }
+
+                                // 书籍详细信息
+                                BookDetailInfoSection(
+                                    book = state.book,
                                     modifier = Modifier.padding(top = 16.dp)
                                 )
                             }
-                            
-                            // 所在书架
-                            if (state.bookshelves.isNotEmpty()) {
-                                BookDetailShelvesSection(
-                                    bookshelves = state.bookshelves,
-                                    onRemoveFromBookshelf = onRemoveFromBookshelf,
-                                    modifier = Modifier.padding(top = 16.dp)
-                                )
-                            }
-                            
-                            // 书籍详细信息
-                            BookDetailInfoSection(
-                                book = state.book,
-                                modifier = Modifier.padding(top = 16.dp)
-                            )
                         }
                     }
                 }
