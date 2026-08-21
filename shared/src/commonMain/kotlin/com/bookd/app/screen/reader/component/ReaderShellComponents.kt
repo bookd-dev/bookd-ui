@@ -1029,6 +1029,8 @@ fun ReaderTocSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetGesturesEnabled = READER_TOC_SHEET_GESTURES_ENABLED,
+        dragHandle = null,
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier,
     ) {
@@ -1130,6 +1132,8 @@ fun ReaderTocSheet(
         }
     }
 }
+
+internal const val READER_TOC_SHEET_GESTURES_ENABLED = false
 
 private enum class ReaderTocSheetTab {
     Toc,
